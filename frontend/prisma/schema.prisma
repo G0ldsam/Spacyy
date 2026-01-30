@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organization (Customer/License Holder)
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users       UserOrganization[]
+  spaces      Space[]
+  bookings    Booking[]
+  clients     Client[]
+  invitations Invitation[]
+
+  @@index([slug])
+}
+
+// User (can belong to multiple organizations)
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?  // Hashed password
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  organizations UserOrganization[]
+  accounts      Account[]
+  sessions      Session[]
+  bookings      Booking[] @relation("ClientBookings")
+  clients       Client[]
+
+  @@index([email])
+}
+
+// User-Organization relationship (many-to-many)
+model UserOrganization {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           UserRole     @default(CLIENT)
+  createdAt      DateTime     @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+enum UserRole {
+  OWNER    // Organization owner/customer
+  ADMIN    // Organization admin
+  CLIENT   // Regular client
+}
+
+// Client (belongs to specific organization)
+model Client {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?  // Link to User if they have account
+  email          String
+  name           String
+  phone          String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  bookings     Booking[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+// Space/Resource (e.g., seat, table, mat)
+model Space {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  capacity       Int      @default(1) // How many people can use it
+  isActive       Boolean  @default(true)
+  metadata       Json?    // Flexible metadata for different space types
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bookings     Booking[]
+
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+}
+
+// Booking
+model Booking {
+  id             String        @id @default(cuid())
+  organizationId String
+  spaceId        String
+  clientId       String
+  userId         String?       // User who made the booking (if logged in)
+  startTime      DateTime
+  endTime        DateTime
+  status         BookingStatus @default(CONFIRMED)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  space        Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user         User?        @relation("ClientBookings", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([spaceId])
+  @@index([clientId])
+  @@index([startTime, endTime])
+  @@index([organizationId, startTime, endTime])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// Invitation
+model Invitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  email          String
+  role           UserRole         @default(CLIENT)
+  token          String           @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email, token])
+  @@index([token])
+  @@index([organizationId])
+  @@index([expiresAt])
+}
+
+// NextAuth.js tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

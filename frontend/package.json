@@ -1,0 +1,47 @@
+{
+  "name": "spacyy-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "setup:user": "node scripts/create-first-user.js",
+    "hash:password": "node scripts/hash-password.js"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "next-auth": "^5.0.0-beta.15",
+    "@prisma/client": "^5.19.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "zod": "^3.23.0",
+    "react-hook-form": "^7.52.0",
+    "@hookform/resolvers": "^3.9.0",
+    "date-fns": "^3.6.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/bcryptjs": "^2.4.6",
+    "prisma": "^5.19.0",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "next-pwa": "^5.6.0",
+    "dotenv": "^16.4.0"
+  }
+}
