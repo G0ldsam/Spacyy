@@ -83,7 +83,7 @@ export default async function SessionsPage() {
           {sessions.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-gray-700">No sessions yet. Click "Create Session" above to get started.</p>
+                <p className="text-gray-700">No sessions yet. Click &quot;Create Session&quot; above to get started.</p>
               </CardContent>
             </Card>
           ) : (

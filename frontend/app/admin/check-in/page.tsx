@@ -184,7 +184,7 @@ export default function CheckInPage() {
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Check-In</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Scan a member's QR code to check them in for their session
+              Scan a member&apos;s QR code to check them in for their session
             </p>
           </div>
 

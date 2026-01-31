@@ -196,7 +196,7 @@ export default function MembershipManagementPage() {
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Membership Management</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Scan a member's QR code to renew their membership
+              Scan a member&apos;s QR code to renew their membership
             </p>
           </div>
 

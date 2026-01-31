@@ -227,7 +227,7 @@ export default function ClientsPage() {
           {clients.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-gray-700">No clients yet. Click "Create Client" to get started.</p>
+                <p className="text-gray-700">No clients yet. Click &quot;Create Client&quot; to get started.</p>
               </CardContent>
             </Card>
           ) : (
