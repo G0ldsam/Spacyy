@@ -56,11 +56,70 @@ export default function CheckInPage() {
       setCheckInInfo(null)
       setScanning(true)
 
+      // Check if we're in a secure context (HTTPS or localhost)
+      const isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      if (!isSecure) {
+        setError('Camera access requires HTTPS. Please use a secure connection or localhost.')
+        setScanning(false)
+        return
+      }
+
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Camera API is not available in this browser. Please use a modern browser that supports camera access.')
+        setScanning(false)
+        return
+      }
+
+      // Check if camera is available
+      let devices: any[] = []
+      try {
+        devices = await Html5Qrcode.getCameras()
+      } catch (camError: any) {
+        // If getCameras fails, try to start with default camera
+        console.warn('Could not enumerate cameras, trying default:', camError)
+      }
+
+      if (devices.length === 0) {
+        // Try to start with default camera constraints
+        const scanner = new Html5Qrcode('qr-reader-checkin')
+        scannerRef.current = scanner
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: Math.min(250, window.innerWidth - 80), height: Math.min(250, window.innerWidth - 80) },
+          },
+          (decodedText) => {
+            handleQRCodeScanned(decodedText)
+          },
+          (errorMessage) => {
+            // Ignore scanning errors
+          }
+        )
+        return
+      }
+
       const scanner = new Html5Qrcode('qr-reader-checkin')
       scannerRef.current = scanner
 
+      // Try to use back camera first, fallback to any available camera
+      let cameraId: string | null = null
+      const backCamera = devices.find((device: any) => 
+        device.label.toLowerCase().includes('back') || 
+        device.label.toLowerCase().includes('rear') ||
+        device.label.toLowerCase().includes('environment')
+      )
+      
+      if (backCamera) {
+        cameraId = backCamera.id
+      } else {
+        cameraId = devices[0].id
+      }
+
       await scanner.start(
-        { facingMode: 'environment' },
+        cameraId,
         {
           fps: 10,
           qrbox: { width: Math.min(250, window.innerWidth - 80), height: Math.min(250, window.innerWidth - 80) },
@@ -69,12 +128,27 @@ export default function CheckInPage() {
           handleQRCodeScanned(decodedText)
         },
         (errorMessage) => {
-          // Ignore scanning errors
+          // Ignore scanning errors (these are usually just "no QR code found" messages)
         }
       )
     } catch (error: any) {
       console.error('Error starting scanner:', error)
-      setError('Failed to start camera. Please ensure camera permissions are granted.')
+      
+      let errorMessage = 'Failed to start camera. '
+      
+      if (error.name === 'NotAllowedError' || error.message?.includes('permission')) {
+        errorMessage += 'Camera permission denied. Please allow camera access in your browser settings and try again.'
+      } else if (error.name === 'NotFoundError' || error.message?.includes('not found')) {
+        errorMessage += 'No camera found. Please connect a camera device.'
+      } else if (error.name === 'NotReadableError' || error.message?.includes('not readable')) {
+        errorMessage += 'Camera is already in use by another application. Please close other apps using the camera.'
+      } else if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
+        errorMessage += 'Camera access requires HTTPS. Please use a secure connection.'
+      } else {
+        errorMessage += 'Please ensure camera permissions are granted and try again.'
+      }
+      
+      setError(errorMessage)
       setScanning(false)
     }
   }
