@@ -57,3 +57,22 @@ input, select, textarea {
     padding-right: max(1rem, env(safe-area-inset-right));
   }
 }
+
+/* Force 24-hour format for time inputs */
+input[type="time"] {
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+}
+
+/* Ensure time inputs display in 24-hour format */
+input[type="time"]::before {
+  content: '';
+}
+
+/* For browsers that support it, force 24-hour format */
+input[type="time"] {
+  color-scheme: light;
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { bookingSchema } from '@/shared/lib/validation'
+import { bookingSchema } from '@/lib/validation'
 import { checkBookingConflict } from '@/shared/lib/booking'
 
 // GET /api/bookings - List bookings
@@ -73,52 +73,123 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const validated = bookingSchema.parse(body)
+    
+    // Get organization from user
+    const userOrg = session.user.organizations?.[0]
+    if (!userOrg) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
+    }
+    const organizationId = userOrg.organization.id
 
-    // Verify user has access to the organization
-    // You'll need to get organizationId from the space
-    const space = await prisma.space.findUnique({
-      where: { id: validated.spaceId },
-      select: { organizationId: true },
+    // Validate booking data
+    const validated = bookingSchema.parse({
+      ...body,
+      clientId: body.clientId,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      notes: body.notes,
     })
 
-    if (!space) {
-      return NextResponse.json({ error: 'Space not found' }, { status: 404 })
+    // Get organization from session or space
+    let finalOrganizationId = organizationId
+    if (validated.spaceId) {
+      const space = await prisma.space.findUnique({
+        where: { id: validated.spaceId },
+        select: { organizationId: true },
+      })
+      if (!space) {
+        return NextResponse.json({ error: 'Space not found' }, { status: 404 })
+      }
+      finalOrganizationId = space.organizationId
+    } else if (validated.sessionId) {
+      const serviceSession = await prisma.serviceSession.findUnique({
+        where: { id: validated.sessionId },
+        select: { organizationId: true },
+      })
+      if (!serviceSession) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      }
+      finalOrganizationId = serviceSession.organizationId
     }
 
     const hasAccess = session.user.organizations?.some(
-      (org) => org.id === space.organizationId
+      (org) => org.organization.id === finalOrganizationId
     )
 
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Check for conflicts
+    // Get organization to check policies
+    const organization = await prisma.organization.findUnique({
+      where: { id: finalOrganizationId },
+      select: {
+        requireMembershipForBooking: true,
+      },
+    })
+
+    // Check membership requirement policy
+    if (organization?.requireMembershipForBooking) {
+      const client = await prisma.client.findUnique({
+        where: { id: validated.clientId },
+        select: {
+          sessionAllowance: true,
+        },
+      })
+
+      if (client && client.sessionAllowance !== null) {
+        // Count active bookings for this client
+        const activeBookingsCount = await prisma.booking.count({
+          where: {
+            clientId: validated.clientId,
+            status: {
+              not: 'CANCELLED',
+            },
+          },
+        })
+
+        // Check if client has available slots
+        if (activeBookingsCount >= client.sessionAllowance) {
+          return NextResponse.json(
+            { error: 'No available session slots. Please check your membership status.' },
+            { status: 403 }
+          )
+        }
+      }
+    }
+
+    // Check for conflicts - count existing bookings for this time slot
     const existingBookings = await prisma.booking.findMany({
       where: {
-        spaceId: validated.spaceId,
+        sessionId: validated.sessionId || undefined,
+        spaceId: validated.spaceId || undefined,
+        startTime: new Date(validated.startTime),
+        endTime: new Date(validated.endTime),
         status: {
           not: 'CANCELLED',
         },
       },
-      select: {
-        startTime: true,
-        endTime: true,
-      },
     })
 
-    if (checkBookingConflict(validated, existingBookings)) {
-      return NextResponse.json(
-        { error: 'Time slot is already booked' },
-        { status: 409 }
-      )
+    // If it's a session booking, check if slots are available
+    if (validated.sessionId) {
+      const serviceSession = await prisma.serviceSession.findUnique({
+        where: { id: validated.sessionId },
+        select: { slots: true },
+      })
+      if (serviceSession && existingBookings.length >= serviceSession.slots) {
+        return NextResponse.json(
+          { error: 'No slots available for this time' },
+          { status: 409 }
+        )
+      }
     }
 
     const booking = await prisma.booking.create({
       data: {
-        organizationId: space.organizationId,
+        organizationId: finalOrganizationId,
         spaceId: validated.spaceId,
+        sessionId: validated.sessionId,
         clientId: validated.clientId,
         userId: session.user.id,
         startTime: new Date(validated.startTime),

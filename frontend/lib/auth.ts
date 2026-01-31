@@ -46,6 +46,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
+          mustChangePassword: user.mustChangePassword,
           organizations: user.organizations.map((uo) => ({
             id: uo.organizationId,
             role: uo.role,
@@ -56,16 +57,30 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
+        token.mustChangePassword = (user as any).mustChangePassword || false
         token.organizations = (user as any).organizations || []
       }
+      
+      // If session is being updated, refresh the mustChangePassword flag from database
+      if (trigger === 'update') {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { mustChangePassword: true },
+        })
+        if (dbUser) {
+          token.mustChangePassword = dbUser.mustChangePassword
+        }
+      }
+      
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
+        session.user.mustChangePassword = (token.mustChangePassword as boolean) || false
         session.user.organizations = (token.organizations as any) || []
       }
       return session

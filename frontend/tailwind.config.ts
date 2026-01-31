@@ -11,6 +11,10 @@ const config: Config = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        wine: {
+          DEFAULT: '#8B1538',
+          dark: '#722F37',
+        },
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',

@@ -31,7 +31,7 @@ export function MobileNav({ items }: MobileNavProps) {
                 'transition-colors duration-200',
                 isActive
                   ? 'text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-700 hover:text-gray-900'
               )}
             >
               <span className="text-xs font-medium truncate w-full text-center">

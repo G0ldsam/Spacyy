@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { spaceSchema } from '@/shared/lib/validation'
+import { spaceSchema } from '@/lib/validation'
 
 // GET /api/spaces - List spaces
 export async function GET(req: NextRequest) {
