@@ -114,8 +114,9 @@ export default function BookPage() {
   const getWeekDays = (date: Date) => {
     const week = []
     const startOfWeek = new Date(date)
-    const day = startOfWeek.getDay()
-    const diff = startOfWeek.getDate() - day
+    const day = startOfWeek.getDay() // 0 = Sunday, 1 = Monday, etc.
+    // Calculate Monday of the week: if Sunday (0), go back 6 days; otherwise go back (day - 1) days
+    const diff = startOfWeek.getDate() - (day === 0 ? 6 : day - 1)
     
     for (let i = 0; i < 7; i++) {
       const weekDay = new Date(startOfWeek)
@@ -192,9 +193,9 @@ export default function BookPage() {
   const weekRange = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mobile-container">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <div className="mobile-container w-full">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8 w-full">
           <div className="mb-6 sm:mb-8 relative">
             <div className="absolute top-0 right-0">
               <LogoutButton />
@@ -220,18 +221,19 @@ export default function BookPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3 mb-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3 mb-6 w-full">
             {/* Calendar - Week View */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{weekRange}</CardTitle>
-                    <div className="flex gap-2">
+            <div className="lg:col-span-1 w-full min-w-0">
+              <Card className="w-full overflow-hidden">
+                <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-xs sm:text-sm md:text-base break-words flex-1 min-w-0">{weekRange}</CardTitle>
+                    <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigateWeek('prev')}
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       >
                         ‹
                       </Button>
@@ -239,16 +241,17 @@ export default function BookPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => navigateWeek('next')}
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       >
                         ›
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex gap-1">
+                <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+                  <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 w-full">
                     {weekDays.map((date, index) => {
-                      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][index]
+                      const dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]
                       const dayNumber = date.getDate()
                       return (
                         <button
@@ -256,7 +259,7 @@ export default function BookPage() {
                           onClick={() => selectDate(date)}
                           disabled={isPastDate(date)}
                           className={`
-                            flex-1 flex flex-col items-center justify-center p-3 rounded-md text-sm font-medium transition-colors min-h-[80px]
+                            flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0
                             ${isPastDate(date)
                               ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
                               : isSelected(date) 
@@ -267,14 +270,14 @@ export default function BookPage() {
                             }
                           `}
                         >
-                          <span className="text-xs mb-1 opacity-70">{dayName}</span>
-                          <span className="text-lg font-semibold">{dayNumber}</span>
+                          <span className="text-[9px] sm:text-[10px] md:text-xs mb-0.5 sm:mb-1 opacity-70">{dayName}</span>
+                          <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{dayNumber}</span>
                         </button>
                       )
                     })}
                   </div>
                   {selectedDate && (
-                    <p className="text-sm text-gray-700 mt-4 text-center">
+                    <p className="text-[10px] sm:text-xs md:text-sm text-gray-700 mt-2 sm:mt-3 md:mt-4 text-center break-words px-1 sm:px-2">
                       Selected: {formatDate(selectedDate)}
                     </p>
                   )}
@@ -283,59 +286,60 @@ export default function BookPage() {
             </div>
 
             {/* Available Sessions */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
+            <div className="lg:col-span-2 w-full min-w-0">
+              <Card className="w-full overflow-hidden">
+                <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
+                  <CardTitle className="text-sm sm:text-base md:text-lg break-words">
                     Available Sessions - {formatDate(selectedDate)}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-4 md:p-6">
                   {availableSessions.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-gray-700 mb-2">
+                    <div className="text-center py-8 sm:py-12">
+                      <p className="text-sm sm:text-base text-gray-700 mb-2 break-words px-2">
                         No sessions available for this day
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600 break-words px-2">
                         Select another date to see available sessions
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {availableSessions.map((sessionItem) => (
                         <Link
                           key={sessionItem.id}
                           href={`/book/${sessionItem.id}/${selectedDate.toISOString().split('T')[0]}`}
+                          className="block w-full"
                         >
                           <div
-                            className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                            className="border border-gray-200 rounded-lg p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow w-full"
                             style={{ borderLeftColor: sessionItem.themeColor, borderLeftWidth: '4px' }}
                           >
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h3 className="font-semibold text-lg text-gray-900">
+                            <div className="flex items-start justify-between mb-2 gap-2">
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-semibold text-base sm:text-lg text-gray-900 break-words">
                                   {sessionItem.name}
                                 </h3>
                                 {sessionItem.description && (
-                                  <p className="text-sm text-gray-700 mt-1">
+                                  <p className="text-xs sm:text-sm text-gray-700 mt-1 break-words">
                                     {sessionItem.description}
                                   </p>
                                 )}
                               </div>
                               <div
-                                className="w-4 h-4 rounded-full flex-shrink-0 ml-2"
+                                className="w-4 h-4 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: sessionItem.themeColor }}
                               />
                             </div>
                             <div className="mt-3">
                               <p className="text-xs text-gray-600 mb-2">Available time slots:</p>
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                 {sessionItem.timetable
                                   .sort((a, b) => a.startTime.localeCompare(b.startTime))
                                   .map((slot) => (
                                     <span
                                       key={slot.id}
-                                      className="px-3 py-1 bg-gray-100 rounded-md text-sm text-gray-900"
+                                      className="px-2 sm:px-3 py-1 bg-gray-100 rounded-md text-xs sm:text-sm text-gray-900 whitespace-nowrap"
                                     >
                                       {slot.startTime} - {slot.endTime}
                                     </span>
@@ -353,27 +357,27 @@ export default function BookPage() {
           </div>
 
           {/* My Bookings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>My Bookings</CardTitle>
+          <Card className="w-full overflow-hidden">
+            <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
+              <CardTitle className="text-sm sm:text-base md:text-lg">My Bookings</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-4 md:p-6">
               {myBookings.length === 0 ? (
-                <p className="text-center text-gray-700 py-8">No bookings yet</p>
+                <p className="text-center text-sm sm:text-base text-gray-700 py-8">No bookings yet</p>
               ) : (
                 <div className="space-y-3">
                   {myBookings.map((booking) => (
                     <div
                       key={booking.id}
-                      className="border border-gray-200 rounded-lg p-4"
+                      className="border border-gray-200 rounded-lg p-3 sm:p-4 w-full"
                       style={{ borderLeftColor: booking.serviceSession?.themeColor || '#8B1538', borderLeftWidth: '4px' }}
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg text-gray-900">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-base sm:text-lg text-gray-900 break-words">
                             {booking.serviceSession?.name || 'Session'}
                           </h3>
-                          <p className="text-sm text-gray-700 mt-1">
+                          <p className="text-xs sm:text-sm text-gray-700 mt-1 break-words">
                             {new Date(booking.startTime).toLocaleDateString('en-US', {
                               weekday: 'long',
                               year: 'numeric',
@@ -381,7 +385,7 @@ export default function BookPage() {
                               day: 'numeric',
                             })}
                           </p>
-                          <p className="text-sm text-gray-700">
+                          <p className="text-xs sm:text-sm text-gray-700 break-words">
                             {new Date(booking.startTime).toLocaleTimeString('en-US', {
                               hour: '2-digit',
                               minute: '2-digit',
@@ -392,7 +396,7 @@ export default function BookPage() {
                           </p>
                         </div>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
                             booking.status === 'CONFIRMED'
                               ? 'bg-green-100 text-green-800'
                               : booking.status === 'CANCELLED'

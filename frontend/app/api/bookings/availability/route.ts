@@ -46,6 +46,8 @@ export async function GET(req: NextRequest) {
         startTime: true,
         endTime: true,
         status: true,
+        checkedIn: true,
+        checkedInAt: true,
         client: {
           select: {
             id: true,
@@ -65,6 +67,8 @@ export async function GET(req: NextRequest) {
         startTime,
         endTime,
         status: booking.status,
+        checkedIn: booking.checkedIn,
+        checkedInAt: booking.checkedInAt?.toISOString() || null,
         client: booking.client,
       }
     })

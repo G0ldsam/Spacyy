@@ -17,6 +17,8 @@ interface Booking {
   startTime: string
   endTime: string
   status: string
+  checkedIn: boolean
+  checkedInAt: string | null
 }
 
 interface TimeSlot {
@@ -117,6 +119,26 @@ export default function TimeSlotBookingsPage() {
     setShowModal(true)
     setAction(null)
     setSelectedClientId('')
+  }
+
+  const handleCheckIn = async (bookingId: string) => {
+    try {
+      const response = await fetch(`/api/admin/check-in/booking/${bookingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to check in')
+      }
+
+      fetchData() // Refresh data
+    } catch (error: any) {
+      alert(error.message || 'Failed to check in client')
+    }
   }
 
   const handleAssign = async () => {
@@ -287,9 +309,19 @@ export default function TimeSlotBookingsPage() {
                               <h3 className="text-lg font-semibold text-gray-900">
                                 {timeSlot.startTime} - {timeSlot.endTime}
                               </h3>
-                              <span className="text-xs text-gray-600">
-                                {activeBookings.length}/{sessionSlots} {activeBookings.length === 1 ? 'booking' : 'bookings'}
-                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-600">
+                                  {activeBookings.length}/{sessionSlots} {activeBookings.length === 1 ? 'booking' : 'bookings'}
+                                </span>
+                                {activeBookings.length > 0 && (
+                                  <>
+                                    <span className="text-xs text-gray-400">•</span>
+                                    <span className="text-xs text-green-700 font-medium">
+                                      {activeBookings.filter(b => b.checkedIn).length} checked in
+                                    </span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -311,10 +343,52 @@ export default function TimeSlotBookingsPage() {
                             {activeBookings.map((booking) => (
                               <div
                                 key={booking.id}
-                                onClick={() => handleClientClick(booking)}
-                                className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2 cursor-pointer hover:bg-gray-100 transition-colors"
+                                className={`text-sm rounded px-3 py-2 transition-colors flex items-center justify-between gap-2 ${
+                                  booking.checkedIn
+                                    ? 'bg-green-50 border border-green-200'
+                                    : 'bg-gray-50 border border-gray-200'
+                                }`}
                               >
-                                {booking.client.name} ({booking.client.email})
+                                <div 
+                                  className="flex-1 cursor-pointer"
+                                  onClick={() => handleClientClick(booking)}
+                                >
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-gray-900 font-medium">
+                                      {booking.client.name}
+                                    </span>
+                                    {booking.checkedIn ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        ✓ Checked In
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Pending
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-xs text-gray-600 block mt-0.5">
+                                    {booking.client.email}
+                                  </span>
+                                  {booking.checkedIn && booking.checkedInAt && (
+                                    <span className="text-xs text-green-700 block mt-0.5">
+                                      Checked in at {new Date(booking.checkedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  )}
+                                </div>
+                                {!booking.checkedIn && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleCheckIn(booking.id)
+                                    }}
+                                    className="flex-shrink-0 text-xs"
+                                  >
+                                    Check In
+                                  </Button>
+                                )}
                               </div>
                             ))}
                             {/* Show empty slots */}

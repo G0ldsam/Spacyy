@@ -97,11 +97,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
             {/* My Sessions - Upcoming Bookings */}
             <div className="lg:col-span-2">
               <Link href="/my-sessions">
-                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg sm:text-xl">My Sessions</CardTitle>
                   </CardHeader>
@@ -120,9 +120,9 @@ export default function HomePage() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               {/* Book a Session */}
-              <Card className="shadow-sm">
+              <Card className="shadow-sm h-full">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg sm:text-xl">Book a Session</CardTitle>
                 </CardHeader>
@@ -140,7 +140,7 @@ export default function HomePage() {
 
               {/* Member Card */}
               <Link href="/membership">
-                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardHeader className="pb-4">
                     <CardTitle className="text-lg sm:text-xl">Member Card</CardTitle>
                   </CardHeader>

@@ -23,7 +23,7 @@ export default function MembershipManagementPage() {
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
   const [scannedClient, setScannedClient] = useState<ScannedClient | null>(null)
-  const [sessionAllowance, setSessionAllowance] = useState<string>('')
+  const [sessionsToAdd, setSessionsToAdd] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -184,7 +184,7 @@ export default function MembershipManagementPage() {
         
         const clientData = await response.json()
         setScannedClient(clientData)
-        setSessionAllowance(clientData.sessionAllowance?.toString() || '')
+        setSessionsToAdd('')
       } else {
         setError('Invalid QR code. Please scan a membership QR code.')
       }
@@ -202,24 +202,24 @@ export default function MembershipManagementPage() {
     setSuccess('')
 
     try {
-      const allowance = sessionAllowance === '' ? null : parseInt(sessionAllowance)
-      if (sessionAllowance !== '' && (isNaN(allowance!) || allowance! < 0)) {
-        throw new Error('Session allowance must be a positive number or empty for unlimited')
+      const sessionsToAddNum = parseInt(sessionsToAdd)
+      if (isNaN(sessionsToAddNum) || sessionsToAddNum <= 0) {
+        throw new Error('Please enter a positive number of sessions to add')
       }
 
-      const response = await fetch(`/api/admin/clients/${scannedClient.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/admin/clients/${scannedClient.id}/renew`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sessionAllowance: allowance,
+          sessionsToAdd: sessionsToAddNum,
         }),
       })
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to update membership')
+        throw new Error(data.error || 'Failed to renew membership')
       }
 
       const updated = await response.json()
@@ -227,12 +227,12 @@ export default function MembershipManagementPage() {
         ...scannedClient,
         sessionAllowance: updated.sessionAllowance,
       })
-      setSuccess('Membership renewed successfully!')
+      setSuccess(`Successfully added ${sessionsToAddNum} session(s)! New total: ${updated.sessionAllowance || 'Unlimited'}`)
       setTimeout(() => {
         setScannedClient(null)
-        setSessionAllowance('')
+        setSessionsToAdd('')
         setSuccess('')
-      }, 2000)
+      }, 3000)
     } catch (error: any) {
       setError(error.message || 'An error occurred')
     } finally {
@@ -348,21 +348,26 @@ export default function MembershipManagementPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="sessionAllowance" className="text-sm font-medium text-gray-900">
-                        New Session Allowance
+                      <label htmlFor="sessionsToAdd" className="text-sm font-medium text-gray-900">
+                        Sessions to Add
                       </label>
                       <Input
-                        id="sessionAllowance"
+                        id="sessionsToAdd"
                         type="number"
-                        min="0"
-                        placeholder="Leave empty for unlimited"
-                        value={sessionAllowance}
-                        onChange={(e) => setSessionAllowance(e.target.value)}
+                        min="1"
+                        placeholder="Enter number of sessions"
+                        value={sessionsToAdd}
+                        onChange={(e) => setSessionsToAdd(e.target.value)}
                         className="h-12 text-base"
                       />
                       <p className="text-xs text-gray-600">
-                        Enter the number of sessions allowed with this membership. Leave empty for unlimited.
+                        Enter the number of sessions to add to the current allowance. Current allowance: {scannedClient.sessionAllowance !== null ? `${scannedClient.sessionAllowance} sessions` : 'Unlimited'}
                       </p>
+                      {scannedClient.sessionAllowance !== null && sessionsToAdd && !isNaN(parseInt(sessionsToAdd)) && (
+                        <p className="text-sm font-semibold text-[#8B1538]">
+                          New total will be: {scannedClient.sessionAllowance + parseInt(sessionsToAdd)} sessions
+                        </p>
+                      )}
                     </div>
 
                     <Button

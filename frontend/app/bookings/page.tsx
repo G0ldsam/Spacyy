@@ -138,8 +138,9 @@ export default function BookingsPage() {
   const getWeekDays = (date: Date) => {
     const week = []
     const startOfWeek = new Date(date)
-    const day = startOfWeek.getDay()
-    const diff = startOfWeek.getDate() - day // Get Sunday of the week
+    const day = startOfWeek.getDay() // 0 = Sunday, 1 = Monday, etc.
+    // Calculate Monday of the week: if Sunday (0), go back 6 days; otherwise go back (day - 1) days
+    const diff = startOfWeek.getDate() - (day === 0 ? 6 : day - 1)
     
     for (let i = 0; i < 7; i++) {
       const weekDay = new Date(startOfWeek)
@@ -195,9 +196,9 @@ export default function BookingsPage() {
   const weekRange = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mobile-container">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <div className="mobile-container w-full">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8 w-full">
           <div className="mb-6 sm:mb-8">
             <Link href="/dashboard" className="inline-flex items-center text-gray-700 hover:text-gray-900 mb-4">
               <svg
@@ -218,19 +219,19 @@ export default function BookingsPage() {
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3 w-full">
             {/* Calendar - Week View */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader className="pb-3">
+            <div className="lg:col-span-1 w-full min-w-0">
+              <Card className="w-full overflow-hidden">
+                <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
                   <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-sm sm:text-base break-words">{weekRange}</CardTitle>
+                    <CardTitle className="text-xs sm:text-sm md:text-base break-words flex-1 min-w-0">{weekRange}</CardTitle>
                     <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigateWeek('prev')}
-                        className="h-8 w-8 p-0"
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       >
                         ‹
                       </Button>
@@ -238,24 +239,24 @@ export default function BookingsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => navigateWeek('next')}
-                        className="h-8 w-8 p-0"
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       >
                         ›
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex gap-1 sm:gap-1.5 overflow-x-auto -mx-1 px-1">
+                <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+                  <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 w-full">
                     {weekDays.map((date, index) => {
-                      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][index]
+                      const dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]
                       const dayNumber = date.getDate()
                       return (
                         <button
                           key={index}
                           onClick={() => selectDate(date)}
                           className={`
-                            flex-1 flex flex-col items-center justify-center p-2 sm:p-3 rounded-md text-xs sm:text-sm font-medium transition-colors min-h-[65px] sm:min-h-[80px] flex-shrink-0 min-w-[45px]
+                            flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0
                             ${isSelected(date) 
                               ? 'bg-[#8B1538] text-white' 
                               : isToday(date)
@@ -264,14 +265,14 @@ export default function BookingsPage() {
                             }
                           `}
                         >
-                          <span className="text-xs mb-1 opacity-70">{dayName}</span>
-                          <span className="text-sm sm:text-base lg:text-lg font-semibold">{dayNumber}</span>
+                          <span className="text-[9px] sm:text-[10px] md:text-xs mb-0.5 sm:mb-1 opacity-70">{dayName}</span>
+                          <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{dayNumber}</span>
                         </button>
                       )
                     })}
                   </div>
                   {selectedDate && (
-                    <p className="text-xs sm:text-sm text-gray-700 mt-4 text-center break-words px-2">
+                    <p className="text-[10px] sm:text-xs md:text-sm text-gray-700 mt-2 sm:mt-3 md:mt-4 text-center break-words px-1 sm:px-2">
                       Selected: {formatDate(selectedDate)}
                     </p>
                   )}
@@ -281,13 +282,13 @@ export default function BookingsPage() {
 
             {/* Available Sessions */}
             <div className="lg:col-span-2 w-full min-w-0">
-              <Card className="w-full">
+              <Card className="w-full overflow-hidden">
                 {selectedSession ? (
                   <>
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <CardTitle className="text-base sm:text-lg lg:text-xl break-words">
+                          <CardTitle className="text-sm sm:text-base md:text-lg lg:text-xl break-words">
                             {selectedSession.name}
                           </CardTitle>
                           <p className="text-xs sm:text-sm text-gray-700 mt-1 break-words">
@@ -301,7 +302,7 @@ export default function BookingsPage() {
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6"
+                            className="h-5 w-5 sm:h-6 sm:w-6"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -312,7 +313,7 @@ export default function BookingsPage() {
                         </button>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 sm:p-4 md:p-6">
                       <div className="space-y-3">
                         {selectedSession.timetable
                           .sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -358,12 +359,12 @@ export default function BookingsPage() {
                   </>
                 ) : (
                   <>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base sm:text-lg break-words">
+                    <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
+                      <CardTitle className="text-sm sm:text-base md:text-lg break-words">
                         Available Sessions - {formatDate(selectedDate)}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 sm:p-4 md:p-6">
                       {availableSessions.length === 0 ? (
                         <div className="text-center py-8 sm:py-12">
                           <p className="text-sm sm:text-base text-gray-700 mb-2 break-words px-2">
