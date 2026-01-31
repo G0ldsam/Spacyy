@@ -114,8 +114,14 @@ export default function CheckInPage() {
       
       if (backCamera) {
         cameraId = backCamera.id
-      } else {
+      } else if (devices.length > 0) {
         cameraId = devices[0].id
+      }
+
+      if (!cameraId) {
+        setError('No camera found. Please ensure a camera is available.')
+        setScanning(false)
+        return
       }
 
       await scanner.start(
