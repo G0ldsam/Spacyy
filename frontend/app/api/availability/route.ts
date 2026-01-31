@@ -72,17 +72,20 @@ export async function GET(req: NextRequest) {
       17
     )
 
-    // Group bookings by space
-    const bookingsBySpace = bookings.reduce((acc, booking) => {
-      if (!acc[booking.spaceId]) {
-        acc[booking.spaceId] = []
-      }
-      acc[booking.spaceId].push({
-        startTime: booking.startTime,
-        endTime: booking.endTime,
-      })
-      return acc
-    }, {} as Record<string, Array<{ startTime: Date; endTime: Date }>>)
+    // Group bookings by space (filter out bookings without spaceId)
+    const bookingsBySpace = bookings
+      .filter((booking) => booking.spaceId !== null)
+      .reduce((acc, booking) => {
+        const spaceId = booking.spaceId!
+        if (!acc[spaceId]) {
+          acc[spaceId] = []
+        }
+        acc[spaceId].push({
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+        })
+        return acc
+      }, {} as Record<string, Array<{ startTime: Date; endTime: Date }>>)
 
     // Calculate availability for each space
     const availability = spaces.flatMap((space) => {
