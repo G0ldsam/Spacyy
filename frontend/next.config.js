@@ -11,6 +11,14 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  transpilePackages: [],
+  // Transpile the shared folder
+  webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+    }
+    return config
+  },
 }
 
 module.exports = withPWA(nextConfig)
