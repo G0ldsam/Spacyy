@@ -49,8 +49,12 @@ export const authOptions: NextAuthOptions = {
           mustChangePassword: user.mustChangePassword,
           organizations: user.organizations.map((uo) => ({
             id: uo.organizationId,
-            role: uo.role,
-            organization: uo.organization,
+            role: uo.role as UserRole,
+            organization: {
+              id: uo.organization.id,
+              name: uo.organization.name,
+              slug: uo.organization.slug,
+            },
           })),
         }
       },
