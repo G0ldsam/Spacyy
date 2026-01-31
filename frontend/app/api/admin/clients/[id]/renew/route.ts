@@ -47,14 +47,35 @@ export async function POST(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
+    // Count active bookings (non-cancelled and not past)
+    const now = new Date()
+    const activeBookingsCount = await prisma.booking.count({
+      where: {
+        clientId: params.id,
+        status: {
+          not: 'CANCELLED',
+        },
+        endTime: {
+          gte: now, // Only count future bookings
+        },
+      },
+    })
+
     // Calculate new allowance
     let newAllowance: number | null
     if (client.sessionAllowance === null) {
       // If currently unlimited, keep it unlimited (can't add to unlimited)
       newAllowance = null
     } else {
-      // Add sessions to existing allowance
-      newAllowance = client.sessionAllowance + validated.sessionsToAdd
+      // If all sessions are used, reset to 0 and add new sessions
+      // Otherwise, add to existing allowance
+      if (activeBookingsCount >= client.sessionAllowance) {
+        // All sessions used - reset to 0 and add new sessions
+        newAllowance = validated.sessionsToAdd
+      } else {
+        // Some sessions remaining - add to existing allowance
+        newAllowance = client.sessionAllowance + validated.sessionsToAdd
+      }
     }
 
     const updated = await prisma.client.update({

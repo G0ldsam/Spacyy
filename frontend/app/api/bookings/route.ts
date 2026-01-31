@@ -138,20 +138,56 @@ export async function POST(req: NextRequest) {
       })
 
       if (client && client.sessionAllowance !== null) {
-        // Count active bookings for this client
+        const now = new Date()
+        // Count active bookings for this client (non-cancelled and future bookings only)
         const activeBookingsCount = await prisma.booking.count({
           where: {
             clientId: validated.clientId,
             status: {
               not: 'CANCELLED',
             },
+            endTime: {
+              gte: now, // Only count future bookings
+            },
           },
         })
 
         // Check if client has available slots
         if (activeBookingsCount >= client.sessionAllowance) {
+          // If all sessions are used, check if membership has expired
+          if (activeBookingsCount > 0) {
+            // Get the last booking to check expiration
+            const lastBooking = await prisma.booking.findFirst({
+              where: {
+                clientId: validated.clientId,
+                status: {
+                  not: 'CANCELLED',
+                },
+                endTime: {
+                  gte: now,
+                },
+              },
+              orderBy: {
+                endTime: 'desc',
+              },
+            })
+
+            if (lastBooking) {
+              const lastBookingEnd = new Date(lastBooking.endTime)
+              const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+              
+              // If last booking ends within 1 day, membership is expiring
+              if (lastBookingEnd <= oneDayFromNow) {
+                return NextResponse.json(
+                  { error: 'Your membership is expiring. Please renew to continue booking sessions.' },
+                  { status: 403 }
+                )
+              }
+            }
+          }
+          
           return NextResponse.json(
-            { error: 'No available session slots. Please check your membership status.' },
+            { error: 'No available session slots. Please check your membership status or renew your membership.' },
             { status: 403 }
           )
         }

@@ -56,7 +56,14 @@ export default function MySessionsPage() {
       const response = await fetch('/api/bookings/my')
       if (response.ok) {
         const data = await response.json()
-        setMyBookings(data)
+        const now = new Date()
+        // Filter out cancelled bookings and past bookings (where endTime is before now)
+        const activeBookings = data.filter((b: Booking) => {
+          if (b.status === 'CANCELLED') return false
+          const endTime = new Date(b.endTime)
+          return endTime >= now
+        })
+        setMyBookings(activeBookings)
       }
     } catch (error) {
       console.error('Error fetching bookings:', error)

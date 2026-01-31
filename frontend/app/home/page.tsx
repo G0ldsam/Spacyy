@@ -34,6 +34,10 @@ export default function HomePage() {
   const [myBookings, setMyBookings] = useState<Booking[]>([])
   const [sessionAllowance, setSessionAllowance] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [expirationWarning, setExpirationWarning] = useState<{
+    show: boolean
+    lastBookingDate: Date | null
+  }>({ show: false, lastBookingDate: null })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -41,7 +45,6 @@ export default function HomePage() {
       return
     }
     if (status === 'authenticated') {
-      fetchMyBookings()
       fetchClientInfo()
     }
   }, [status, router])
@@ -51,7 +54,37 @@ export default function HomePage() {
       const response = await fetch('/api/bookings/my')
       if (response.ok) {
         const data = await response.json()
-        setMyBookings(data)
+        const now = new Date()
+        // Filter out cancelled bookings and past bookings (where endTime is before now)
+        const activeBookings = data.filter((b: Booking) => {
+          if (b.status === 'CANCELLED') return false
+          const endTime = new Date(b.endTime)
+          return endTime >= now
+        })
+        setMyBookings(activeBookings)
+
+        // Check for expiration warning
+        if (sessionAllowance !== null && activeBookings.length >= sessionAllowance && activeBookings.length > 0) {
+          // Find the last booking (furthest in the future)
+          const sortedBookings = [...activeBookings].sort((a, b) => 
+            new Date(b.endTime).getTime() - new Date(a.endTime).getTime()
+          )
+          const lastBooking = sortedBookings[0]
+          const lastBookingEnd = new Date(lastBooking.endTime)
+          
+          // Check if last booking ends within 1 day
+          const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+          if (lastBookingEnd <= oneDayFromNow) {
+            setExpirationWarning({
+              show: true,
+              lastBookingDate: lastBookingEnd,
+            })
+          } else {
+            setExpirationWarning({ show: false, lastBookingDate: null })
+          }
+        } else {
+          setExpirationWarning({ show: false, lastBookingDate: null })
+        }
       }
     } catch (error) {
       console.error('Error fetching bookings:', error)
@@ -66,6 +99,8 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json()
         setSessionAllowance(data.sessionAllowance)
+        // Fetch bookings after client info is loaded
+        await fetchMyBookings()
       }
     } catch (error) {
       console.error('Error fetching client info:', error)
@@ -139,50 +174,86 @@ export default function HomePage() {
               </Card>
 
               {/* Member Card */}
-              <Link href="/membership">
-                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg sm:text-xl">Member Card</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-br from-[#8B1538] to-[#722F37] rounded-lg p-6 text-white">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-xs opacity-80 mb-1">Member Since</p>
-                            <p className="text-sm font-semibold">
-                              {session?.user?.email ? new Date().getFullYear() : '2024'}
-                            </p>
-                          </div>
-                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-6 w-6"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="border-t border-white/20 pt-4">
-                          <p className="text-xs opacity-80 mb-1">Sessions Used</p>
-                          <p className="text-2xl font-bold">{myBookings.length}</p>
-                          <p className="text-xs opacity-60 mt-1">
-                            {sessionAllowance !== null ? `of ${sessionAllowance} allowed` : 'Unlimited'}
+              <Link href="/membership" className="block h-full">
+                <div className="bg-gradient-to-br from-[#8B1538] to-[#722F37] rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col justify-between relative overflow-hidden">
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12"></div>
+                  
+                  <div className="relative z-10">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <p className="text-xs opacity-80 mb-1">Member Since</p>
+                        <p className="text-base font-semibold">
+                          {session?.user?.email ? new Date().getFullYear() : '2024'}
+                        </p>
+                      </div>
+                      <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-7 w-7"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Member Info */}
+                    <div className="mb-6">
+                      <p className="text-xs opacity-80 mb-2">Member</p>
+                      <p className="text-lg font-bold mb-1 truncate">
+                        {session?.user?.name || session?.user?.email?.split('@')[0] || 'Member'}
+                      </p>
+                      {session?.user?.email && (
+                        <p className="text-xs opacity-70 truncate">
+                          {session.user.email}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Sessions Info */}
+                    <div className="border-t border-white/20 pt-4">
+                      <p className="text-xs opacity-80 mb-2">Sessions</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-3xl font-bold">{myBookings.length}</p>
+                        <p className="text-sm opacity-70">
+                          {sessionAllowance !== null ? `/ ${sessionAllowance}` : '/ ∞'}
+                        </p>
+                      </div>
+                      {sessionAllowance !== null && (
+                        <p className="text-xs opacity-60 mt-1">
+                          {sessionAllowance - myBookings.length} remaining
+                        </p>
+                      )}
+                    </div>
+                    {expirationWarning.show && (
+                      <div className="border-t border-white/20 pt-4 mt-4">
+                        <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-2.5">
+                          <p className="text-[10px] sm:text-xs font-semibold text-yellow-100 mb-1">
+                            ⚠️ Expiring Soon
+                          </p>
+                          <p className="text-[10px] text-yellow-100/90">
+                            Renew to continue booking
                           </p>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-600 text-center">Tap to view QR code and details</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                    )}
+                  </div>
+
+                  {/* Footer hint */}
+                  <div className="relative z-10 mt-4 pt-4 border-t border-white/10">
+                    <p className="text-xs opacity-70 text-center">Tap to view QR code</p>
+                  </div>
+                </div>
               </Link>
             </div>
           </div>

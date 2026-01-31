@@ -21,6 +21,10 @@ export default function MembershipPage() {
   const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null)
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
   const [activeBookings, setActiveBookings] = useState(0)
+  const [expirationWarning, setExpirationWarning] = useState<{
+    show: boolean
+    lastBookingDate: Date | null
+  }>({ show: false, lastBookingDate: null })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -29,9 +33,57 @@ export default function MembershipPage() {
     }
     if (status === 'authenticated') {
       fetchClientInfo()
-      fetchActiveBookings()
     }
   }, [status, router])
+
+  // Check for expiration warning when both clientInfo and activeBookings are available
+  useEffect(() => {
+    if (clientInfo && clientInfo.sessionAllowance !== null && activeBookings > 0) {
+      // If all sessions are used, check if last booking is expiring soon
+      if (activeBookings >= clientInfo.sessionAllowance) {
+        // Fetch bookings to find the last one
+        fetch('/api/bookings/my')
+          .then(res => res.json())
+          .then((data: any[]) => {
+            const now = new Date()
+            const active = data.filter((b: any) => {
+              if (b.status === 'CANCELLED') return false
+              const endTime = new Date(b.endTime)
+              return endTime >= now
+            })
+            
+            if (active.length > 0) {
+              // Find the last booking (furthest in the future)
+              const sortedBookings = active.sort((a: any, b: any) => 
+                new Date(b.endTime).getTime() - new Date(a.endTime).getTime()
+              )
+              const lastBooking = sortedBookings[0]
+              const lastBookingEnd = new Date(lastBooking.endTime)
+              
+              // Check if last booking ends within 1 day
+              const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+              if (lastBookingEnd <= oneDayFromNow) {
+                setExpirationWarning({
+                  show: true,
+                  lastBookingDate: lastBookingEnd,
+                })
+              } else {
+                setExpirationWarning({ show: false, lastBookingDate: null })
+              }
+            } else {
+              setExpirationWarning({ show: false, lastBookingDate: null })
+            }
+          })
+          .catch(() => {
+            setExpirationWarning({ show: false, lastBookingDate: null })
+          })
+      } else {
+        setExpirationWarning({ show: false, lastBookingDate: null })
+      }
+    } else {
+      setExpirationWarning({ show: false, lastBookingDate: null })
+    }
+  }, [clientInfo, activeBookings])
 
   const fetchClientInfo = async () => {
     try {
@@ -55,6 +107,9 @@ export default function MembershipPage() {
           },
         })
         setQrCodeDataUrl(qrCode)
+        
+        // Fetch bookings after client info is loaded
+        await fetchActiveBookings()
       }
     } catch (error) {
       console.error('Error fetching client info:', error)
@@ -68,8 +123,14 @@ export default function MembershipPage() {
       const response = await fetch('/api/bookings/my')
       if (response.ok) {
         const data = await response.json()
-        const active = data.filter((b: any) => b.status !== 'CANCELLED').length
-        setActiveBookings(active)
+        const now = new Date()
+        // Filter out cancelled bookings and past bookings (where endTime is before now)
+        const active = data.filter((b: any) => {
+          if (b.status === 'CANCELLED') return false
+          const endTime = new Date(b.endTime)
+          return endTime >= now
+        })
+        setActiveBookings(active.length)
       }
     } catch (error) {
       console.error('Error fetching bookings:', error)
@@ -173,6 +234,22 @@ export default function MembershipPage() {
                           <p className="text-xl sm:text-2xl font-bold">
                             {availableSessions !== null ? availableSessions : 'Unlimited'}
                           </p>
+                        </div>
+                      )}
+                      {expirationWarning.show && (
+                        <div className="pt-3 border-t border-white/20">
+                          <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-3">
+                            <p className="text-xs sm:text-sm font-semibold text-yellow-100 mb-1">
+                              ⚠️ Membership Expiring
+                            </p>
+                            <p className="text-xs text-yellow-100/90">
+                              Your last session ends {expirationWarning.lastBookingDate?.toLocaleDateString('en-US', { 
+                                weekday: 'short',
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}. Please renew to continue booking.
+                            </p>
+                          </div>
                         </div>
                       )}
                       {clientInfo.sessionAllowance === null && (
