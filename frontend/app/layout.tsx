@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 
-// Force dynamic rendering for all pages since we use authentication and tenant context
-export const dynamic = 'force-dynamic'
+// Remove force-dynamic to allow static pages when possible
+// Individual pages can set their own dynamic rendering as needed
 
 export const metadata: Metadata = {
   title: 'Spacyy - Booking & Resource Management',
