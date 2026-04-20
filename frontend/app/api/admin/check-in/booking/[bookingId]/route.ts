@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // POST /api/admin/check-in/booking/[bookingId] - Check in a client for their booking
 export async function POST(
   req: NextRequest,

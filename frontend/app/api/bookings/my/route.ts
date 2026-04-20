@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/bookings/my - Get current user's bookings
 export async function GET(req: NextRequest) {
   try {

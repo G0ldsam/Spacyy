@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { timeSlotSchema } from '@/lib/validation'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // POST /api/sessions/[id]/timetable - Add time slot
 export async function POST(
   req: NextRequest,

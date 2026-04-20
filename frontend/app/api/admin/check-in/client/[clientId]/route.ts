@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { startOfDay, endOfDay } from 'date-fns'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/check-in/[clientId] - Get client's booking for today
 export async function GET(
   req: NextRequest,

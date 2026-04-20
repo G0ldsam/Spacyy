@@ -6,6 +6,9 @@ import { bookingSchema } from '@/lib/validation'
 import { checkBookingConflict } from '@/shared/lib/booking'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/bookings - List bookings
 export async function GET(req: NextRequest) {
   try {

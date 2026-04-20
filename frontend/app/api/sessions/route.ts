@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { serviceSessionSchema } from '@/lib/validation'
 import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/sessions - List sessions
 export async function GET(req: NextRequest) {
   try {

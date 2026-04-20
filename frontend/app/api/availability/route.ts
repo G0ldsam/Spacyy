@@ -6,6 +6,9 @@ import { availabilityQuerySchema } from '@/lib/validation'
 import { generateTimeSlots, filterAvailableSlots } from '@/shared/lib/availability'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/availability - Get available time slots
 export async function GET(req: NextRequest) {
   try {

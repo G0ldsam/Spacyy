@@ -6,6 +6,9 @@ import { clientSchema } from '@/lib/validation'
 import { z } from 'zod'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // PATCH /api/clients/[id] - Update client
 export async function PATCH(
   req: NextRequest,

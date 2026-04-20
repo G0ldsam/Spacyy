@@ -7,6 +7,9 @@ import { hash } from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/clients - List clients
 export async function GET(req: NextRequest) {
   try {

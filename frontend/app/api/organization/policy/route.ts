@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 const policySchema = z.object({
   bookingChangeHours: z.number().int().min(0).nullable().optional(),
   requireMembershipForBooking: z.boolean().optional(),

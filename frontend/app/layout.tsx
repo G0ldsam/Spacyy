@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 
+// Force dynamic rendering for all pages since we use authentication and tenant context
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Spacyy - Booking & Resource Management',
   description: 'Universal booking and resource management platform',

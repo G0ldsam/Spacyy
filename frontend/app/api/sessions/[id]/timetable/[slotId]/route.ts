@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // DELETE /api/sessions/[id]/timetable/[slotId] - Delete time slot
 export async function DELETE(
   req: NextRequest,

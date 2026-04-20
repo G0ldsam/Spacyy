@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { spaceSchema } from '@/lib/validation'
 import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/spaces - List spaces
 export async function GET(req: NextRequest) {
   try {
