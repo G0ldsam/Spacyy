@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { getTenantFromHost } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import ContactForm from '@/components/ContactForm'
 
 export default async function HomePage() {
   // Check if this is a tenant subdomain
@@ -40,10 +41,10 @@ export default async function HomePage() {
                 Features
               </Link>
               <Link 
-                href="#pricing" 
+                href="#contact" 
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Pricing
+                Contact
               </Link>
               <Link 
                 href="/login" 
@@ -72,10 +73,10 @@ export default async function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
-              href="/login" 
+              href="#contact" 
               className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
             >
-              Get Started Free
+              Get In Touch
             </Link>
             <a 
               href="#features" 
@@ -186,20 +187,18 @@ export default async function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-12 text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">
-            Ready to Get Started?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join hundreds of businesses managing their bookings with Spacyy
-          </p>
-          <Link 
-            href="/login" 
-            className="inline-block px-8 py-4 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors text-lg font-medium"
-          >
-            Start Free Trial
-          </Link>
+      <section id="contact" className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Get In Touch
+            </h2>
+            <p className="text-xl text-gray-600">
+              Interested in using Spacyy for your business? Let's talk!
+            </p>
+          </div>
+          
+          <ContactForm />
         </div>
       </section>
 
@@ -209,7 +208,7 @@ export default async function HomePage() {
           <div className="text-center text-gray-600">
             <p className="mb-2">© 2026 Spacyy. All rights reserved.</p>
             <p className="text-sm">
-              Made with ❤️ for fitness and wellness businesses
+              Made for fitness and wellness businesses
             </p>
           </div>
         </div>
