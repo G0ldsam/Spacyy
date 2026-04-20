@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { serviceSessionSchema } from '@/lib/validation'
+import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 
 // GET /api/sessions/[id] - Get single session
 export async function GET(
@@ -10,10 +11,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const serviceSession = await prisma.serviceSession.findUnique({
       where: { id: params.id },
@@ -32,12 +32,8 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    // Verify user has access
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.organization.id === serviceSession.organizationId
-    )
-
-    if (!hasAccess) {
+    // Verify session belongs to tenant organization
+    if (serviceSession.organizationId !== tenant.organizationId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -57,15 +53,14 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const validated = serviceSessionSchema.parse(body)
 
-    // Verify session exists and user has access
+    // Verify session exists and belongs to tenant organization
     const serviceSession = await prisma.serviceSession.findUnique({
       where: { id: params.id },
       select: { organizationId: true },
@@ -75,11 +70,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.organization.id === serviceSession.organizationId && (org.role === 'OWNER' || org.role === 'ADMIN')
-    )
-
-    if (!hasAccess) {
+    if (serviceSession.organizationId !== tenant.organizationId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -119,12 +110,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
-    // Verify session exists and user has access
+    // Verify session exists and belongs to tenant organization
     const serviceSession = await prisma.serviceSession.findUnique({
       where: { id: params.id },
       select: { organizationId: true },
@@ -134,11 +124,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.organization.id === serviceSession.organizationId && (org.role === 'OWNER' || org.role === 'ADMIN')
-    )
-
-    if (!hasAccess) {
+    if (serviceSession.organizationId !== tenant.organizationId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

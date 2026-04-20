@@ -2,25 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { verifyTenantAccess } from '@/lib/api-helpers'
 
 // GET /api/clients/me - Get current user's client record
 export async function GET(req: NextRequest) {
   try {
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
+
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get client for this user
-    const userOrg = session.user.organizations?.[0]
-    if (!userOrg) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
-    }
-
     let client = await prisma.client.findFirst({
       where: {
         userId: session.user.id,
-        organizationId: userOrg.organization.id,
+        organizationId: tenant.organizationId,
       },
       select: {
         id: true,
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest) {
         const existingClientByEmail = await prisma.client.findUnique({
           where: {
             organizationId_email: {
-              organizationId: userOrg.organization.id,
+              organizationId: tenant.organizationId,
               email: session.user.email || '',
             },
           },
@@ -68,7 +67,7 @@ export async function GET(req: NextRequest) {
           client = await prisma.client.create({
             data: {
               userId: session.user.id,
-              organizationId: userOrg.organization.id,
+              organizationId: tenant.organizationId,
               email: session.user.email || '',
               name: session.user.name || session.user.email || 'Client',
             },
@@ -90,7 +89,7 @@ export async function GET(req: NextRequest) {
           client = await prisma.client.findUnique({
             where: {
               organizationId_email: {
-                organizationId: userOrg.organization.id,
+                organizationId: tenant.organizationId,
                 email: session.user.email || '',
               },
             },

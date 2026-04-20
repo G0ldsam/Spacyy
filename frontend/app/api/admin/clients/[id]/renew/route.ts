@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { verifyTenantAdmin } from '@/lib/api-helpers'
 
 const renewSchema = z.object({
   sessionsToAdd: z.number().int().positive(),
@@ -14,19 +15,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin/owner
-    const userOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const validated = renewSchema.parse(body)
@@ -35,7 +26,7 @@ export async function POST(
     const client = await prisma.client.findFirst({
       where: {
         id: params.id,
-        organizationId: userOrg.organization.id,
+        organizationId: tenant.organizationId,
       },
       select: {
         id: true,

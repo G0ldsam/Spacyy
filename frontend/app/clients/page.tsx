@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import QRCode from 'qrcode'
 
 interface Client {
   id: string
@@ -35,6 +36,7 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [tempPassword, setTempPassword] = useState<string | null>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -62,6 +64,17 @@ export default function ClientsPage() {
       fetchClients()
     }
   }, [status, session, router])
+
+  useEffect(() => {
+    if (tempPassword && formData.email) {
+      const loginUrl = `${globalThis.location.origin}/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(tempPassword)}&autoLogin=true`
+      QRCode.toDataURL(loginUrl, { width: 256, margin: 2 })
+        .then(url => setQrCodeUrl(url))
+        .catch(err => console.error('Error generating QR code:', err))
+    } else {
+      setQrCodeUrl('')
+    }
+  }, [tempPassword, formData.email])
 
   const fetchClients = async () => {
     try {
@@ -120,6 +133,7 @@ export default function ClientsPage() {
 
   const handleClosePasswordModal = () => {
     setTempPassword(null)
+    setQrCodeUrl('')
     setFormData({
       name: '',
       email: '',
@@ -169,6 +183,41 @@ export default function ClientsPage() {
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update client')
+      }
+
+      setEditingClient(null)
+      setEditFormData({
+        name: '',
+        email: '',
+        phone: '',
+        notes: '',
+        sessionAllowance: '',
+      })
+      fetchClients()
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleDeleteClient = async () => {
+    if (!editingClient) return
+    if (!globalThis.window.confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
+      return
+    }
+
+    setError('')
+    setUpdating(true)
+
+    try {
+      const response = await fetch(`/api/clients/${editingClient.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete client')
       }
 
       setEditingClient(null)
@@ -403,7 +452,7 @@ export default function ClientsPage() {
                   className="h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300 rounded"
                 />
                 <label htmlFor="createAccount" className="text-sm text-gray-700">
-                  Create login account (with temporary password)
+                  Create login account (QR code handled automatically)
                 </label>
               </div>
 
@@ -435,28 +484,29 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* Temporary Password Modal */}
+      {/* Login QR Code Modal */}
       {tempPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Client Account Created</h2>
             <div className="space-y-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 mb-2">
-                  <strong>Important:</strong> Share this temporary password with the client. They will be required to change it on first login.
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  Account created for <strong>{formData.email}</strong>. The client can scan the QR code below to sign in instantly. They will be prompted to set their own password upon first login.
                 </p>
-                <div className="bg-white rounded border border-yellow-300 p-3 mt-3">
-                  <p className="text-xs text-gray-600 mb-1">Email:</p>
-                  <p className="font-mono text-sm font-semibold text-gray-900">{formData.email}</p>
-                  <p className="text-xs text-gray-600 mb-1 mt-3">Temporary Password:</p>
-                  <p className="font-mono text-lg font-bold text-[#8B1538]">{tempPassword}</p>
-                </div>
               </div>
+
+              {qrCodeUrl && (
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                  <img src={qrCodeUrl} alt="Login QR Code" className="w-56 h-56" />
+                </div>
+              )}
+
               <Button
                 className="w-full"
                 onClick={handleClosePasswordModal}
               >
-                Got it
+                Done
               </Button>
             </div>
           </div>
@@ -545,27 +595,38 @@ export default function ClientsPage() {
                 <p className="text-xs text-gray-600">Number of sessions allowed. Leave empty for unlimited.</p>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setEditingClient(null)
+                      setError('')
+                      setEditFormData({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        notes: '',
+                        sessionAllowance: '',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={updating}>
+                    {updating ? 'Updating...' : 'Update Client'}
+                  </Button>
+                </div>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setEditingClient(null)
-                    setError('')
-                    setEditFormData({
-                      name: '',
-                      email: '',
-                      phone: '',
-                      notes: '',
-                      sessionAllowance: '',
-                    })
-                  }}
+                  variant="ghost"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleDeleteClient}
+                  disabled={updating}
                 >
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1" disabled={updating}>
-                  {updating ? 'Updating...' : 'Update Client'}
+                  Delete Client
                 </Button>
               </div>
             </form>

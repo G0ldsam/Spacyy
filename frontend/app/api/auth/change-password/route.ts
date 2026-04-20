@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { currentPassword, newPassword } = body
 
-    if (!currentPassword || !newPassword) {
+    if (!newPassword) {
       return NextResponse.json(
-        { error: 'Current password and new password are required' },
+        { error: 'New password is required' },
         { status: 400 }
       )
     }
@@ -42,13 +42,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verify current password
-    const isValid = await compare(currentPassword, user.password)
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Current password is incorrect' },
-        { status: 401 }
-      )
+    // Verify current password only if user is not forced to change it
+    if (!user.mustChangePassword) {
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: 'Current password is required' },
+          { status: 400 }
+        )
+      }
+
+      const isValid = await compare(currentPassword, user.password)
+      if (!isValid) {
+        return NextResponse.json(
+          { error: 'Current password is incorrect' },
+          { status: 401 }
+        )
+      }
     }
 
     // Hash new password

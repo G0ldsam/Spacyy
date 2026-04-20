@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { verifyTenantAdmin } from '@/lib/api-helpers'
 
 // DELETE /api/sessions/[id]/timetable/[slotId] - Delete time slot
 export async function DELETE(
@@ -9,12 +10,11 @@ export async function DELETE(
   { params }: { params: { id: string; slotId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
-    // Verify time slot exists and user has access
+    // Verify time slot exists and belongs to tenant organization
     const timeSlot = await prisma.timeSlot.findUnique({
       where: { id: params.slotId },
       include: {
@@ -32,11 +32,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Time slot does not belong to this session' }, { status: 400 })
     }
 
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.organization.id === timeSlot.serviceSession.organizationId && (org.role === 'OWNER' || org.role === 'ADMIN')
-    )
-
-    if (!hasAccess) {
+    if (timeSlot.serviceSession.organizationId !== tenant.organizationId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

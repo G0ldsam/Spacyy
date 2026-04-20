@@ -5,25 +5,18 @@ import { prisma } from '@/lib/prisma'
 import { clientSchema } from '@/lib/validation'
 import { hash } from 'bcryptjs'
 import { randomBytes } from 'crypto'
+import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 
 // GET /api/clients - List clients
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get organization from user's first organization
-    const userOrg = session.user.organizations?.[0]
-    if (!userOrg) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
-    }
-    const organizationId = userOrg.organization.id
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const clients = await prisma.client.findMany({
       where: {
-        organizationId,
+        organizationId: tenant.organizationId,
       },
       select: {
         id: true,
@@ -53,24 +46,14 @@ export async function GET(req: NextRequest) {
 // POST /api/clients - Create client
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const validated = clientSchema.parse(body)
 
-    // Get organization from user (must be owner/admin)
-    const userOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const organizationId = userOrg.organization.id
+    const organizationId = tenant.organizationId
 
     // Check if client already exists
     const existing = await prisma.client.findUnique({

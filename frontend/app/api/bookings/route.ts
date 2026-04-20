@@ -4,34 +4,18 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
 import { checkBookingConflict } from '@/shared/lib/booking'
+import { verifyTenantAccess } from '@/lib/api-helpers'
 
 // GET /api/bookings - List bookings
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const searchParams = req.nextUrl.searchParams
-    const organizationId = searchParams.get('organizationId')
-
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID required' }, { status: 400 })
-    }
-
-    // Verify user has access to this organization
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.id === organizationId
-    )
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const bookings = await prisma.booking.findMany({
       where: {
-        organizationId,
+        organizationId: tenant.organizationId,
       },
       include: {
         space: {
@@ -67,6 +51,10 @@ export async function GET(req: NextRequest) {
 // POST /api/bookings - Create booking
 export async function POST(req: NextRequest) {
   try {
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
+
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -74,12 +62,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     
-    // Get organization from user
-    const userOrg = session.user.organizations?.[0]
-    if (!userOrg) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
-    }
-    const organizationId = userOrg.organization.id
+    const organizationId = tenant.organizationId
 
     // Validate booking data
     const validated = bookingSchema.parse({
@@ -112,11 +95,8 @@ export async function POST(req: NextRequest) {
       finalOrganizationId = serviceSession.organizationId
     }
 
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.organization.id === finalOrganizationId
-    )
-
-    if (!hasAccess) {
+    // Verify the resource belongs to the same organization as tenant
+    if (finalOrganizationId !== tenant.organizationId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

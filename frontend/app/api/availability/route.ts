@@ -4,33 +4,24 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { availabilityQuerySchema } from '@/lib/validation'
 import { generateTimeSlots, filterAvailableSlots } from '@/shared/lib/availability'
+import { verifyTenantAccess } from '@/lib/api-helpers'
 
 // GET /api/availability - Get available time slots
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const searchParams = req.nextUrl.searchParams
     const query = {
-      organizationId: searchParams.get('organizationId') || '',
+      organizationId: tenant.organizationId,
       startDate: searchParams.get('startDate') || new Date().toISOString(),
       endDate: searchParams.get('endDate') || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       spaceId: searchParams.get('spaceId') || undefined,
     }
 
     const validated = availabilityQuerySchema.parse(query)
-
-    // Verify user has access to this organization
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.id === validated.organizationId
-    )
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     // Get spaces
     const spaces = await prisma.space.findMany({

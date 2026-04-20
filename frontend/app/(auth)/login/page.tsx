@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Only access window in useEffect which runs on the client
+    if (globalThis.window !== undefined) {
+      const params = new URLSearchParams(globalThis.location.search)
+      const emailParam = params.get('email')
+      const passwordParam = params.get('password')
+
+      if (emailParam) setEmail(emailParam)
+      if (passwordParam) setPassword(passwordParam)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

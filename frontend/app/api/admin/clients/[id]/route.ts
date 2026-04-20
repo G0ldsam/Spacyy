@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { verifyTenantAdmin } from '@/lib/api-helpers'
 
 // GET /api/admin/clients/[id] - Get client info for admin
 export async function GET(
@@ -9,22 +10,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
-    // Check if user is admin/owner
-    const userOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const client = await prisma.client.findUnique({
-      where: { id: params.id },
+    const client = await prisma.client.findFirst({
+      where: {
+        id: params.id,
+        organizationId: tenant.organizationId,
+      },
       select: {
         id: true,
         name: true,
@@ -35,21 +29,6 @@ export async function GET(
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    // Verify client belongs to same organization
-    if (client.id !== params.id) {
-      // Additional check: verify organization
-      const clientOrg = await prisma.client.findFirst({
-        where: {
-          id: params.id,
-          organizationId: userOrg.organization.id,
-        },
-      })
-
-      if (!clientOrg) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      }
     }
 
     // Count active bookings
@@ -81,19 +60,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin/owner
-    const userOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const { sessionAllowance } = body
@@ -102,7 +71,7 @@ export async function PATCH(
     const client = await prisma.client.findFirst({
       where: {
         id: params.id,
-        organizationId: userOrg.organization.id,
+        organizationId: tenant.organizationId,
       },
     })
 

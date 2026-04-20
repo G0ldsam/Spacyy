@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { timeSlotSchema } from '@/lib/validation'
+import { verifyTenantAdmin } from '@/lib/api-helpers'
 
 // POST /api/sessions/[id]/timetable - Add time slot
 export async function POST(
@@ -10,15 +11,14 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const validated = timeSlotSchema.parse(body)
 
-    // Verify session exists and user has access
+    // Verify session exists and belongs to tenant organization
     const serviceSession = await prisma.serviceSession.findUnique({
       where: { id: params.id },
       select: { organizationId: true },
@@ -28,11 +28,7 @@ export async function POST(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.organization.id === serviceSession.organizationId && (org.role === 'OWNER' || org.role === 'ADMIN')
-    )
-
-    if (!hasAccess) {
+    if (serviceSession.organizationId !== tenant.organizationId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

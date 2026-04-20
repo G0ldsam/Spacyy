@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { verifyTenantAdmin } from '@/lib/api-helpers'
 
 const policySchema = z.object({
   bookingChangeHours: z.number().int().min(0).nullable().optional(),
@@ -12,22 +13,12 @@ const policySchema = z.object({
 // GET /api/organization/policy - Get policy settings
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get organization from user (must be owner/admin)
-    const userOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const organization = await prisma.organization.findUnique({
-      where: { id: userOrg.organization.id },
+      where: { id: tenant.organizationId },
       select: {
         bookingChangeHours: true,
         requireMembershipForBooking: true,
@@ -51,25 +42,15 @@ export async function GET(req: NextRequest) {
 // PATCH /api/organization/policy - Update policy settings
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const validated = policySchema.parse(body)
 
-    // Get organization from user (must be owner/admin)
-    const userOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
     const updated = await prisma.organization.update({
-      where: { id: userOrg.organization.id },
+      where: { id: tenant.organizationId },
       data: {
         bookingChangeHours: validated.bookingChangeHours ?? undefined,
         requireMembershipForBooking: validated.requireMembershipForBooking ?? undefined,

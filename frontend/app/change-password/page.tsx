@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input'
 export default function ChangePasswordPage() {
   const router = useRouter()
   const { data: session, status, update } = useSession()
+  const mustChangePassword = (session?.user as any)?.mustChangePassword
+
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -61,7 +63,7 @@ export default function ChangePasswordPage() {
 
       // Update session to clear mustChangePassword flag
       await update()
-      
+
       // Redirect based on user role - use window.location for full page reload
       const userOrg = session?.user?.organizations?.find(
         (org) => org.role === 'OWNER' || org.role === 'ADMIN'
@@ -105,19 +107,21 @@ export default function ChangePasswordPage() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label htmlFor="currentPassword" className="text-sm font-medium text-gray-900">
-                  Current Password *
-                </label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  placeholder="Enter current password"
-                  value={formData.currentPassword}
-                  onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                  required
-                />
-              </div>
+              {!mustChangePassword && (
+                <div className="space-y-2">
+                  <label htmlFor="currentPassword" className="text-sm font-medium text-gray-900">
+                    Current Password *
+                  </label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter current password"
+                    value={formData.currentPassword}
+                    onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
+                    required={!mustChangePassword}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label htmlFor="newPassword" className="text-sm font-medium text-gray-900">

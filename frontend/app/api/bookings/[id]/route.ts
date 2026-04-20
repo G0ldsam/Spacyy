@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { verifyTenantAccess } from '@/lib/api-helpers'
 
 // GET /api/bookings/[id] - Get single booking
 export async function GET(
@@ -9,21 +10,19 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
+
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get client for this user
-    const userOrg = session.user.organizations?.[0]
-    if (!userOrg) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
-    }
-
     const client = await prisma.client.findFirst({
       where: {
         userId: session.user.id,
-        organizationId: userOrg.organization.id,
+        organizationId: tenant.organizationId,
       },
     })
 
@@ -75,6 +74,10 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
+
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -90,16 +93,10 @@ export async function PATCH(
       )
     }
 
-    // Get client for this user
-    const userOrg = session.user.organizations?.[0]
-    if (!userOrg) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
-    }
-
     const client = await prisma.client.findFirst({
       where: {
         userId: session.user.id,
-        organizationId: userOrg.organization.id,
+        organizationId: tenant.organizationId,
       },
     })
 

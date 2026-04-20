@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { verifyTenantAccess } from '@/lib/api-helpers'
 
 // GET /api/bookings/availability - Get bookings for a specific session and date
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const searchParams = req.nextUrl.searchParams
     const sessionId = searchParams.get('sessionId')

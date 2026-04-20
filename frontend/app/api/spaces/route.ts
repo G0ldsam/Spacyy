@@ -3,34 +3,18 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { spaceSchema } from '@/lib/validation'
+import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 
 // GET /api/spaces - List spaces
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const searchParams = req.nextUrl.searchParams
-    const organizationId = searchParams.get('organizationId')
-
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID required' }, { status: 400 })
-    }
-
-    // Verify user has access to this organization
-    const hasAccess = session.user.organizations?.some(
-      (org) => org.id === organizationId
-    )
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await verifyTenantAccess()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const spaces = await prisma.space.findMany({
       where: {
-        organizationId,
+        organizationId: tenant.organizationId,
         isActive: true,
       },
       orderBy: {
@@ -51,33 +35,16 @@ export async function GET(req: NextRequest) {
 // POST /api/spaces - Create space
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const result = await verifyTenantAdmin()
+    if ('error' in result) return result.error
+    const { tenant } = result
 
     const body = await req.json()
     const validated = spaceSchema.parse(body)
 
-    const searchParams = req.nextUrl.searchParams
-    const organizationId = searchParams.get('organizationId')
-
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID required' }, { status: 400 })
-    }
-
-    // Verify user has access (must be owner/admin)
-    const userOrg = session.user.organizations?.find(
-      (org) => org.id === organizationId && (org.role === 'OWNER' || org.role === 'ADMIN')
-    )
-
-    if (!userOrg) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
     const space = await prisma.space.create({
       data: {
-        organizationId,
+        organizationId: tenant.organizationId,
         name: validated.name,
         description: validated.description,
         capacity: validated.capacity || 1,
