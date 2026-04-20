@@ -7,6 +7,13 @@ export default withAuth(
     try {
       console.log('🌐 Middleware executing for:', req.headers.get('host'))
       
+      // Check if database URL is available
+      if (!process.env.DATABASE_URL) {
+        console.error('❌ DATABASE_URL not available in middleware')
+        // Return a basic response without tenant detection
+        return NextResponse.next()
+      }
+      
       const token = req.nextauth.token
       const path = req.nextUrl.pathname
       const hostname = req.headers.get('host') || ''
@@ -41,7 +48,16 @@ export default withAuth(
         }
       } else {
         // Production: detect from hostname
-        tenantInfo = await getTenantFromHost(hostname)
+        try {
+          console.log('🏢 Looking up tenant by hostname:', hostname)
+          tenantInfo = await getTenantFromHost(hostname)
+          if (tenantInfo) {
+            console.log('✅ Tenant found:', tenantInfo.name)
+          }
+        } catch (dbError) {
+          console.error('🚨 Database error in getTenantFromHost:', dbError)
+          // Continue without tenant info instead of crashing
+        }
       }
     
     // If no tenant found and not main domain, show 404

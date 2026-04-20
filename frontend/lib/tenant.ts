@@ -17,33 +17,53 @@ export interface TenantInfo {
  *   - localhost:3000 → use DEV_TENANT_SLUG or query param
  */
 export async function getTenantFromHost(hostname: string): Promise<TenantInfo | null> {
-  const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
-  
-  // Remove port if present (localhost:3000)
-  const host = hostname.split(':')[0]
-  
-  // Case 1: Localhost development
-  if (host === 'localhost' || host === '127.0.0.1') {
-    // Will be handled by getTenantFromLocalhost
-    return null
-  }
-  
-  // Case 2: Main domain (marketing site)
-  if (host === mainDomain || host === `www.${mainDomain}`) {
-    return null // No tenant, show marketing site
-  }
-  
-  // Case 3: Subdomain (slug.spacyy.com)
-  if (host.endsWith(`.${mainDomain}`)) {
-    const slug = host.replace(`.${mainDomain}`, '')
+  try {
+    const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
     
-    // Don't treat 'www' as a tenant
-    if (slug === 'www') {
+    // Remove port if present (localhost:3000)
+    const host = hostname.split(':')[0]
+    
+    // Case 1: Localhost development
+    if (host === 'localhost' || host === '127.0.0.1') {
+      // Will be handled by getTenantFromLocalhost
       return null
     }
     
-    const org = await prisma.organization.findUnique({
-      where: { slug },
+    // Case 2: Main domain (marketing site)
+    if (host === mainDomain || host === `www.${mainDomain}`) {
+      return null // No tenant, show marketing site
+    }
+    
+    // Case 3: Subdomain (slug.spacyy.com)
+    if (host.endsWith(`.${mainDomain}`)) {
+      const slug = host.replace(`.${mainDomain}`, '')
+      
+      // Don't treat 'www' as a tenant
+      if (slug === 'www') {
+        return null
+      }
+      
+      const org = await prisma.organization.findUnique({
+        where: { slug },
+        select: { id: true, slug: true, name: true }
+      })
+      
+      if (!org) return null
+      
+      return {
+        organizationId: org.id,
+        slug: org.slug,
+        name: org.name,
+        type: 'subdomain'
+      }
+    }
+    
+    // Case 4: Custom domain (book.bodyglowpilates.com)
+    const org = await prisma.organization.findFirst({
+      where: {
+        customDomain: host,
+        customDomainVerified: true
+      },
       select: { id: true, slug: true, name: true }
     })
     
@@ -53,26 +73,12 @@ export async function getTenantFromHost(hostname: string): Promise<TenantInfo | 
       organizationId: org.id,
       slug: org.slug,
       name: org.name,
-      type: 'subdomain'
+      type: 'custom'
     }
-  }
-  
-  // Case 4: Custom domain (book.bodyglowpilates.com)
-  const org = await prisma.organization.findFirst({
-    where: {
-      customDomain: host,
-      customDomainVerified: true
-    },
-    select: { id: true, slug: true, name: true }
-  })
-  
-  if (!org) return null
-  
-  return {
-    organizationId: org.id,
-    slug: org.slug,
-    name: org.name,
-    type: 'custom'
+  } catch (error) {
+    console.error('🚨 Error in getTenantFromHost:', error)
+    // Return null instead of throwing to prevent middleware crashes
+    return null
   }
 }
 
