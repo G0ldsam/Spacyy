@@ -1,130 +1,42 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import { getTenantFromHost, getTenantFromLocalhost } from '@/lib/tenant'
 
 export default withAuth(
   async function middleware(req) {
     try {
-      console.log('🌐 Middleware executing for:', req.headers.get('host'))
-      
-      // Check if database URL is available
-      if (!process.env.DATABASE_URL) {
-        console.error('❌ DATABASE_URL not available in middleware')
-        // Return a basic response without tenant detection
-        return NextResponse.next()
-      }
+      console.log('🌐 Simplified middleware executing for:', req.headers.get('host'))
       
       const token = req.nextauth.token
       const path = req.nextUrl.pathname
-      const hostname = req.headers.get('host') || ''
-
-      // Detect organization from domain/subdomain
-      let tenantInfo = null
       
-      if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-        // Development: use query parameter or env var
-        const slug = getTenantFromLocalhost(req.nextUrl)
-        if (slug) {
-          console.log('🏢 Looking up tenant by slug:', slug)
-          try {
-            const { prisma } = await import('@/lib/prisma')
-            const org = await prisma.organization.findUnique({
-              where: { slug },
-              select: { id: true, slug: true, name: true }
-            })
-            if (org) {
-              tenantInfo = {
-                organizationId: org.id,
-                slug: org.slug,
-                name: org.name,
-                type: 'subdomain' as const
-              }
-              console.log('✅ Tenant found:', tenantInfo.name)
-            }
-          } catch (dbError) {
-            console.error('🚨 Database error in middleware:', dbError)
-            // Continue without tenant info instead of crashing
-          }
-        }
-      } else {
-        // Production: detect from hostname
-        try {
-          console.log('🏢 Looking up tenant by hostname:', hostname)
-          tenantInfo = await getTenantFromHost(hostname)
-          if (tenantInfo) {
-            console.log('✅ Tenant found:', tenantInfo.name)
-          }
-        } catch (dbError) {
-          console.error('🚨 Database error in getTenantFromHost:', dbError)
-          // Continue without tenant info instead of crashing
-        }
-      }
-    
-    // If no tenant found and not main domain, show 404
-    const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
-    const isMainDomain = hostname === mainDomain || hostname === `www.${mainDomain}` || hostname.includes('localhost')
-    
-    if (!tenantInfo && !isMainDomain) {
-      return NextResponse.rewrite(new URL('/404', req.url))
-    }
-    
-    // Create response with tenant headers
-    const response = NextResponse.next()
-    
-    if (tenantInfo) {
-      response.headers.set('x-tenant-id', tenantInfo.organizationId)
-      response.headers.set('x-tenant-slug', tenantInfo.slug)
-      response.headers.set('x-tenant-name', tenantInfo.name)
-      response.headers.set('x-tenant-type', tenantInfo.type)
-    }
-    
-    // If has token and on login page, redirect based on mustChangePassword and role
-    if (token && path.startsWith('/login')) {
-      if ((token as any).mustChangePassword) {
-        const redirectResponse = NextResponse.redirect(new URL('/change-password', req.url))
-        if (tenantInfo) {
-          redirectResponse.headers.set('x-tenant-id', tenantInfo.organizationId)
-          redirectResponse.headers.set('x-tenant-slug', tenantInfo.slug)
-          redirectResponse.headers.set('x-tenant-name', tenantInfo.name)
-          redirectResponse.headers.set('x-tenant-type', tenantInfo.type)
-        }
-        return redirectResponse
-      }
-      // Check if user is admin/owner or client
-      const organizations = (token as any).organizations || []
-      const isAdmin = organizations.some((org: any) => org.role === 'OWNER' || org.role === 'ADMIN')
-      const redirectResponse = isAdmin 
-        ? NextResponse.redirect(new URL('/dashboard', req.url))
-        : NextResponse.redirect(new URL('/home', req.url))
+      // Skip all tenant detection for now - just handle auth redirects
       
-      if (tenantInfo) {
-        redirectResponse.headers.set('x-tenant-id', tenantInfo.organizationId)
-        redirectResponse.headers.set('x-tenant-slug', tenantInfo.slug)
-        redirectResponse.headers.set('x-tenant-name', tenantInfo.name)
-        redirectResponse.headers.set('x-tenant-type', tenantInfo.type)
+      // If has token and on login page, redirect to dashboard/home
+      if (token && path.startsWith('/login')) {
+        console.log('✅ User logged in, redirecting from login page')
+        if ((token as any).mustChangePassword) {
+          return NextResponse.redirect(new URL('/change-password', req.url))
+        }
+        // Check if user is admin/owner or client
+        const organizations = (token as any).organizations || []
+        const isAdmin = organizations.some((org: any) => org.role === 'OWNER' || org.role === 'ADMIN')
+        return isAdmin 
+          ? NextResponse.redirect(new URL('/dashboard', req.url))
+          : NextResponse.redirect(new URL('/home', req.url))
       }
-      return redirectResponse
-    }
 
-    // If user must change password and not on change-password page, redirect
-    if (token && (token as any).mustChangePassword && !path.startsWith('/change-password')) {
-      const redirectResponse = NextResponse.redirect(new URL('/change-password', req.url))
-      if (tenantInfo) {
-        redirectResponse.headers.set('x-tenant-id', tenantInfo.organizationId)
-        redirectResponse.headers.set('x-tenant-slug', tenantInfo.slug)
-        redirectResponse.headers.set('x-tenant-name', tenantInfo.name)
-        redirectResponse.headers.set('x-tenant-type', tenantInfo.type)
+      // If user must change password and not on change-password page, redirect
+      if (token && (token as any).mustChangePassword && !path.startsWith('/change-password')) {
+        return NextResponse.redirect(new URL('/change-password', req.url))
       }
-      return redirectResponse
-    }
 
-    return response
-  } catch (error) {
-    console.error('🚨 Middleware error:', error)
-    // Return a basic response to prevent complete failure
-    return NextResponse.next()
-  }
-},
+      return NextResponse.next()
+    } catch (error) {
+      console.error('🚨 Simplified middleware error:', error)
+      // Always return a response to prevent complete failure
+      return NextResponse.next()
+    }
+  },
   {
     callbacks: {
       authorized: ({ token, req }) => {
