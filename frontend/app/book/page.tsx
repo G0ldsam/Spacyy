@@ -110,19 +110,6 @@ export default function BookPage() {
       filterSessionsByDate()
     }
   }, [selectedDate, sessions, filterSessionsByDate])
-    const dayOfWeek = selectedDate.getDay()
-    
-    const filtered = sessions.filter((session) => {
-      return session.timetable.some((slot) => slot.dayOfWeek === dayOfWeek)
-    })
-
-    const mapped = filtered.map((session) => ({
-      ...session,
-      timetable: session.timetable.filter((slot) => slot.dayOfWeek === dayOfWeek),
-    }))
-
-    setAvailableSessions(mapped)
-  }
 
   const getWeekDays = (date: Date) => {
     const week = []
