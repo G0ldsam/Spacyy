@@ -4,35 +4,45 @@ import { getTenantFromHost, getTenantFromLocalhost } from '@/lib/tenant'
 
 export default withAuth(
   async function middleware(req) {
-    const token = req.nextauth.token
-    const path = req.nextUrl.pathname
-    const hostname = req.headers.get('host') || ''
+    try {
+      console.log('🌐 Middleware executing for:', req.headers.get('host'))
+      
+      const token = req.nextauth.token
+      const path = req.nextUrl.pathname
+      const hostname = req.headers.get('host') || ''
 
-    // Detect organization from domain/subdomain
-    let tenantInfo = null
-    
-    if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-      // Development: use query parameter or env var
-      const slug = getTenantFromLocalhost(req.nextUrl)
-      if (slug) {
-        const { prisma } = await import('@/lib/prisma')
-        const org = await prisma.organization.findUnique({
-          where: { slug },
-          select: { id: true, slug: true, name: true }
-        })
-        if (org) {
-          tenantInfo = {
-            organizationId: org.id,
-            slug: org.slug,
-            name: org.name,
-            type: 'subdomain' as const
+      // Detect organization from domain/subdomain
+      let tenantInfo = null
+      
+      if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+        // Development: use query parameter or env var
+        const slug = getTenantFromLocalhost(req.nextUrl)
+        if (slug) {
+          console.log('🏢 Looking up tenant by slug:', slug)
+          try {
+            const { prisma } = await import('@/lib/prisma')
+            const org = await prisma.organization.findUnique({
+              where: { slug },
+              select: { id: true, slug: true, name: true }
+            })
+            if (org) {
+              tenantInfo = {
+                organizationId: org.id,
+                slug: org.slug,
+                name: org.name,
+                type: 'subdomain' as const
+              }
+              console.log('✅ Tenant found:', tenantInfo.name)
+            }
+          } catch (dbError) {
+            console.error('🚨 Database error in middleware:', dbError)
+            // Continue without tenant info instead of crashing
           }
         }
+      } else {
+        // Production: detect from hostname
+        tenantInfo = await getTenantFromHost(hostname)
       }
-    } else {
-      // Production: detect from hostname
-      tenantInfo = await getTenantFromHost(hostname)
-    }
     
     // If no tenant found and not main domain, show 404
     const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
@@ -93,7 +103,12 @@ export default withAuth(
     }
 
     return response
-  },
+  } catch (error) {
+    console.error('🚨 Middleware error:', error)
+    // Return a basic response to prevent complete failure
+    return NextResponse.next()
+  }
+},
   {
     callbacks: {
       authorized: ({ token, req }) => {

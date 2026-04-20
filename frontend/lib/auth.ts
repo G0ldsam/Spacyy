@@ -13,73 +13,95 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
+        try {
+          console.log('🔐 Starting authentication for:', credentials?.email)
+          
+          if (!credentials?.email || !credentials?.password) {
+            console.log('❌ Missing credentials')
+            return null
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: {
-            organizations: {
-              include: {
-                organization: true,
+          // Check environment variables
+          if (!process.env.DATABASE_URL) {
+            console.error('❌ DATABASE_URL not found in environment')
+            throw new Error('Database configuration missing')
+          }
+
+          console.log('🔍 Looking up user in database...')
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            include: {
+              organizations: {
+                include: {
+                  organization: true,
+                },
               },
             },
-          },
-        })
+          })
 
-        if (!user || !user.password) {
-          return null
-        }
+          if (!user || !user.password) {
+            console.log('❌ User not found or no password set')
+            return null
+          }
 
-        // In production, use bcrypt to compare passwords
-        // For now, we'll implement basic password checking
-        // You'll need to install bcryptjs: npm install bcryptjs @types/bcryptjs
-        const isValid = await compare(credentials.password, user.password)
+          console.log('🔑 Verifying password...')
+          const isValid = await compare(credentials.password, user.password)
 
-        if (!isValid) {
-          return null
-        }
+          if (!isValid) {
+            console.log('❌ Invalid password')
+            return null
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          mustChangePassword: user.mustChangePassword,
-          organizations: user.organizations.map((uo) => ({
-            id: uo.organizationId,
-            role: uo.role as UserRole,
-            organization: {
-              id: uo.organization.id,
-              name: uo.organization.name,
-              slug: uo.organization.slug,
-            },
-          })),
+          console.log('✅ Authentication successful for:', user.email)
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            mustChangePassword: user.mustChangePassword,
+            organizations: user.organizations.map((uo) => ({
+              id: uo.organizationId,
+              role: uo.role as UserRole,
+              organization: {
+                id: uo.organization.id,
+                name: uo.organization.name,
+                slug: uo.organization.slug,
+              },
+            })),
+          }
+        } catch (error) {
+          console.error('🚨 Authentication error:', error)
+          console.error('Stack trace:', error instanceof Error ? error.stack : 'Unknown error')
+          throw error // Re-throw to cause 500 error with details
         }
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user, trigger }) {
-      if (user) {
-        token.id = user.id
-        token.mustChangePassword = (user as any).mustChangePassword || false
-        token.organizations = (user as any).organizations || []
-      }
-      
-      // If session is being updated, refresh the mustChangePassword flag from database
-      if (trigger === 'update') {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { mustChangePassword: true },
-        })
-        if (dbUser) {
-          token.mustChangePassword = dbUser.mustChangePassword
+      try {
+        if (user) {
+          token.id = user.id
+          token.mustChangePassword = (user as any).mustChangePassword || false
+          token.organizations = (user as any).organizations || []
         }
+        
+        // If session is being updated, refresh the mustChangePassword flag from database
+        if (trigger === 'update') {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { mustChangePassword: true },
+          })
+          if (dbUser) {
+            token.mustChangePassword = dbUser.mustChangePassword
+          }
+        }
+        
+        return token
+      } catch (error) {
+        console.error('🚨 JWT callback error:', error)
+        return token
       }
-      
-      return token
     },
     async session({ session, token }) {
       if (session.user) {
