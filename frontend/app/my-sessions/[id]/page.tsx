@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -33,17 +33,7 @@ export default function SessionDetailPage() {
   const [canChangeBooking, setCanChangeBooking] = useState(true)
   const [changeRestrictionMessage, setChangeRestrictionMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchBooking()
-    }
-  }, [status, router, bookingId])
-
-  const fetchBooking = async () => {
+  const fetchBooking = useCallback(async () => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}`)
       if (!response.ok) throw new Error('Failed to fetch booking')
@@ -68,7 +58,17 @@ export default function SessionDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [bookingId])
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    if (status === 'authenticated') {
+      fetchBooking()
+    }
+  }, [status, router, fetchBooking])
 
   const handleCancel = async () => {
     setCancelling(true)

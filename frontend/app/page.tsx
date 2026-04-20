@@ -194,7 +194,7 @@ export default async function HomePage() {
               Get In Touch
             </h2>
             <p className="text-xl text-gray-600">
-              Interested in using Spacyy for your business? Let's talk!
+              Interested in using Spacyy for your business? Let&apos;s talk!
             </p>
           </div>
           

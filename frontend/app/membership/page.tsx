@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import QRCode from 'qrcode'
 
@@ -26,6 +27,58 @@ export default function MembershipPage() {
     lastBookingDate: Date | null
   }>({ show: false, lastBookingDate: null })
 
+  const fetchActiveBookings = useCallback(async () => {
+    try {
+      const response = await fetch('/api/bookings/my')
+      if (response.ok) {
+        const data = await response.json()
+        const now = new Date()
+        // Filter out cancelled bookings and past bookings (where endTime is before now)
+        const active = data.filter((b: any) => {
+          if (b.status === 'CANCELLED') return false
+          const endTime = new Date(b.endTime)
+          return endTime >= now
+        })
+        setActiveBookings(active.length)
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+    }
+  }, [])
+
+  const fetchClientInfo = useCallback(async () => {
+    try {
+      const response = await fetch('/api/clients/me')
+      if (response.ok) {
+        const data = await response.json()
+        setClientInfo(data)
+        
+        // Generate QR code with client ID
+        const qrData = JSON.stringify({
+          type: 'membership',
+          clientId: data.id,
+          timestamp: Date.now(),
+        })
+        const qrCode = await QRCode.toDataURL(qrData, {
+          width: 300,
+          margin: 2,
+          color: {
+            dark: '#8B1538',
+            light: '#FFFFFF',
+          },
+        })
+        setQrCodeDataUrl(qrCode)
+        
+        // Fetch bookings after client info is loaded
+        await fetchActiveBookings()
+      }
+    } catch (error) {
+      console.error('Error fetching client info:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchActiveBookings])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
@@ -34,7 +87,7 @@ export default function MembershipPage() {
     if (status === 'authenticated') {
       fetchClientInfo()
     }
-  }, [status, router])
+  }, [status, router, fetchClientInfo])
 
   // Check for expiration warning when both clientInfo and activeBookings are available
   useEffect(() => {
@@ -84,58 +137,6 @@ export default function MembershipPage() {
       setExpirationWarning({ show: false, lastBookingDate: null })
     }
   }, [clientInfo, activeBookings])
-
-  const fetchClientInfo = async () => {
-    try {
-      const response = await fetch('/api/clients/me')
-      if (response.ok) {
-        const data = await response.json()
-        setClientInfo(data)
-        
-        // Generate QR code with client ID
-        const qrData = JSON.stringify({
-          type: 'membership',
-          clientId: data.id,
-          timestamp: Date.now(),
-        })
-        const qrCode = await QRCode.toDataURL(qrData, {
-          width: 300,
-          margin: 2,
-          color: {
-            dark: '#8B1538',
-            light: '#FFFFFF',
-          },
-        })
-        setQrCodeDataUrl(qrCode)
-        
-        // Fetch bookings after client info is loaded
-        await fetchActiveBookings()
-      }
-    } catch (error) {
-      console.error('Error fetching client info:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchActiveBookings = async () => {
-    try {
-      const response = await fetch('/api/bookings/my')
-      if (response.ok) {
-        const data = await response.json()
-        const now = new Date()
-        // Filter out cancelled bookings and past bookings (where endTime is before now)
-        const active = data.filter((b: any) => {
-          if (b.status === 'CANCELLED') return false
-          const endTime = new Date(b.endTime)
-          return endTime >= now
-        })
-        setActiveBookings(active.length)
-      }
-    } catch (error) {
-      console.error('Error fetching bookings:', error)
-    }
-  }
 
   if (status === 'loading' || loading) {
     return (
@@ -187,9 +188,11 @@ export default function MembershipPage() {
               <CardContent>
                 <div className="flex justify-center">
                   {qrCodeDataUrl ? (
-                    <img 
+                    <Image 
                       src={qrCodeDataUrl} 
                       alt="Membership QR Code" 
+                      width={320}
+                      height={320}
                       className="w-full max-w-[280px] h-auto sm:max-w-[320px]" 
                     />
                   ) : (

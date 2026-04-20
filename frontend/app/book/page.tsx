@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -56,21 +56,6 @@ export default function BookPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    // Reset to today if selected date is in the past
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const selected = new Date(selectedDate)
-    selected.setHours(0, 0, 0, 0)
-    if (selected < today) {
-      setSelectedDate(new Date())
-      return
-    }
-    if (sessions.length > 0) {
-      filterSessionsByDate()
-    }
-  }, [selectedDate, sessions])
-
   const fetchSessions = async () => {
     try {
       const response = await fetch('/api/sessions')
@@ -96,7 +81,35 @@ export default function BookPage() {
     }
   }
 
-  const filterSessionsByDate = () => {
+  const filterSessionsByDate = useCallback(() => {
+    const dayOfWeek = selectedDate.getDay()
+    
+    const filtered = sessions.filter((session) => {
+      return session.timetable.some((slot) => slot.dayOfWeek === dayOfWeek)
+    })
+
+    const mapped = filtered.map((session) => ({
+      ...session,
+      timetable: session.timetable.filter((slot) => slot.dayOfWeek === dayOfWeek),
+    }))
+
+    setAvailableSessions(mapped)
+  }, [selectedDate, sessions])
+
+  useEffect(() => {
+    // Reset to today if selected date is in the past
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const selected = new Date(selectedDate)
+    selected.setHours(0, 0, 0, 0)
+    if (selected < today) {
+      setSelectedDate(new Date())
+      return
+    }
+    if (sessions.length > 0) {
+      filterSessionsByDate()
+    }
+  }, [selectedDate, sessions, filterSessionsByDate])
     const dayOfWeek = selectedDate.getDay()
     
     const filtered = sessions.filter((session) => {

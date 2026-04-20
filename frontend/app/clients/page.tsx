@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -498,7 +499,7 @@ export default function ClientsPage() {
 
               {qrCodeUrl && (
                 <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
-                  <img src={qrCodeUrl} alt="Login QR Code" className="w-56 h-56" />
+                  <Image src={qrCodeUrl} alt="Login QR Code" width={224} height={224} />
                 </div>
               )}
 

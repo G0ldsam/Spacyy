@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -39,17 +39,7 @@ export default function HomePage() {
     lastBookingDate: Date | null
   }>({ show: false, lastBookingDate: null })
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchClientInfo()
-    }
-  }, [status, router])
-
-  const fetchMyBookings = async () => {
+  const fetchMyBookings = useCallback(async () => {
     try {
       const response = await fetch('/api/bookings/my')
       if (response.ok) {
@@ -91,9 +81,9 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sessionAllowance])
 
-  const fetchClientInfo = async () => {
+  const fetchClientInfo = useCallback(async () => {
     try {
       const response = await fetch('/api/clients/me')
       if (response.ok) {
@@ -105,7 +95,17 @@ export default function HomePage() {
     } catch (error) {
       console.error('Error fetching client info:', error)
     }
-  }
+  }, [fetchMyBookings])
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    if (status === 'authenticated') {
+      fetchClientInfo()
+    }
+  }, [status, router, fetchClientInfo])
 
 
   if (status === 'loading' || loading) {

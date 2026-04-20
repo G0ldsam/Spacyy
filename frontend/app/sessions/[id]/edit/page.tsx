@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,11 +21,7 @@ export default function EditSessionPage() {
     slots: '1',
   })
 
-  useEffect(() => {
-    fetchSession()
-  }, [sessionId])
-
-  const fetchSession = async () => {
+  const fetchSession = useCallback(async () => {
     try {
       const response = await fetch(`/api/sessions/${sessionId}`)
       if (!response.ok) throw new Error('Failed to fetch session')
@@ -41,7 +37,11 @@ export default function EditSessionPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sessionId])
+
+  useEffect(() => {
+    fetchSession()
+  }, [fetchSession])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -41,17 +41,7 @@ export default function BookSessionPage() {
   const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchData()
-    }
-  }, [status, router, sessionId, date])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch session details
       const sessionResponse = await fetch(`/api/sessions/${sessionId}`)
@@ -91,7 +81,17 @@ export default function BookSessionPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sessionId, date])
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    if (status === 'authenticated') {
+      fetchData()
+    }
+  }, [status, router, fetchData])
 
   const getRemainingSlots = (timeSlot: TimeSlot) => {
     const key = `${timeSlot.startTime}-${timeSlot.endTime}`
