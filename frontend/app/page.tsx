@@ -5,23 +5,28 @@ import Link from 'next/link'
 import ContactForm from '@/components/ContactForm'
 
 export default async function HomePage() {
+  // TEMPORARILY BYPASS TENANT DETECTION TO FIX 500 ERRORS
   // Check if this is a tenant subdomain
   const headersList = headers()
   const hostname = headersList.get('host') || ''
   
-  // If on localhost or has tenant context, redirect to login
+  console.log('🏠 Homepage loading for hostname:', hostname)
+  
+  // If on localhost, redirect to login (simplified)
   if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
     redirect('/login')
   }
   
-  // Check if accessing a tenant subdomain
-  const tenant = await getTenantFromHost(hostname)
-  if (tenant) {
-    // User is on a tenant subdomain, redirect to login
-    redirect('/login')
-  }
+  // TEMPORARILY DISABLED - CAUSING 500 ERRORS
+  // // Check if accessing a tenant subdomain
+  // const tenant = await getTenantFromHost(hostname)
+  // if (tenant) {
+  //   // User is on a tenant subdomain, redirect to login
+  //   redirect('/login')
+  // }
   
-  // Main domain - show marketing page
+  // For now, show marketing page for all domains (including subdomains)
+  // We'll fix tenant detection after resolving database issues
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Navigation */}
