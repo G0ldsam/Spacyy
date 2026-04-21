@@ -116,8 +116,20 @@ export default function HomePage() {
     )
   }
 
+  const isAdmin = session?.user?.organizations?.some(
+    (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {isAdmin && (
+        <div className="bg-[#8B1538] text-white text-center text-sm py-2 px-4">
+          You are previewing the client view.{' '}
+          <a href="/dashboard" className="underline font-medium hover:opacity-80">
+            Back to Dashboard
+          </a>
+        </div>
+      )}
       <div className="mobile-container">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8 relative">

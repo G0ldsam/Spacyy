@@ -20,6 +20,16 @@ export async function GET(req: NextRequest) {
     const clients = await prisma.client.findMany({
       where: {
         organizationId: tenant.organizationId,
+        NOT: {
+          user: {
+            organizations: {
+              some: {
+                organizationId: tenant.organizationId,
+                role: { in: ['OWNER', 'ADMIN'] },
+              },
+            },
+          },
+        },
       },
       select: {
         id: true,
