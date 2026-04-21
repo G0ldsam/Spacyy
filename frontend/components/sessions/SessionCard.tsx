@@ -54,16 +54,30 @@ export function SessionCard({ session }: SessionCardProps) {
   return (
     <Card className="shadow-sm w-full">
       <CardHeader
-        className="pb-3 relative flex items-center justify-center min-h-[60px] sm:min-h-[70px]"
+        className="pb-3 relative flex items-center justify-center min-h-[60px] sm:min-h-[70px] overflow-hidden"
         style={{ backgroundColor: session.themeColor }}
       >
-        <CardTitle className="text-base sm:text-lg lg:text-xl text-white text-center break-words px-8">
+        {/* Diagonal gloss: light top-left → dark bottom-right */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.18) 100%)' }}
+        />
+        {/* Subtle dot-grid texture */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.35) 1px, transparent 1px)',
+            backgroundSize: '14px 14px',
+            opacity: 0.18,
+          }}
+        />
+        <CardTitle className="relative z-10 text-base sm:text-lg lg:text-xl font-semibold text-white text-center break-words px-8 drop-shadow-sm tracking-wide">
           {session.name}
         </CardTitle>
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-1 sm:p-1.5 rounded-md hover:bg-black/20 transition-colors disabled:opacity-50 flex-shrink-0"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-1 sm:p-1.5 rounded-md hover:bg-black/20 transition-colors disabled:opacity-50 flex-shrink-0"
           aria-label="Delete session"
         >
           <svg

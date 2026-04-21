@@ -39,8 +39,18 @@ export async function getTenantContext(): Promise<TenantContext | null> {
   const hostname = host.split(':')[0]
 
   let org: { id: string; slug: string; name: string } | null = null
+  let type = 'subdomain'
 
-  if (hostname.endsWith(`.${mainDomain}`)) {
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Local dev: use DEV_TENANT_SLUG env var
+    const devSlug = process.env.DEV_TENANT_SLUG
+    if (!devSlug) return null
+    org = await prisma.organization.findUnique({
+      where: { slug: devSlug },
+      select: { id: true, slug: true, name: true },
+    })
+    type = 'dev'
+  } else if (hostname.endsWith(`.${mainDomain}`)) {
     const slug = hostname.replace(`.${mainDomain}`, '')
     if (slug && slug !== 'www') {
       org = await prisma.organization.findUnique({
@@ -54,6 +64,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       where: { customDomain: hostname, customDomainVerified: true },
       select: { id: true, slug: true, name: true },
     })
+    type = 'custom'
   }
 
   if (!org) return null
@@ -62,7 +73,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     organizationId: org.id,
     slug: org.slug,
     name: org.name,
-    type: hostname.endsWith(`.${mainDomain}`) ? 'subdomain' : 'custom',
+    type,
   }
 }
 

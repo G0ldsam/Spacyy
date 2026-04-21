@@ -49,8 +49,11 @@ export default function LoginPage() {
         )
 
         if (adminOrg?.organization?.slug && typeof window !== 'undefined') {
+          const currentHost = window.location.hostname
+          const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1'
           const targetHost = `${adminOrg.organization.slug}.${mainDomain}`
-          if (window.location.hostname !== targetHost) {
+          // Only redirect to subdomain when on the main domain in production
+          if (!isLocalhost && currentHost === mainDomain) {
             window.location.href = `${window.location.protocol}//${targetHost}/dashboard`
             return
           }
