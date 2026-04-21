@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 interface SessionCardProps {
@@ -52,9 +52,9 @@ export function SessionCard({ session }: SessionCardProps) {
   }
 
   return (
-    <Card className="shadow-sm w-full">
-      <CardHeader
-        className="pb-3 relative flex items-center justify-center min-h-[60px] sm:min-h-[70px] overflow-hidden"
+    <Card className="shadow-sm w-full overflow-hidden" style={{ borderColor: session.themeColor, borderWidth: '1.5px' }}>
+      <div
+        className="relative flex items-center justify-center h-11 overflow-hidden rounded-t-[calc(var(--radius)-1.5px)]"
         style={{ backgroundColor: session.themeColor }}
       >
         {/* Diagonal gloss: light top-left → dark bottom-right */}
@@ -71,13 +71,13 @@ export function SessionCard({ session }: SessionCardProps) {
             opacity: 0.18,
           }}
         />
-        <CardTitle className="relative z-10 text-base sm:text-lg lg:text-xl font-semibold text-white text-center break-words px-8 drop-shadow-sm tracking-wide">
+        <span className="relative z-10 text-sm font-semibold text-white text-center break-words px-8 drop-shadow-sm tracking-wide leading-none">
           {session.name}
-        </CardTitle>
+        </span>
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-1 sm:p-1.5 rounded-md hover:bg-black/20 transition-colors disabled:opacity-50 flex-shrink-0"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1 rounded-md hover:bg-black/20 transition-colors disabled:opacity-50"
           aria-label="Delete session"
         >
           <svg
@@ -95,7 +95,7 @@ export function SessionCard({ session }: SessionCardProps) {
             />
           </svg>
         </button>
-      </CardHeader>
+      </div>
       <CardContent className="p-4 sm:p-6">
         {session.description && (
           <p className="text-xs sm:text-sm text-gray-700 mb-3 mt-2 sm:mt-4 line-clamp-2 break-words">
