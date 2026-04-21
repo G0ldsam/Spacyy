@@ -103,74 +103,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Get organization to check policies
-    const organization = await prisma.organization.findUnique({
-      where: { id: finalOrganizationId },
-      select: {
-        requireMembershipForBooking: true,
-      },
-    })
-
-    // Check membership requirement policy
-    if (organization?.requireMembershipForBooking) {
-      const client = await prisma.client.findUnique({
+    // Get organization policy and client slot info
+    const [organization, client] = await Promise.all([
+      prisma.organization.findUnique({
+        where: { id: finalOrganizationId },
+        select: { allowPendingSlot: true },
+      }),
+      prisma.client.findUnique({
         where: { id: validated.clientId },
-        select: {
-          sessionAllowance: true,
+        select: { sessionAllowance: true },
+      }),
+    ])
+
+    let usePendingSlot = false
+
+    // Check slot availability when client has a limited allowance
+    if (client && client.sessionAllowance !== null) {
+      const now = new Date()
+      const activeBookingsCount = await prisma.booking.count({
+        where: {
+          clientId: validated.clientId,
+          status: { not: 'CANCELLED' },
+          endTime: { gte: now },
         },
       })
 
-      if (client && client.sessionAllowance !== null) {
-        const now = new Date()
-        // Count active bookings for this client (non-cancelled and future bookings only)
-        const activeBookingsCount = await prisma.booking.count({
-          where: {
-            clientId: validated.clientId,
-            status: {
-              not: 'CANCELLED',
-            },
-            endTime: {
-              gte: now, // Only count future bookings
-            },
-          },
-        })
-
-        // Check if client has available slots
-        if (activeBookingsCount >= client.sessionAllowance) {
-          // If all sessions are used, check if membership has expired
-          if (activeBookingsCount > 0) {
-            // Get the last booking to check expiration
-            const lastBooking = await prisma.booking.findFirst({
-              where: {
-                clientId: validated.clientId,
-                status: {
-                  not: 'CANCELLED',
-                },
-                endTime: {
-                  gte: now,
-                },
-              },
-              orderBy: {
-                endTime: 'desc',
-              },
-            })
-
-            if (lastBooking) {
-              const lastBookingEnd = new Date(lastBooking.endTime)
-              const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-              
-              // If last booking ends within 1 day, membership is expiring
-              if (lastBookingEnd <= oneDayFromNow) {
-                return NextResponse.json(
-                  { error: 'Your membership is expiring. Please renew to continue booking sessions.' },
-                  { status: 403 }
-                )
-              }
-            }
-          }
-          
+      if (activeBookingsCount >= client.sessionAllowance) {
+        if (organization?.allowPendingSlot) {
+          usePendingSlot = true
+        } else {
           return NextResponse.json(
-            { error: 'No available session slots. Please check your membership status or renew your membership.' },
+            { error: 'No available session slots. Please renew your membership.' },
             { status: 403 }
           )
         }
@@ -232,6 +195,13 @@ export async function POST(req: NextRequest) {
         },
       },
     })
+
+    if (usePendingSlot) {
+      await prisma.client.update({
+        where: { id: validated.clientId },
+        data: { pendingSlotsUsed: { increment: 1 } },
+      })
+    }
 
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 
 interface PolicySettings {
   bookingChangeHours: number | null
-  requireMembershipForBooking: boolean
+  allowPendingSlot: boolean
 }
 
 export default function PolicyPage() {
@@ -23,7 +23,7 @@ export default function PolicyPage() {
   const [success, setSuccess] = useState('')
   const [settings, setSettings] = useState<PolicySettings>({
     bookingChangeHours: null,
-    requireMembershipForBooking: false,
+    allowPendingSlot: false,
   })
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function PolicyPage() {
       const data = await response.json()
       setSettings({
         bookingChangeHours: data.bookingChangeHours,
-        requireMembershipForBooking: data.requireMembershipForBooking || false,
+        allowPendingSlot: data.allowPendingSlot || false,
       })
     } catch (error) {
       console.error('Error fetching settings:', error)
@@ -78,7 +78,7 @@ export default function PolicyPage() {
           bookingChangeHours: settings.bookingChangeHours === null || settings.bookingChangeHours === 0 
             ? null 
             : settings.bookingChangeHours,
-          requireMembershipForBooking: settings.requireMembershipForBooking,
+          allowPendingSlot: settings.allowPendingSlot,
         }),
       })
 
@@ -175,22 +175,22 @@ export default function PolicyPage() {
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        id="requireMembershipForBooking"
-                        checked={settings.requireMembershipForBooking}
+                        id="allowPendingSlot"
+                        checked={settings.allowPendingSlot}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            requireMembershipForBooking: e.target.checked,
+                            allowPendingSlot: e.target.checked,
                           })
                         }
                         className="h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300 rounded"
                       />
-                      <label htmlFor="requireMembershipForBooking" className="text-sm font-medium text-gray-900">
-                        Require Available Session Slots to Book
+                      <label htmlFor="allowPendingSlot" className="text-sm font-medium text-gray-900">
+                        Allow booking on pending slot
                       </label>
                     </div>
                     <p className="text-xs text-gray-600 ml-6">
-                      If enabled, clients must have available session slots (based on their membership) to make new bookings. Clients without available slots will not be able to book.
+                      When enabled, clients with no remaining slots can still book a session. The used slot is recorded as pending and should be subtracted from their next renewal.
                     </p>
                   </div>
                 </div>

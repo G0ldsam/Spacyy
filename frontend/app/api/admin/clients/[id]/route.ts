@@ -27,6 +27,7 @@ export async function GET(
         name: true,
         email: true,
         sessionAllowance: true,
+        pendingSlotsUsed: true,
       },
     })
 

@@ -76,12 +76,14 @@ export async function POST(
       where: { id: params.id },
       data: {
         sessionAllowance: newAllowance,
+        pendingSlotsUsed: 0,
       },
       select: {
         id: true,
         name: true,
         email: true,
         sessionAllowance: true,
+        pendingSlotsUsed: true,
       },
     })
 

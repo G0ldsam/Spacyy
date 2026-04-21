@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 const policySchema = z.object({
   bookingChangeHours: z.number().int().min(0).nullable().optional(),
-  requireMembershipForBooking: z.boolean().optional(),
+  allowPendingSlot: z.boolean().optional(),
 })
 
-// GET /api/organization/policy - Get policy settings
 export async function GET(req: NextRequest) {
   try {
     const result = await verifyTenantAdmin()
@@ -24,7 +20,7 @@ export async function GET(req: NextRequest) {
       where: { id: tenant.organizationId },
       select: {
         bookingChangeHours: true,
-        requireMembershipForBooking: true,
+        allowPendingSlot: true,
       },
     })
 
@@ -35,14 +31,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(organization)
   } catch (error) {
     console.error('Error fetching policy settings:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// PATCH /api/organization/policy - Update policy settings
 export async function PATCH(req: NextRequest) {
   try {
     const result = await verifyTenantAdmin()
@@ -56,27 +48,20 @@ export async function PATCH(req: NextRequest) {
       where: { id: tenant.organizationId },
       data: {
         bookingChangeHours: validated.bookingChangeHours ?? undefined,
-        requireMembershipForBooking: validated.requireMembershipForBooking ?? undefined,
+        allowPendingSlot: validated.allowPendingSlot ?? undefined,
       },
       select: {
         bookingChangeHours: true,
-        requireMembershipForBooking: true,
+        allowPendingSlot: true,
       },
     })
 
     return NextResponse.json(updated)
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-
     console.error('Error updating policy settings:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

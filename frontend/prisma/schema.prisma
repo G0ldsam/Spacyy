@@ -20,7 +20,7 @@ model Organization {
   email                     String?
   phone                     String?
   bookingChangeHours        Int?     // Hours before booking start time that changes are allowed (null = no restriction)
-  requireMembershipForBooking Boolean @default(false) // Require available session slots to book
+  allowPendingSlot          Boolean  @default(false) // Allow clients to book when slots are exhausted (slot owed on next renewal)
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
@@ -89,8 +89,9 @@ model Client {
   name            String
   phone           String?
   notes           String?
-  sessionAllowance Int?    // Number of sessions allowed with current membership (null = unlimited)
-  createdAt       DateTime @default(now())
+  sessionAllowance  Int?     // Number of sessions allowed with current membership (null = unlimited)
+  pendingSlotsUsed  Int      @default(0) // Slots used when allowance was exhausted — owed on next renewal
+  createdAt         DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
