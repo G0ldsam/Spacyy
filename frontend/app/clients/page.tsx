@@ -204,7 +204,7 @@ export default function ClientsPage() {
 
   const handleDeleteClient = async () => {
     if (!editingClient) return
-    if (!globalThis.window.confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
       return
     }
 

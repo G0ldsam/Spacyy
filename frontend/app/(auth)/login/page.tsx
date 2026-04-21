@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,8 +41,21 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Invalid email or password')
       } else if (result?.ok) {
-        // Redirect based on user role
-        // For now, redirect to dashboard - we'll add role detection later
+        const session = await getSession()
+        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
+
+        const adminOrg = session?.user?.organizations?.find(
+          (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+        )
+
+        if (adminOrg?.organization?.slug && typeof window !== 'undefined') {
+          const targetHost = `${adminOrg.organization.slug}.${mainDomain}`
+          if (window.location.hostname !== targetHost) {
+            window.location.href = `${window.location.protocol}//${targetHost}/dashboard`
+            return
+          }
+        }
+
         router.push('/dashboard')
         router.refresh()
       }
