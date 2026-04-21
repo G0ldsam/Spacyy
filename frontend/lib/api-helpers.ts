@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 export interface TenantContext {
   organizationId: string
@@ -11,25 +12,57 @@ export interface TenantContext {
 }
 
 /**
- * Get tenant context from middleware headers
- * This should be called in API routes to get the current organization
+ * Get tenant context from request host header.
+ * First tries middleware-injected headers, then resolves directly from hostname.
  */
 export async function getTenantContext(): Promise<TenantContext | null> {
   const headersList = headers()
+
+  // Fast path: middleware already resolved the tenant
   const tenantId = headersList.get('x-tenant-id')
   const tenantSlug = headersList.get('x-tenant-slug')
   const tenantName = headersList.get('x-tenant-name')
   const tenantType = headersList.get('x-tenant-type')
 
-  if (!tenantId || !tenantSlug) {
-    return null
+  if (tenantId && tenantSlug) {
+    return {
+      organizationId: tenantId,
+      slug: tenantSlug,
+      name: tenantName || '',
+      type: tenantType || 'subdomain',
+    }
   }
 
+  // Fallback: resolve from host header directly
+  const host = headersList.get('host') || ''
+  const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
+  const hostname = host.split(':')[0]
+
+  let org: { id: string; slug: string; name: string } | null = null
+
+  if (hostname.endsWith(`.${mainDomain}`)) {
+    const slug = hostname.replace(`.${mainDomain}`, '')
+    if (slug && slug !== 'www') {
+      org = await prisma.organization.findUnique({
+        where: { slug },
+        select: { id: true, slug: true, name: true },
+      })
+    }
+  } else if (hostname !== mainDomain && hostname !== `www.${mainDomain}`) {
+    // Custom domain lookup
+    org = await prisma.organization.findFirst({
+      where: { customDomain: hostname, customDomainVerified: true },
+      select: { id: true, slug: true, name: true },
+    })
+  }
+
+  if (!org) return null
+
   return {
-    organizationId: tenantId,
-    slug: tenantSlug,
-    name: tenantName || '',
-    type: tenantType || 'subdomain'
+    organizationId: org.id,
+    slug: org.slug,
+    name: org.name,
+    type: hostname.endsWith(`.${mainDomain}`) ? 'subdomain' : 'custom',
   }
 }
 
