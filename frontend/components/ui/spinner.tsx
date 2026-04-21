@@ -30,17 +30,15 @@ export function Spinner({ className, size = 'md' }: SpinnerProps) {
 
 export function PageSpinner() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          {/* Outer slow ring */}
-          <div className="w-14 h-14 rounded-full border-4 border-[#8B1538]/10 border-t-[#8B1538]/40 animate-spin" style={{ animationDuration: '1.4s' }} />
-          {/* Inner fast ring */}
-          <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-[#8B1538] animate-spin" style={{ animationDuration: '0.7s' }} />
-          {/* Center dot */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#8B1538] animate-pulse" />
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+      <div className="relative">
+        {/* Outer slow ring */}
+        <div className="w-14 h-14 rounded-full border-4 border-[#8B1538]/10 border-t-[#8B1538]/40 animate-spin" style={{ animationDuration: '1.4s' }} />
+        {/* Inner fast ring */}
+        <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-[#8B1538] animate-spin" style={{ animationDuration: '0.7s' }} />
+        {/* Center dot */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#8B1538] animate-pulse" />
         </div>
       </div>
     </div>
