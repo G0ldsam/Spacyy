@@ -39,7 +39,19 @@ export default async function DashboardPage() {
       where: { organizationId: userOrg.organization.id },
     }),
     prisma.client.count({
-      where: { organizationId: userOrg.organization.id },
+      where: {
+        organizationId: userOrg.organization.id,
+        NOT: {
+          user: {
+            organizations: {
+              some: {
+                organizationId: userOrg.organization.id,
+                role: { in: ['OWNER', 'ADMIN'] },
+              },
+            },
+          },
+        },
+      },
     }),
   ])
 
