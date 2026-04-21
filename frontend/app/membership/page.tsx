@@ -1,7 +1,9 @@
 'use client'
+'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -140,9 +142,7 @@ export default function MembershipPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-700">Loading...</p>
-      </div>
+      <PageSpinner />
     )
   }
 

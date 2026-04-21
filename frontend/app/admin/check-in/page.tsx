@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -47,7 +48,7 @@ export default function CheckInPage() {
       }
       setLoading(false)
     }
-  }, [status, session, router])
+  }, [status, router])
 
   const startScanning = async () => {
     try {
@@ -237,11 +238,7 @@ export default function CheckInPage() {
   }, [])
 
   if (status === 'loading' || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-700">Loading...</p>
-      </div>
-    )
+    return <PageSpinner />
   }
 
   return (
