@@ -22,22 +22,24 @@ export default async function DashboardPage() {
     redirect('/home')
   }
 
-  // Get counts for the organization
-  const [sessionsCount, bookingsCount, clientsCount] = await Promise.all([
+  const now = new Date()
+
+  const [sessionsCount, activeBookingsCount, totalBookingsCount, clientsCount] = await Promise.all([
     prisma.serviceSession.count({
-      where: {
-        organizationId: userOrg.organization.id,
-      },
+      where: { organizationId: userOrg.organization.id },
     }),
     prisma.booking.count({
       where: {
         organizationId: userOrg.organization.id,
+        startTime: { gt: now },
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
       },
     }),
+    prisma.booking.count({
+      where: { organizationId: userOrg.organization.id },
+    }),
     prisma.client.count({
-      where: {
-        organizationId: userOrg.organization.id,
-      },
+      where: { organizationId: userOrg.organization.id },
     }),
   ])
 
@@ -64,8 +66,9 @@ export default async function DashboardPage() {
                   <CardTitle className="text-lg sm:text-xl">Bookings</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-[#8B1538]">{bookingsCount}</p>
-                  <p className="text-sm text-gray-700 mt-1">Total bookings</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-[#8B1538]">{activeBookingsCount}</p>
+                  <p className="text-sm text-gray-700 mt-1">Active bookings</p>
+                  <p className="text-xs text-gray-500 mt-1">{totalBookingsCount} total</p>
                 </CardContent>
               </Card>
             </a>
