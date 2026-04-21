@@ -67,8 +67,8 @@ export default function ClientsPage() {
   }, [status, session, router])
 
   useEffect(() => {
-    if (tempPassword && formData.email) {
-      const loginUrl = `${globalThis.location.origin}/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(tempPassword)}&autoLogin=true`
+    if (tempPassword && formData.email && typeof window !== 'undefined') {
+      const loginUrl = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(tempPassword)}&autoLogin=true`
       QRCode.toDataURL(loginUrl, { width: 256, margin: 2 })
         .then(url => setQrCodeUrl(url))
         .catch(err => console.error('Error generating QR code:', err))
