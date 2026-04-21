@@ -42,6 +42,7 @@ export default function PolicyPage() {
       }
       fetchSettings()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router])
 
   const fetchSettings = async () => {

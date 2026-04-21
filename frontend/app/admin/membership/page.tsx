@@ -47,6 +47,7 @@ export default function MembershipManagementPage() {
       }
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router])
 
   const startScanning = async () => {

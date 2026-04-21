@@ -48,6 +48,7 @@ export default function CheckInPage() {
       }
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router])
 
   const startScanning = async () => {
