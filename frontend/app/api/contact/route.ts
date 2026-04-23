@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { sendEmail } from '@/lib/email'
 
 const contactSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -64,76 +65,39 @@ async function sendContactEmail(data: {
   businessName: string
   message: string
 }) {
-  // Using nodemailer with Gmail SMTP
-  // You'll need to add these to your .env:
-  // SMTP_HOST=smtp.gmail.com
-  // SMTP_PORT=587
-  // SMTP_USER=your-email@gmail.com
-  // SMTP_PASSWORD=your-app-password
-
-  const nodemailer = require('nodemailer')
-
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  })
-
-  const emailContent = `
-New Contact Form Submission from Spacyy.com
-
-Name: ${data.name}
-Email: ${data.email}
-Phone: ${data.phone || 'Not provided'}
-Business Name: ${data.businessName}
-
-Message:
-${data.message}
-
----
-Submitted at: ${new Date().toLocaleString()}
-  `.trim()
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: 'vagosxristof@gmail.com',
-    subject: `New Contact: ${data.businessName} - ${data.name}`,
-    text: emailContent,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">New Contact Form Submission</h2>
-        <p>A new inquiry has been submitted from spacyy.com</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-          <tr style="background: #f3f4f6;">
-            <td style="padding: 12px; font-weight: bold; border: 1px solid #e5e7eb;">Name</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb;">${data.name}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; font-weight: bold; border: 1px solid #e5e7eb;">Email</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb;"><a href="mailto:${data.email}">${data.email}</a></td>
-          </tr>
-          <tr style="background: #f3f4f6;">
-            <td style="padding: 12px; font-weight: bold; border: 1px solid #e5e7eb;">Phone</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb;">${data.phone || 'Not provided'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; font-weight: bold; border: 1px solid #e5e7eb;">Business</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb;">${data.businessName}</td>
-          </tr>
-        </table>
-        
-        <div style="background: #f9fafb; padding: 16px; border-left: 4px solid #2563eb; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Message:</h3>
-          <p style="white-space: pre-wrap;">${data.message}</p>
-        </div>
-        
-        <p style="color: #6b7280; font-size: 12px;">Submitted at: ${new Date().toLocaleString()}</p>
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <h2 style="color:#8B1538">New Contact Form Submission</h2>
+      <p>A new inquiry has been submitted from spacyy.com</p>
+      <table style="width:100%;border-collapse:collapse;margin:20px 0">
+        <tr style="background:#f3f4f6">
+          <td style="padding:12px;font-weight:bold;border:1px solid #e5e7eb;width:35%">Name</td>
+          <td style="padding:12px;border:1px solid #e5e7eb">${data.name}</td>
+        </tr>
+        <tr>
+          <td style="padding:12px;font-weight:bold;border:1px solid #e5e7eb">Email</td>
+          <td style="padding:12px;border:1px solid #e5e7eb"><a href="mailto:${data.email}">${data.email}</a></td>
+        </tr>
+        <tr style="background:#f3f4f6">
+          <td style="padding:12px;font-weight:bold;border:1px solid #e5e7eb">Phone</td>
+          <td style="padding:12px;border:1px solid #e5e7eb">${data.phone || 'Not provided'}</td>
+        </tr>
+        <tr>
+          <td style="padding:12px;font-weight:bold;border:1px solid #e5e7eb">Business</td>
+          <td style="padding:12px;border:1px solid #e5e7eb">${data.businessName}</td>
+        </tr>
+      </table>
+      <div style="background:#f9fafb;padding:16px;border-left:4px solid #8B1538;margin:20px 0">
+        <h3 style="margin-top:0">Message:</h3>
+        <p style="white-space:pre-wrap">${data.message}</p>
       </div>
-    `,
-  })
+      <p style="color:#6b7280;font-size:12px">Submitted at: ${new Date().toLocaleString()}</p>
+    </div>
+  `
+
+  await sendEmail(
+    process.env.SMTP_USER || '',
+    `New Contact: ${data.businessName} — ${data.name}`,
+    html
+  )
 }

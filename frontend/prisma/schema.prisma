@@ -25,12 +25,13 @@ model Organization {
   updatedAt                 DateTime @updatedAt
 
   // Relations
-  users          UserOrganization[]
-  spaces         Space[]
+  users           UserOrganization[]
+  spaces          Space[]
   serviceSessions ServiceSession[]
-  bookings       Booking[]
-  clients        Client[]
-  invitations    Invitation[]
+  bookings        Booking[]
+  clients         Client[]
+  invitations     Invitation[]
+  interestEntries InterestEntry[]
 
   @@index([slug])
   @@index([customDomain])
@@ -94,9 +95,10 @@ model Client {
   createdAt         DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  bookings     Booking[]
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  bookings        Booking[]
+  interestEntries InterestEntry[]
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -134,9 +136,10 @@ model ServiceSession {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  timetable    TimeSlot[]
-  bookings     Booking[]
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  timetable       TimeSlot[]
+  bookings        Booking[]
+  interestEntries InterestEntry[]
 
   @@index([organizationId])
   @@index([organizationId, isActive])
@@ -144,18 +147,56 @@ model ServiceSession {
 
 // TimeSlot (timetable entries for service sessions)
 model TimeSlot {
-  id             String   @id @default(cuid())
+  id               String   @id @default(cuid())
   serviceSessionId String
-  dayOfWeek      Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  startTime      String   // Format: "HH:mm" (e.g., "16:00")
-  endTime        String   // Format: "HH:mm" (e.g., "16:50")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  dayOfWeek        Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime        String   // Format: "HH:mm" (e.g., "16:00")
+  endTime          String   // Format: "HH:mm" (e.g., "16:50")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  serviceSession ServiceSession @relation(fields: [serviceSessionId], references: [id], onDelete: Cascade)
+  serviceSession  ServiceSession     @relation(fields: [serviceSessionId], references: [id], onDelete: Cascade)
+  exceptions      TimeSlotException[]
+  interestEntries InterestEntry[]
 
   @@index([serviceSessionId])
   @@index([serviceSessionId, dayOfWeek])
+}
+
+// TimeSlotException — cancels a specific occurrence of a recurring time slot
+model TimeSlotException {
+  id         String   @id @default(cuid())
+  timeSlotId String
+  date       DateTime // Midnight UTC on the cancelled date
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+
+  @@unique([timeSlotId, date])
+  @@index([timeSlotId])
+}
+
+// InterestEntry — client registers interest in a full time slot
+model InterestEntry {
+  id             String    @id @default(cuid())
+  organizationId String
+  sessionId      String
+  timeSlotId     String
+  date           DateTime  // Midnight UTC for the specific date
+  clientId       String
+  notifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  session      ServiceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  timeSlot     TimeSlot       @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  client       Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, timeSlotId, date, clientId])
+  @@index([organizationId])
+  @@index([sessionId, timeSlotId, date])
+  @@index([clientId])
 }
 
 // Booking

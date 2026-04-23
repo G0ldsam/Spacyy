@@ -4,10 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { TimeInput } from '@/components/ui/time-input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DAYS_OF_WEEK } from '@/shared/types/session'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface TimeSlot {
   id: string
@@ -16,23 +14,32 @@ interface TimeSlot {
   endTime: string
 }
 
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+type Preset = 'weekdays' | 'weekends' | 'all' | 'clear'
+
 export default function TimetablePage() {
   const params = useParams()
   const router = useRouter()
   const sessionId = params.id as string
 
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [session, setSession] = useState<any>(null)
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
-  const [showAddModal, setShowAddModal] = useState<number | null>(null)
-  const [newTimeSlot, setNewTimeSlot] = useState({ startTime: '', endTime: '' })
+
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set())
+  const [saving, setSaving] = useState(false)
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchSession = useCallback(async () => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}`)
-      if (!response.ok) throw new Error('Failed to fetch session')
-      const data = await response.json()
+      const res = await fetch(`/api/sessions/${sessionId}`)
+      if (!res.ok) throw new Error('Failed to fetch session')
+      const data = await res.json()
       setSession(data)
       setTimeSlots(data.timetable || [])
     } catch (error) {
@@ -46,213 +53,284 @@ export default function TimetablePage() {
     fetchSession()
   }, [fetchSession])
 
-  const handleAddTimeSlot = async (dayOfWeek: number) => {
-    if (!newTimeSlot.startTime || !newTimeSlot.endTime) {
-      alert('Please enter both start and end times')
-      return
-    }
+  const isTimeValid =
+    startTime &&
+    endTime &&
+    (() => {
+      const [sh, sm] = startTime.split(':').map(Number)
+      const [eh, em] = endTime.split(':').map(Number)
+      return eh * 60 + em > sh * 60 + sm
+    })()
 
-    // Validate that end time is after start time
-    const [startHour, startMin] = newTimeSlot.startTime.split(':').map(Number)
-    const [endHour, endMin] = newTimeSlot.endTime.split(':').map(Number)
-    const startMinutes = startHour * 60 + startMin
-    const endMinutes = endHour * 60 + endMin
+  const conflicts = new Set(
+    startTime && endTime
+      ? timeSlots
+          .filter((ts) => ts.startTime === startTime && ts.endTime === endTime)
+          .map((ts) => ts.dayOfWeek)
+      : []
+  )
 
-    if (endMinutes <= startMinutes) {
-      alert('End time must be after start time')
-      return
-    }
+  const validDays = [...selectedDays].filter((d) => !conflicts.has(d))
+  const canSubmit = isTimeValid && validDays.length > 0
 
+  const applyPreset = (preset: Preset) => {
+    if (preset === 'weekdays') setSelectedDays(new Set([1, 2, 3, 4, 5]))
+    else if (preset === 'weekends') setSelectedDays(new Set([0, 6]))
+    else if (preset === 'all') setSelectedDays(new Set([0, 1, 2, 3, 4, 5, 6]))
+    else setSelectedDays(new Set())
+  }
+
+  const toggleDay = (day: number) => {
+    if (conflicts.has(day)) return
+    setSelectedDays((prev) => {
+      const next = new Set(prev)
+      if (next.has(day)) next.delete(day)
+      else next.add(day)
+      return next
+    })
+  }
+
+  const handleAdd = async () => {
+    if (!canSubmit) return
     setSaving(true)
+
+    const daysToAdd = validDays
+
+    // Optimistic update
+    const tempSlots: TimeSlot[] = daysToAdd.map((day) => ({
+      id: `temp-${day}-${Date.now()}`,
+      dayOfWeek: day,
+      startTime,
+      endTime,
+    }))
+    setTimeSlots((prev) => [...prev, ...tempSlots])
+    setSelectedDays(new Set())
+
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/timetable`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dayOfWeek,
-          startTime: newTimeSlot.startTime,
-          endTime: newTimeSlot.endTime,
-        }),
-      })
+      const results = await Promise.allSettled(
+        daysToAdd.map((day) =>
+          fetch(`/api/sessions/${sessionId}/timetable`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dayOfWeek: day, startTime, endTime }),
+          }).then((r) => {
+            if (!r.ok) throw new Error('Failed')
+            return r.json()
+          })
+        )
+      )
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to add time slot')
-      }
+      const successful = results
+        .map((r) => (r.status === 'fulfilled' ? r.value : null))
+        .filter(Boolean) as TimeSlot[]
 
-      const data = await response.json()
-      setTimeSlots([...timeSlots, data])
-      setNewTimeSlot({ startTime: '', endTime: '' })
-      setShowAddModal(null)
-    } catch (error: any) {
-      alert(error.message)
+      setTimeSlots((prev) => [
+        ...prev.filter((ts) => !ts.id.startsWith('temp-')),
+        ...successful,
+      ])
+    } catch {
+      setTimeSlots((prev) => prev.filter((ts) => !ts.id.startsWith('temp-')))
     } finally {
       setSaving(false)
     }
   }
 
-  const handleDeleteTimeSlot = async (timeSlotId: string) => {
-    if (!confirm('Are you sure you want to delete this time slot?')) return
-
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/timetable/${timeSlotId}`, {
+      const res = await fetch(`/api/sessions/${sessionId}/timetable/${id}`, {
         method: 'DELETE',
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete time slot')
-      }
-
-      setTimeSlots(timeSlots.filter((ts) => ts.id !== timeSlotId))
-    } catch (error: any) {
-      alert(error.message)
+      if (!res.ok) throw new Error('Failed')
+      setTimeSlots((prev) => prev.filter((ts) => ts.id !== id))
+      setConfirmDeleteId(null)
+    } finally {
+      setDeletingId(null)
     }
   }
 
-  if (loading) {
-    return (
-      <PageSpinner />
-    )
-  }
+  const groupedByTime = timeSlots.reduce<Record<string, TimeSlot[]>>((acc, slot) => {
+    const key = `${slot.startTime}|${slot.endTime}`
+    ;(acc[key] ??= []).push(slot)
+    return acc
+  }, {})
+
+  const sortedGroups = Object.entries(groupedByTime).sort(([a], [b]) => a.localeCompare(b))
+
+  if (loading) return <PageSpinner />
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mobile-container">
-        <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-          <div className="mb-6 sm:mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <button
-                onClick={() => router.back()}
-                className="text-gray-700 hover:text-gray-900"
-              >
-                ← Back
-              </button>
-            </div>
+        <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+          <div className="mb-6">
+            <button
+              onClick={() => router.back()}
+              className="text-gray-700 hover:text-gray-900 mb-2 block"
+            >
+              ← Back
+            </button>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              {session?.name} - Timetable
+              {session?.name} — Timetable
             </h1>
-            <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Manage time slots for each day of the week
-            </p>
           </div>
 
-          <div className="space-y-4">
-            {DAYS_OF_WEEK.map((day, dayIndex) => {
-              const daySlots = timeSlots.filter((ts) => ts.dayOfWeek === dayIndex)
-              return (
-                <Card key={dayIndex}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{day}</CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAddModal(dayIndex)}
-                      >
-                        + Add Time
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {showAddModal === dayIndex && (
-                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-xs text-gray-700 mb-1 block">Start Time (24h)</label>
-                              <TimeInput
-                                value={newTimeSlot.startTime}
-                                onChange={(e) =>
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: e.target.value })
-                                }
-                                className="h-10"
-                                max={newTimeSlot.endTime || undefined}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-gray-700 mb-1 block">End Time (24h)</label>
-                              <TimeInput
-                                value={newTimeSlot.endTime}
-                                onChange={(e) =>
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: e.target.value })
-                                }
-                                className="h-10"
-                                min={newTimeSlot.startTime || undefined}
-                              />
-                              {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
-                                const [startHour, startMin] = newTimeSlot.startTime.split(':').map(Number)
-                                const [endHour, endMin] = newTimeSlot.endTime.split(':').map(Number)
-                                const startMinutes = startHour * 60 + startMin
-                                const endMinutes = endHour * 60 + endMin
-                                if (endMinutes <= startMinutes) {
-                                  return (
-                                    <p className="text-xs text-red-600 mt-1">End time must be after start time</p>
-                                  )
-                                }
-                                return null
-                              })()}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleAddTimeSlot(dayIndex)}
-                              disabled={saving}
-                              className="flex-1"
-                            >
-                              {saving ? 'Adding...' : 'Add'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setShowAddModal(null)
-                                setNewTimeSlot({ startTime: '', endTime: '' })
-                              }}
-                              className="flex-1"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+          {/* Add form */}
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Add Time Slot</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Time inputs */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">
+                    Start Time
+                  </label>
+                  <TimeInput
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="h-10"
+                    max={endTime || undefined}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">
+                    End Time
+                  </label>
+                  <TimeInput
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="h-10"
+                    min={startTime || undefined}
+                  />
+                  {startTime && endTime && !isTimeValid && (
+                    <p className="text-xs text-red-600 mt-1">End time must be after start time</p>
+                  )}
+                </div>
+              </div>
 
-                    {daySlots.length === 0 ? (
-                      <p className="text-sm text-gray-700 text-center py-4">
-                        No time slots added yet
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {daySlots
-                          .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                          .map((slot) => (
-                            <div
-                              key={slot.id}
-                              className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
-                            >
-                              <span className="text-sm font-medium text-gray-900">
-                                {slot.startTime} - {slot.endTime}
+              {/* Presets */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-500">Quick select:</span>
+                {(
+                  [
+                    ['weekdays', 'Weekdays'],
+                    ['weekends', 'Weekends'],
+                    ['all', 'Every day'],
+                    ['clear', 'Clear'],
+                  ] as const
+                ).map(([preset, label]) => (
+                  <button
+                    key={preset}
+                    onClick={() => applyPreset(preset)}
+                    className="px-3 py-1 text-xs rounded-full border border-gray-300 hover:bg-gray-100 text-gray-700 transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Day toggles */}
+              <div className="flex gap-2 flex-wrap">
+                {DAY_SHORT.map((name, i) => {
+                  const isConflict = conflicts.has(i)
+                  const isSelected = selectedDays.has(i)
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => toggleDay(i)}
+                      disabled={isConflict}
+                      title={isConflict ? 'Already has this time slot' : name}
+                      className={[
+                        'flex flex-col items-center justify-center w-12 h-12 rounded-lg text-xs font-medium transition-colors',
+                        isConflict
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-[#8B1538] text-white'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-50',
+                      ].join(' ')}
+                    >
+                      <span>{name}</span>
+                      {isConflict && <span className="text-[9px] leading-none mt-0.5">✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <Button
+                onClick={handleAdd}
+                disabled={!canSubmit || saving}
+                className="w-full"
+              >
+                {saving
+                  ? 'Adding…'
+                  : canSubmit
+                  ? `Add to ${validDays.length} day${validDays.length !== 1 ? 's' : ''}`
+                  : 'Select days to add'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Existing slots */}
+          {sortedGroups.length > 0 ? (
+            <div className="space-y-3">
+              <h2 className="text-base font-semibold text-gray-900">Current Timetable</h2>
+              {sortedGroups.map(([key, slots]) => {
+                const [start, end] = key.split('|')
+                const sortedSlots = [...slots].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+                return (
+                  <Card key={key}>
+                    <CardContent className="py-4 px-4">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-900 w-28 shrink-0">
+                          {start} – {end}
+                        </span>
+                        <div className="flex gap-2 flex-wrap flex-1">
+                          {sortedSlots.map((slot) => (
+                            <div key={slot.id} className="flex items-center gap-1">
+                              <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-800">
+                                {DAY_SHORT[slot.dayOfWeek]}
                               </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteTimeSlot(slot.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                Delete
-                              </Button>
+                              {confirmDeleteId === slot.id ? (
+                                <span className="flex items-center gap-1.5 text-xs">
+                                  <button
+                                    onClick={() => handleDelete(slot.id)}
+                                    disabled={deletingId === slot.id}
+                                    className="text-red-600 font-semibold hover:text-red-800"
+                                  >
+                                    {deletingId === slot.id ? '…' : 'Remove'}
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                  >
+                                    Keep
+                                  </button>
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(slot.id)}
+                                  className="text-gray-300 hover:text-red-400 text-sm leading-none transition-colors"
+                                  title={`Remove ${DAY_SHORT[slot.dayOfWeek]}`}
+                                >
+                                  ×
+                                </button>
+                              )}
                             </div>
                           ))}
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-sm">No time slots yet. Add your first slot above.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

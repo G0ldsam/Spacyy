@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -21,11 +20,12 @@ interface Booking {
   startTime: string
   endTime: string
   status: string
-  client: {
-    id: string
-    name: string
-    email: string
-  }
+  client: { id: string; name: string; email: string }
+}
+
+interface InterestEntry {
+  id: string
+  timeSlotId: string
 }
 
 export default function BookSessionPage() {
@@ -43,26 +43,28 @@ export default function BookSessionPage() {
   const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
+  // Interest state: timeSlotId -> entry (null = not interested)
+  const [interests, setInterests] = useState<Record<string, InterestEntry | null>>({})
+  const [interestLoading, setInterestLoading] = useState<Record<string, boolean>>({})
+
   const fetchData = useCallback(async () => {
     try {
-      // Fetch session details
       const sessionResponse = await fetch(`/api/sessions/${sessionId}`)
       if (!sessionResponse.ok) throw new Error('Failed to fetch session')
       const sessionData = await sessionResponse.json()
       setSessionName(sessionData.name)
       setSessionSlots(sessionData.slots || 1)
 
-      // Get day of week for the date
       const selectedDate = new Date(date)
       const dayOfWeek = selectedDate.getDay()
-
-      // Filter time slots for this day
       const dayTimeSlots = sessionData.timetable.filter(
         (slot: any) => slot.dayOfWeek === dayOfWeek
       )
-      setTimeSlots(dayTimeSlots.sort((a: any, b: any) => a.startTime.localeCompare(b.startTime)))
+      const sorted = dayTimeSlots.sort((a: any, b: any) =>
+        a.startTime.localeCompare(b.startTime)
+      )
+      setTimeSlots(sorted)
 
-      // Fetch bookings for this date
       const bookingsResponse = await fetch(
         `/api/bookings/availability?sessionId=${sessionId}&date=${date}`
       )
@@ -71,13 +73,28 @@ export default function BookSessionPage() {
         const bookingsMap: Record<string, Booking[]> = {}
         bookingsData.forEach((booking: any) => {
           const key = `${booking.startTime}-${booking.endTime}`
-          if (!bookingsMap[key]) {
-            bookingsMap[key] = []
-          }
+          if (!bookingsMap[key]) bookingsMap[key] = []
           bookingsMap[key].push(booking)
         })
         setBookings(bookingsMap)
       }
+
+      // Fetch interest entries for each slot
+      await Promise.all(
+        sorted.map(async (slot: TimeSlot) => {
+          try {
+            const res = await fetch(
+              `/api/interest?sessionId=${sessionId}&timeSlotId=${slot.id}&date=${date}`
+            )
+            if (res.ok) {
+              const entry = await res.json()
+              setInterests((prev) => ({ ...prev, [slot.id]: entry }))
+            }
+          } catch {
+            // non-fatal
+          }
+        })
+      )
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -90,25 +107,19 @@ export default function BookSessionPage() {
       router.push('/login')
       return
     }
-    if (status === 'authenticated') {
-      fetchData()
-    }
+    if (status === 'authenticated') fetchData()
   }, [status, router, fetchData])
 
   const getRemainingSlots = (timeSlot: TimeSlot) => {
     const key = `${timeSlot.startTime}-${timeSlot.endTime}`
-    const slotBookings = bookings[key] || []
-    const activeBookings = slotBookings.filter((b) => b.status !== 'CANCELLED')
+    const activeBookings = (bookings[key] || []).filter((b) => b.status !== 'CANCELLED')
     return Math.max(0, sessionSlots - activeBookings.length)
   }
 
   const handleBookSlot = (timeSlot: TimeSlot) => {
-    const remaining = getRemainingSlots(timeSlot)
-    if (remaining > 0) {
+    if (getRemainingSlots(timeSlot) > 0) {
       setBookingSlot(timeSlot)
       setShowConfirmModal(true)
-    } else {
-      alert('This time slot is fully booked')
     }
   }
 
@@ -119,29 +130,20 @@ export default function BookSessionPage() {
       const selectedDate = new Date(date)
       const [startHour, startMin] = bookingSlot.startTime.split(':').map(Number)
       const [endHour, endMin] = bookingSlot.endTime.split(':').map(Number)
-
       const startTime = new Date(selectedDate)
       startTime.setHours(startHour, startMin, 0, 0)
-
       const endTime = new Date(selectedDate)
       endTime.setHours(endHour, endMin, 0, 0)
 
-      // Get client ID from session
       const clientResponse = await fetch('/api/clients/me')
-      if (!clientResponse.ok) {
-        throw new Error('Failed to get client information')
-      }
+      if (!clientResponse.ok) throw new Error('Failed to get client information')
       const clientData = await clientResponse.json()
 
-      // Check if we're changing an existing booking
       const changingBookingId = sessionStorage.getItem('changingBookingId')
 
-      // Create new booking
       const response = await fetch('/api/bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
           clientId: clientData.id,
@@ -149,26 +151,21 @@ export default function BookSessionPage() {
           endTime: endTime.toISOString(),
         }),
       })
-
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || 'Failed to create booking')
       }
 
-      // If we were changing a booking, cancel the old one
       if (changingBookingId) {
         try {
           await fetch(`/api/bookings/${changingBookingId}`, {
             method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: 'CANCELLED' }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'CANCELLED', isReschedule: true }),
           })
           sessionStorage.removeItem('changingBookingId')
-        } catch (error) {
-          console.error('Error cancelling old booking:', error)
-          // Continue anyway - new booking was created
+        } catch {
+          // continue — new booking was created
         }
       }
 
@@ -181,28 +178,51 @@ export default function BookSessionPage() {
     }
   }
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', {
+  const handleToggleInterest = async (timeSlot: TimeSlot) => {
+    const existing = interests[timeSlot.id]
+    setInterestLoading((prev) => ({ ...prev, [timeSlot.id]: true }))
+
+    try {
+      if (existing) {
+        await fetch(`/api/interest/${existing.id}`, { method: 'DELETE' })
+        setInterests((prev) => ({ ...prev, [timeSlot.id]: null }))
+      } else {
+        const res = await fetch('/api/interest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, timeSlotId: timeSlot.id, date }),
+        })
+        if (res.ok) {
+          const entry = await res.json()
+          setInterests((prev) => ({ ...prev, [timeSlot.id]: entry }))
+        }
+      }
+    } catch {
+      // non-fatal
+    } finally {
+      setInterestLoading((prev) => ({ ...prev, [timeSlot.id]: false }))
+    }
+  }
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     })
-  }
 
-  if (status === 'loading' || loading) {
-    return (
-      <PageSpinner />
-    )
-  }
+  if (status === 'loading' || loading) return <PageSpinner />
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mobile-container">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">
-            <Link href="/home" className="inline-flex items-center text-gray-700 hover:text-gray-900 mb-4">
+            <Link
+              href="/home"
+              className="inline-flex items-center text-gray-700 hover:text-gray-900 mb-4"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 mr-2"
@@ -216,9 +236,7 @@ export default function BookSessionPage() {
               Back to Sessions
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{sessionName}</h1>
-            <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              {formatDate(date)}
-            </p>
+            <p className="text-gray-800 mt-2 text-sm sm:text-base">{formatDate(date)}</p>
           </div>
 
           <Card>
@@ -233,34 +251,61 @@ export default function BookSessionPage() {
                   {timeSlots.map((timeSlot) => {
                     const remaining = getRemainingSlots(timeSlot)
                     const isAvailable = remaining > 0
+                    const isInterested = !!interests[timeSlot.id]
+                    const isLoadingInterest = interestLoading[timeSlot.id]
+
                     return (
                       <div
                         key={timeSlot.id}
-                        className={`
-                          relative p-4 rounded-lg border-2 transition-colors
-                          ${isAvailable 
-                            ? 'border-green-200 bg-green-50 cursor-pointer hover:shadow-md' 
-                            : 'border-red-200 bg-red-50 opacity-60'
-                          }
-                        `}
+                        className={[
+                          'relative p-4 rounded-lg border-2 transition-colors',
+                          isAvailable
+                            ? 'border-green-200 bg-green-50 cursor-pointer hover:shadow-md'
+                            : 'border-red-200 bg-red-50',
+                        ].join(' ')}
                         onClick={() => isAvailable && handleBookSlot(timeSlot)}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
                           <span className="text-lg font-semibold text-gray-900">
                             {timeSlot.startTime} - {timeSlot.endTime}
                           </span>
-                          <span
-                            className={`
-                              px-3 py-1 rounded-full text-sm font-semibold
-                              ${isAvailable 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-red-500 text-white'
-                              }
-                            `}
-                          >
-                            {remaining} {remaining === 1 ? 'slot' : 'slots'} available
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={[
+                                'px-3 py-1 rounded-full text-sm font-semibold',
+                                isAvailable ? 'bg-green-500 text-white' : 'bg-red-500 text-white',
+                              ].join(' ')}
+                            >
+                              {remaining} {remaining === 1 ? 'slot' : 'slots'} available
+                            </span>
+                            {!isAvailable && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleToggleInterest(timeSlot)
+                                }}
+                                disabled={isLoadingInterest}
+                                className={[
+                                  'px-3 py-1 rounded-full text-sm font-semibold border transition-colors',
+                                  isInterested
+                                    ? 'bg-[#8B1538] text-white border-[#8B1538]'
+                                    : 'bg-white text-[#8B1538] border-[#8B1538] hover:bg-[#8B1538]/10',
+                                ].join(' ')}
+                              >
+                                {isLoadingInterest
+                                  ? '…'
+                                  : isInterested
+                                  ? "I'm interested ✓"
+                                  : "I'm interested"}
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        {!isAvailable && isInterested && (
+                          <p className="text-xs text-[#8B1538] mt-2">
+                            You&apos;re on the interest list. We&apos;ll notify you if a spot opens up.
+                          </p>
+                        )}
                       </div>
                     )
                   })}
@@ -271,7 +316,6 @@ export default function BookSessionPage() {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
       {showConfirmModal && bookingSlot && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -284,7 +328,8 @@ export default function BookSessionPage() {
                 <span className="font-semibold">Date:</span> {formatDate(date)}
               </p>
               <p className="text-gray-700">
-                <span className="font-semibold">Time:</span> {bookingSlot.startTime} - {bookingSlot.endTime}
+                <span className="font-semibold">Time:</span> {bookingSlot.startTime} -{' '}
+                {bookingSlot.endTime}
               </p>
             </div>
             <div className="flex gap-3">
@@ -298,10 +343,7 @@ export default function BookSessionPage() {
               >
                 Cancel
               </Button>
-              <Button
-                className="flex-1"
-                onClick={confirmBooking}
-              >
+              <Button className="flex-1" onClick={confirmBooking}>
                 Confirm Booking
               </Button>
             </div>
