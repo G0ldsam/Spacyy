@@ -92,7 +92,7 @@ model Client {
   name            String
   phone           String?
   notes           String?
-  sessionAllowance  Int?     // Number of sessions allowed with current membership (null = unlimited)
+  sessionAllowance  Int?     @default(0) // Number of sessions allowed (null = unlimited, 0 = none)
   pendingSlotsUsed  Int      @default(0) // Slots used when allowance was exhausted — owed on next renewal
   createdAt         DateTime @default(now())
   updatedAt       DateTime @updatedAt
