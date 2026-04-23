@@ -6,6 +6,7 @@ import { clientSchema } from '@/lib/validation'
 import { hash } from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
+import { sendWelcomeEmail } from '@/lib/email'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -68,6 +69,11 @@ export async function POST(req: NextRequest) {
 
     const organizationId = tenant.organizationId
 
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true, slug: true },
+    })
+
     // Check if client already exists
     const existing = await prisma.client.findUnique({
       where: {
@@ -123,6 +129,18 @@ export async function POST(req: NextRequest) {
       })
 
       userId = user.id
+
+      if (org) {
+        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
+        const loginUrl = `https://${org.slug}.${mainDomain}/login`
+        sendWelcomeEmail({
+          clientEmail: validated.email,
+          clientName: validated.name,
+          orgName: org.name,
+          loginUrl,
+          tempPassword,
+        }).catch(console.error)
+      }
     }
 
     // Create client record

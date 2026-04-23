@@ -128,7 +128,49 @@ export async function sendRenewalReminder({
   await sendEmail(clientEmail, subject, html)
 }
 
-// Feature 3 — notify interested clients that a spot opened up
+// Feature 3 — welcome email sent when admin creates a client account
+export async function sendWelcomeEmail({
+  clientEmail,
+  clientName,
+  orgName,
+  loginUrl,
+  tempPassword,
+}: {
+  clientEmail: string
+  clientName: string
+  orgName: string
+  loginUrl: string
+  tempPassword: string
+}) {
+  const subject = `Welcome to ${orgName} — your account is ready`
+
+  const html = baseLayout(
+    orgName,
+    `
+    <h2 style="margin-top:0;color:#8B1538">Welcome, ${clientName}!</h2>
+    <p>Your account has been created for <strong>${orgName}</strong>. You can now log in and start booking sessions.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr style="background:#f9fafb">
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb;width:35%">Email</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${clientEmail}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb">Temporary password</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:16px;letter-spacing:2px">${tempPassword}</td>
+      </tr>
+    </table>
+    <p>You will be asked to set a new password on your first login.</p>
+    <a href="${loginUrl}"
+       style="display:inline-block;background:#8B1538;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">
+      Log In Now
+    </a>
+    `
+  )
+
+  await sendEmail(clientEmail, subject, html)
+}
+
+// Feature 4 — notify interested clients that a spot opened up
 export async function sendSpotAvailableNotification({
   clientEmail,
   clientName,
