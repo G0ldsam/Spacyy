@@ -46,6 +46,89 @@ function baseLayout(orgName: string, content: string) {
   `
 }
 
+// Feature 0 — admin notification when a client makes a new booking
+export async function notifyAdminNewBooking({
+  adminEmails,
+  orgName,
+  clientName,
+  sessionName,
+  startTime,
+}: {
+  adminEmails: string[]
+  orgName: string
+  clientName: string
+  sessionName: string
+  startTime: Date
+}) {
+  if (adminEmails.length === 0) return
+
+  const subject = `[${orgName}] New booking by ${clientName}`
+
+  const html = baseLayout(
+    orgName,
+    `
+    <h2 style="margin-top:0;color:#8B1538">New Booking</h2>
+    <p><strong>${clientName}</strong> just booked a session:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr style="background:#f9fafb">
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb;width:35%">Session</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${sessionName}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb">Date &amp; Time</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${formatDateTime(startTime)}</td>
+      </tr>
+    </table>
+    `
+  )
+
+  await sendEmail(adminEmails, subject, html)
+}
+
+// Feature 0b — confirmation email to the client after booking
+export async function sendBookingConfirmation({
+  clientEmail,
+  clientName,
+  orgName,
+  sessionName,
+  startTime,
+  endTime,
+}: {
+  clientEmail: string
+  clientName: string
+  orgName: string
+  sessionName: string
+  startTime: Date
+  endTime: Date
+}) {
+  const subject = `Booking confirmed — ${sessionName}`
+
+  const html = baseLayout(
+    orgName,
+    `
+    <h2 style="margin-top:0;color:#8B1538">Booking Confirmed!</h2>
+    <p>Hi <strong>${clientName}</strong>, your booking is confirmed:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr style="background:#f9fafb">
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb;width:35%">Session</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${sessionName}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb">Date &amp; Time</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${formatDateTime(startTime)}</td>
+      </tr>
+      <tr style="background:#f9fafb">
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb">End Time</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${formatDateTime(endTime)}</td>
+      </tr>
+    </table>
+    <p style="color:#6b7280;font-size:14px">If you need to cancel or reschedule, please do so through the app.</p>
+    `
+  )
+
+  await sendEmail(clientEmail, subject, html)
+}
+
 // Feature 1 — admin notification when client cancels or reschedules
 export async function notifyAdminCancellation({
   adminEmails,

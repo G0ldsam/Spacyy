@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
 import { checkBookingConflict } from '@/shared/lib/booking'
 import { verifyTenantAccess } from '@/lib/api-helpers'
+import { notifyAdminNewBooking, sendBookingConfirmation } from '@/lib/email'
+import { createNotifications } from '@/lib/notify'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -184,20 +186,10 @@ export async function POST(req: NextRequest) {
         notes: validated.notes,
       },
       include: {
-        space: {
-          select: {
-            id: true,
-            name: true,
-            capacity: true,
-          },
-        },
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        space: { select: { id: true, name: true, capacity: true } },
+        client: { select: { id: true, name: true, email: true } },
+        serviceSession: { select: { name: true } },
+        organization: { select: { name: true } },
       },
     })
 
@@ -207,6 +199,40 @@ export async function POST(req: NextRequest) {
         data: { pendingSlotsUsed: { increment: 1 } },
       })
     }
+
+    // Notify admins + send client confirmation (fire-and-forget)
+    const sessionName = booking.serviceSession?.name ?? booking.space?.name ?? 'Session'
+    const orgName = booking.organization?.name ?? ''
+
+    const admins = await prisma.userOrganization.findMany({
+      where: { organizationId: finalOrganizationId, role: { in: ['OWNER', 'ADMIN'] } },
+      include: { user: { select: { id: true, email: true } } },
+    })
+    const adminEmails = admins.map((a) => a.user.email).filter(Boolean) as string[]
+    const adminUserIds = admins.map((a) => a.user.id)
+
+    notifyAdminNewBooking({
+      adminEmails,
+      orgName,
+      clientName: booking.client.name,
+      sessionName,
+      startTime: booking.startTime,
+    }).catch(console.error)
+
+    createNotifications(adminUserIds, {
+      title: 'New booking',
+      body: `${booking.client.name} booked ${sessionName} on ${booking.startTime.toLocaleDateString()}`,
+      url: '/dashboard',
+    }).catch(console.error)
+
+    sendBookingConfirmation({
+      clientEmail: booking.client.email,
+      clientName: booking.client.name,
+      orgName,
+      sessionName,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    }).catch(console.error)
 
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {
