@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendRenewalReminder } from '@/lib/email'
+import { sendPushToUser } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
           id: true,
           name: true,
           email: true,
+          userId: true,
           sessionAllowance: true,
           pendingSlotsUsed: true,
         },
@@ -63,6 +65,13 @@ export async function GET(req: NextRequest) {
           sessionName: booking.serviceSession?.name ?? 'Session',
           startTime: booking.startTime,
         })
+        if (client.userId) {
+          sendPushToUser(client.userId, {
+            title: 'Membership renewal reminder',
+            body: `Your last covered session (${booking.serviceSession?.name ?? 'Session'}) is tomorrow. Contact ${booking.organization.name} to renew.`,
+            url: '/membership',
+          }).catch(console.error)
+        }
         reminders.push(client.email)
       } catch (err) {
         console.error(`Failed to send renewal reminder to ${client.email}:`, err)

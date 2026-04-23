@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 import { notifyAdminCancellation } from '@/lib/email'
+import { sendPushToUsers } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -111,9 +112,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           organizationId: tenant.organizationId,
           role: { in: ['OWNER', 'ADMIN'] },
         },
-        include: { user: { select: { email: true } } },
+        include: { user: { select: { id: true, email: true } } },
       })
       const adminEmails = admins.map((a) => a.user.email).filter(Boolean) as string[]
+      const adminUserIds = admins.map((a) => a.user.id)
+      const action = isReschedule ? 'rescheduled' : 'cancelled'
 
       notifyAdminCancellation({
         adminEmails,
@@ -122,6 +125,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         sessionName: existingBooking.serviceSession?.name ?? 'Session',
         startTime: existingBooking.startTime,
         isReschedule: isReschedule === true,
+      }).catch(console.error)
+
+      sendPushToUsers(adminUserIds, {
+        title: `Booking ${action}`,
+        body: `${existingBooking.client.name} ${action} their ${existingBooking.serviceSession?.name ?? 'session'} booking`,
+        url: '/dashboard',
       }).catch(console.error)
     }
 

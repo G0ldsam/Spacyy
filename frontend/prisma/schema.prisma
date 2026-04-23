@@ -50,11 +50,12 @@ model User {
   updatedAt         DateTime @updatedAt
 
   // Relations
-  organizations UserOrganization[]
-  accounts      Account[]
-  sessions      Session[]
-  bookings      Booking[] @relation("ClientBookings")
-  clients       Client[]
+  organizations     UserOrganization[]
+  accounts          Account[]
+  sessions          Session[]
+  bookings          Booking[] @relation("ClientBookings")
+  clients           Client[]
+  pushSubscriptions PushSubscription[]
 
   @@index([email])
 }
@@ -294,4 +295,17 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

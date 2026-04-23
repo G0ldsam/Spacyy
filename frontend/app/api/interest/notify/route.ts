@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 import { sendSpotAvailableNotification } from '@/lib/email'
+import { sendPushToUser } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
         date: { gte: entryDate, lt: nextDay },
       },
       include: {
-        client: { select: { id: true, name: true, email: true } },
+        client: { select: { id: true, name: true, email: true, userId: true } },
       },
     }),
     prisma.timeSlot.findUnique({ where: { id: timeSlotId } }),
@@ -73,6 +74,13 @@ export async function POST(req: NextRequest) {
         endTime: timeSlot.endTime,
         bookingUrl,
       })
+      if (entry.client.userId) {
+        sendPushToUser(entry.client.userId, {
+          title: 'Spot available!',
+          body: `A spot opened up for ${serviceSession.name} on ${formattedDate}`,
+          url: bookingUrl,
+        }).catch(console.error)
+      }
       await prisma.interestEntry.update({
         where: { id: entry.id },
         data: { notifiedAt: new Date() },
