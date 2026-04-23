@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
 import NotificationBell from '@/components/NotificationBell'
+import PushNotificationPrompt from '@/components/PushNotificationPrompt'
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -59,6 +60,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PushNotificationPrompt />
       <div className="mobile-container">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8 relative">

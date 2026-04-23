@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
 import NotificationBell from '@/components/NotificationBell'
+import PushNotificationPrompt from '@/components/PushNotificationPrompt'
 
 interface Booking {
   id: string
@@ -124,6 +125,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PushNotificationPrompt />
       {isAdmin && (
         <div className="bg-[#8B1538] text-white text-center text-sm py-2 px-4">
           You are previewing the client view.{' '}
