@@ -28,7 +28,8 @@ export default function ContactForm() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || `Server error ${response.status}`)
       }
 
       setStatus('success')
@@ -39,9 +40,9 @@ export default function ContactForm() {
         businessName: '',
         message: ''
       })
-    } catch (error) {
+    } catch (error: any) {
       setStatus('error')
-      setErrorMessage('Failed to send message. Please try again.')
+      setErrorMessage(error.message || 'Failed to send message. Please try again.')
     }
   }
 
