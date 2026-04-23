@@ -30,13 +30,7 @@ export async function POST(req: NextRequest) {
     // For now, we'll use a simple approach with nodemailer or a service like Resend
 
     // Simulate email sending (replace with actual email service)
-    try {
-      await sendContactEmail(validated)
-    } catch (emailError) {
-      console.error('Email sending failed:', emailError)
-      // Still return success to user even if email fails
-      // You can monitor logs for email issues
-    }
+    await sendContactEmail(validated)
 
     return NextResponse.json(
       { success: true, message: 'Contact form submitted successfully' },
