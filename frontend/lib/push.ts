@@ -1,11 +1,16 @@
 import webpush from 'web-push'
 import { prisma } from '@/lib/prisma'
 
-webpush.setVapidDetails(
-  `mailto:${process.env.SMTP_USER}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+const vapidReady =
+  !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && !!process.env.VAPID_PRIVATE_KEY
+
+if (vapidReady) {
+  webpush.setVapidDetails(
+    `mailto:${process.env.SMTP_USER || 'admin@spacyy.com'}`,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  )
+}
 
 export interface PushPayload {
   title: string
@@ -14,6 +19,8 @@ export interface PushPayload {
 }
 
 export async function sendPushToUser(userId: string, payload: PushPayload) {
+  if (!vapidReady) return
+
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId },
   })
