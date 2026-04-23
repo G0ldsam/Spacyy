@@ -3,19 +3,19 @@ import { UserRole, BookingStatus } from '@/shared/types/enums'
 
 // User schemas
 export const userSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(v => v.toLowerCase().trim()),
   name: z.string().min(1).optional(),
   password: z.string().min(8).optional(),
 })
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(v => v.toLowerCase().trim()),
   password: z.string().min(1),
 })
 
 // Client schemas
 export const clientSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(v => v.toLowerCase().trim()),
   name: z.string().min(1),
   phone: z.string().optional(),
   notes: z.string().optional(),

@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
 
           console.log('🔍 Looking up user in database...')
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email: credentials.email.toLowerCase().trim() },
             include: {
               organizations: {
                 include: {
