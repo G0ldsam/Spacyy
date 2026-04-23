@@ -78,8 +78,11 @@ export async function POST(req: NextRequest) {
       notes: body.notes,
     })
 
-    // Prevent booking sessions that have already started
-    if (new Date(validated.startTime) <= new Date()) {
+    // Prevent clients from booking sessions that have already started (admins can still assign)
+    const isAdmin = session.user.organizations?.some(
+      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+    )
+    if (!isAdmin && new Date(validated.startTime) <= new Date()) {
       return NextResponse.json({ error: 'This session has already started' }, { status: 400 })
     }
 
