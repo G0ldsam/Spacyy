@@ -254,6 +254,13 @@ export default function BookSessionPage() {
                     const isInterested = !!interests[timeSlot.id]
                     const isLoadingInterest = interestLoading[timeSlot.id]
 
+                    const [slotHour, slotMin] = timeSlot.startTime.split(':').map(Number)
+                    const slotStart = new Date(date)
+                    slotStart.setHours(slotHour, slotMin, 0, 0)
+                    const isPast = slotStart <= new Date()
+
+                    if (isPast) return null
+
                     return (
                       <div
                         key={timeSlot.id}

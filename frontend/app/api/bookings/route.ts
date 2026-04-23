@@ -76,6 +76,11 @@ export async function POST(req: NextRequest) {
       notes: body.notes,
     })
 
+    // Prevent booking sessions that have already started
+    if (new Date(validated.startTime) <= new Date()) {
+      return NextResponse.json({ error: 'This session has already started' }, { status: 400 })
+    }
+
     // Get organization from session or space
     let finalOrganizationId = organizationId
     if (validated.spaceId) {

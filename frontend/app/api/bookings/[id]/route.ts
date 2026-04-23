@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 import { notifyAdminCancellation } from '@/lib/email'
-import { sendPushToUsers } from '@/lib/push'
+import { createNotifications } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -127,7 +127,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         isReschedule: isReschedule === true,
       }).catch(console.error)
 
-      sendPushToUsers(adminUserIds, {
+      createNotifications(adminUserIds, {
         title: `Booking ${action}`,
         body: `${existingBooking.client.name} ${action} their ${existingBooking.serviceSession?.name ?? 'session'} booking`,
         url: '/dashboard',

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
+import NotificationBell from '@/components/NotificationBell'
 
 interface Booking {
   id: string
@@ -135,6 +136,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8 relative">
             <div className="absolute top-0 right-0 flex items-center gap-3">
+              <NotificationBell />
               <PushSubscribeButton />
               <LogoutButton />
             </div>

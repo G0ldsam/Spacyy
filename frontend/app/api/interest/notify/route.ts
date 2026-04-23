@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 import { sendSpotAvailableNotification } from '@/lib/email'
-import { sendPushToUser } from '@/lib/push'
+import { createNotification } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         bookingUrl,
       })
       if (entry.client.userId) {
-        sendPushToUser(entry.client.userId, {
+        createNotification(entry.client.userId, {
           title: 'Spot available!',
           body: `A spot opened up for ${serviceSession.name} on ${formattedDate}`,
           url: bookingUrl,

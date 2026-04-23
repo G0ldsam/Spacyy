@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
+import NotificationBell from '@/components/NotificationBell'
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -72,6 +73,7 @@ export default async function DashboardPage() {
                 </svg>
                 Client View
               </a>
+              <NotificationBell />
               <PushSubscribeButton />
               <LogoutButton />
             </div>
