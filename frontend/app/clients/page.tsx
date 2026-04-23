@@ -27,6 +27,7 @@ export default function ClientsPage() {
   const { data: session, status } = useSession()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -82,11 +83,16 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     try {
       const response = await fetch('/api/clients')
-      if (!response.ok) throw new Error('Failed to fetch clients')
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || `Error ${response.status}`)
+      }
       const data = await response.json()
       setClients(data)
-    } catch (error) {
+      setFetchError('')
+    } catch (error: any) {
       console.error('Error fetching clients:', error)
+      setFetchError(error.message || 'Failed to load clients')
     } finally {
       setLoading(false)
     }
@@ -272,7 +278,13 @@ export default function ClientsPage() {
             </Button>
           </div>
 
-          {clients.length === 0 ? (
+          {fetchError && (
+            <div className="rounded-md bg-red-50 border border-red-200 p-4 mb-4 text-sm text-red-800">
+              Failed to load clients: {fetchError}
+            </div>
+          )}
+
+          {!fetchError && clients.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-gray-700">No clients yet. Click &quot;Create Client&quot; to get started.</p>

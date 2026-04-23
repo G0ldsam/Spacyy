@@ -94,11 +94,11 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json()
         setSessionAllowance(data.sessionAllowance)
-        // Fetch bookings after client info is loaded
-        await fetchMyBookings()
       }
     } catch (error) {
       console.error('Error fetching client info:', error)
+    } finally {
+      await fetchMyBookings()
     }
   }, [fetchMyBookings])
 
