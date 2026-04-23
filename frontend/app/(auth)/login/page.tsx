@@ -44,6 +44,11 @@ export default function LoginPage() {
         const session = await getSession()
         const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
 
+        if ((session?.user as any)?.mustChangePassword) {
+          router.push('/change-password')
+          return
+        }
+
         const adminOrg = session?.user?.organizations?.find(
           (org) => org.role === 'OWNER' || org.role === 'ADMIN'
         )
@@ -52,7 +57,6 @@ export default function LoginPage() {
           const currentHost = window.location.hostname
           const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1'
           const targetHost = `${adminOrg.organization.slug}.${mainDomain}`
-          // Only redirect to subdomain when on the main domain in production
           if (!isLocalhost && currentHost === mainDomain) {
             window.location.href = `${window.location.protocol}//${targetHost}/dashboard`
             return
