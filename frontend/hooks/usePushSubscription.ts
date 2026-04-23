@@ -11,11 +11,18 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
+function swReady(timeoutMs = 5000): Promise<ServiceWorkerRegistration | null> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ])
+}
+
 export function usePushSubscription() {
   const [state, setState] = useState<PushState>('loading')
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       setState('unsupported')
       return
     }
@@ -23,17 +30,31 @@ export function usePushSubscription() {
       setState('denied')
       return
     }
-    navigator.serviceWorker.ready.then((reg) =>
+    swReady().then((reg) => {
+      if (!reg) {
+        // SW not ready — still show prompt based on permission state
+        setState(Notification.permission === 'granted' ? 'unsubscribed' : 'unsubscribed')
+        return
+      }
       reg.pushManager.getSubscription().then((sub) => {
         setState(sub ? 'subscribed' : 'unsubscribed')
-      })
-    )
+      }).catch(() => setState('unsubscribed'))
+    })
   }, [])
 
   async function subscribe() {
     setState('loading')
     try {
-      const reg = await navigator.serviceWorker.ready
+      // Request permission first if not yet granted
+      if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+          setState('denied')
+          return
+        }
+      }
+      const reg = await swReady(8000)
+      if (!reg) throw new Error('Service worker not ready')
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
@@ -54,8 +75,8 @@ export function usePushSubscription() {
   async function unsubscribe() {
     setState('loading')
     try {
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.getSubscription()
+      const reg = await swReady()
+      const sub = await reg?.pushManager.getSubscription()
       if (sub) {
         await fetch('/api/push/subscribe', {
           method: 'DELETE',
