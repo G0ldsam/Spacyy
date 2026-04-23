@@ -4,7 +4,7 @@ import { sendEmail } from '@/lib/email'
 
 const contactSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Invalid email address').transform(v => v.toLowerCase().trim()),
   phone: z.string().optional(),
   businessName: z.string().min(1, 'Business name is required'),
   message: z.string().min(10, 'Message must be at least 10 characters'),
