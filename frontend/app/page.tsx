@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import ContactForm from '@/components/ContactForm'
 
 export default function HomePage() {
   // COMPLETELY STATIC PAGE - NO SERVER-SIDE CODE AT ALL
@@ -167,20 +168,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Simple Contact Section - NO FORM */}
+      {/* Contact Form */}
       <section id="contact" className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12">
-          <div className="text-center">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Get In Touch
-            </h2>
-            <p className="text-xl text-gray-600 mb-8">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Get In Touch</h2>
+            <p className="text-xl text-gray-600">
               Interested in using Spacyy for your business? Let&apos;s talk!
             </p>
-            <p className="text-lg text-gray-600">
-              Email us at: <a href="mailto:hello@spacyy.com" className="text-blue-600 hover:text-blue-700 font-medium">hello@spacyy.com</a>
-            </p>
           </div>
+          <ContactForm />
         </div>
       </section>
 
