@@ -186,7 +186,7 @@ export default function LandingPage() {
             Ready to transform your studio?
           </h2>
           <p className="text-white/70 mb-8 text-lg">
-            Get in touch and we'll set you up with your own branded booking platform.
+            Get in touch and we&apos;ll set you up with your own branded booking platform.
           </p>
           <a
             href="#contact"
