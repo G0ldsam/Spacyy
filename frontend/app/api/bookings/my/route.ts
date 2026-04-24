@@ -19,13 +19,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const client = await prisma.client.findFirst({
+    let client = await prisma.client.findFirst({
       where: {
         userId: session.user.id,
         organizationId: tenant.organizationId,
       },
       select: { id: true },
     })
+
+    // Fallback: find by email (covers cases where userId wasn't linked yet)
+    if (!client && session.user.email) {
+      client = await prisma.client.findUnique({
+        where: {
+          organizationId_email: {
+            organizationId: tenant.organizationId,
+            email: session.user.email.toLowerCase(),
+          },
+        },
+        select: { id: true },
+      })
+
+      // Link the userId so future lookups are fast
+      if (client) {
+        await prisma.client.update({
+          where: { id: client.id },
+          data: { userId: session.user.id },
+        })
+      }
+    }
 
     if (!client) {
       return NextResponse.json([])
