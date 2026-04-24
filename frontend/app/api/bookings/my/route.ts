@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { verifyTenantAccess } from '@/lib/api-helpers'
+import { getTenantContext } from '@/lib/api-helpers'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -10,36 +10,40 @@ export const dynamic = 'force-dynamic'
 // GET /api/bookings/my - Get current user's bookings
 export async function GET(req: NextRequest) {
   try {
-    const result = await verifyTenantAccess()
-    if ('error' in result) return result.error
-    const { tenant } = result
-
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Try to resolve tenant from hostname; fall back to any org the user belongs to
+    const tenant = await getTenantContext()
+    const orgIds: string[] = tenant
+      ? [tenant.organizationId]
+      : (session.user.organizations?.map((o) => o.organization.id) ?? [])
+
+    if (orgIds.length === 0) {
+      return NextResponse.json([])
+    }
+
+    // Find client record(s) for this user across the resolved org(s)
     let client = await prisma.client.findFirst({
       where: {
         userId: session.user.id,
-        organizationId: tenant.organizationId,
+        organizationId: { in: orgIds },
       },
-      select: { id: true },
+      select: { id: true, organizationId: true },
     })
 
     // Fallback: find by email (covers cases where userId wasn't linked yet)
     if (!client && session.user.email) {
-      client = await prisma.client.findUnique({
+      client = await prisma.client.findFirst({
         where: {
-          organizationId_email: {
-            organizationId: tenant.organizationId,
-            email: session.user.email.toLowerCase(),
-          },
+          email: session.user.email.toLowerCase(),
+          organizationId: { in: orgIds },
         },
-        select: { id: true },
+        select: { id: true, organizationId: true },
       })
 
-      // Link the userId so future lookups are fast
       if (client) {
         await prisma.client.update({
           where: { id: client.id },
@@ -55,22 +59,14 @@ export async function GET(req: NextRequest) {
     const bookings = await prisma.booking.findMany({
       where: {
         clientId: client.id,
-        status: {
-          not: 'CANCELLED',
-        },
+        status: { not: 'CANCELLED' },
       },
       include: {
         serviceSession: {
-          select: {
-            id: true,
-            name: true,
-            themeColor: true,
-          },
+          select: { id: true, name: true, themeColor: true },
         },
       },
-      orderBy: {
-        startTime: 'asc',
-      },
+      orderBy: { startTime: 'asc' },
     })
 
     return NextResponse.json(bookings)
