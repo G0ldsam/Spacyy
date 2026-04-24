@@ -172,6 +172,44 @@ export async function notifyAdminCancellation({
   await sendEmail(adminEmails, subject, html)
 }
 
+// Feature 1b — confirmation email to the client when they cancel their own booking
+export async function notifyClientCancellation({
+  clientEmail,
+  clientName,
+  orgName,
+  sessionName,
+  startTime,
+}: {
+  clientEmail: string
+  clientName: string
+  orgName: string
+  sessionName: string
+  startTime: Date
+}) {
+  const subject = `Booking cancelled — ${sessionName}`
+
+  const html = baseLayout(
+    orgName,
+    `
+    <h2 style="margin-top:0;color:#8B1538">Booking Cancelled</h2>
+    <p>Hi <strong>${clientName}</strong>, your booking has been cancelled:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr style="background:#f9fafb">
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb;width:35%">Session</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${sessionName}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb">Date &amp; Time</td>
+        <td style="padding:10px 12px;border:1px solid #e5e7eb">${formatDateTime(startTime)}</td>
+      </tr>
+    </table>
+    <p style="color:#6b7280;font-size:14px">If this was a mistake, you can rebook through the app.</p>
+    `
+  )
+
+  await sendEmail(clientEmail, subject, html)
+}
+
 // Feature 2 — renewal reminder sent 24h before the client's last session
 export async function sendRenewalReminder({
   clientEmail,

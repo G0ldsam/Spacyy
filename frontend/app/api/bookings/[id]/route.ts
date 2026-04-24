@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
-import { notifyAdminCancellation } from '@/lib/email'
+import { notifyAdminCancellation, notifyClientCancellation } from '@/lib/email'
 import { createNotifications } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       include: {
         organization: { select: { bookingChangeHours: true, name: true } },
-        client: { select: { id: true, name: true } },
+        client: { select: { id: true, name: true, email: true } },
         serviceSession: { select: { name: true } },
       },
     })
@@ -126,6 +126,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         startTime: existingBooking.startTime,
         isReschedule: isReschedule === true,
       }).catch(console.error)
+
+      if (existingBooking.client.email) {
+        notifyClientCancellation({
+          clientEmail: existingBooking.client.email,
+          clientName: existingBooking.client.name,
+          orgName: existingBooking.organization.name,
+          sessionName: existingBooking.serviceSession?.name ?? 'Session',
+          startTime: existingBooking.startTime,
+        }).catch(console.error)
+      }
 
       createNotifications(adminUserIds, {
         title: `Booking ${action}`,
