@@ -53,13 +53,13 @@ export function usePushSubscription() {
           return
         }
       }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidKey) throw new Error('Push notifications are not configured')
       const reg = await swReady(8000)
       if (!reg) throw new Error('Service worker not ready')
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
       await fetch('/api/push/subscribe', {
         method: 'POST',

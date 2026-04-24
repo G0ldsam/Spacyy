@@ -2,7 +2,7 @@
 
 import { signOut } from 'next-auth/react'
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePushSubscription } from '@/hooks/usePushSubscription'
 
 interface Props {
@@ -16,6 +16,20 @@ interface Props {
 
 export default function SettingsSidebar({ open, onClose, user }: Props) {
   const { state, subscribe, unsubscribe } = usePushSubscription()
+  const [pushError, setPushError] = useState('')
+
+  async function handleToggle() {
+    setPushError('')
+    try {
+      if (state === 'subscribed') {
+        await unsubscribe()
+      } else {
+        await subscribe()
+      }
+    } catch {
+      setPushError('Could not update notification settings. Try again.')
+    }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -85,28 +99,47 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
             {state === 'denied' && (
               <div>
                 <p className="text-sm text-gray-700 mb-1">Notifications are blocked.</p>
-                <p className="text-xs text-gray-500">Open your browser settings to allow notifications for this site.</p>
+                <p className="text-xs text-gray-500">Go to your browser settings and allow notifications for this site, then reload.</p>
               </div>
             )}
 
             {(state === 'unsubscribed' || state === 'subscribed' || state === 'loading') && (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Push notifications</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {state === 'subscribed' ? 'Enabled — you will receive alerts' : 'Get alerts for bookings and reminders'}
-                  </p>
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Push notifications</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {state === 'subscribed'
+                        ? 'Enabled — you will receive alerts'
+                        : state === 'loading'
+                        ? 'Updating…'
+                        : 'Get alerts for bookings and reminders'}
+                    </p>
+                  </div>
+
+                  {state === 'loading' ? (
+                    <div className="w-11 h-6 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleToggle}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${state === 'subscribed' ? 'bg-[#8B1538]' : 'bg-gray-200'}`}
+                      aria-label="Toggle notifications"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${state === 'subscribed' ? 'translate-x-5' : 'translate-x-0'}`}
+                      />
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={state === 'subscribed' ? unsubscribe : subscribe}
-                  disabled={state === 'loading'}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${state === 'subscribed' ? 'bg-[#8B1538]' : 'bg-gray-200'}`}
-                  aria-label="Toggle notifications"
-                >
-                  <span
-                    className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${state === 'subscribed' ? 'translate-x-5' : 'translate-x-0'}`}
-                  />
-                </button>
+
+                {pushError && (
+                  <p className="text-xs text-red-500 mt-2">{pushError}</p>
+                )}
               </div>
             )}
           </div>
