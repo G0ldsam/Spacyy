@@ -30,16 +30,20 @@ export function usePushSubscription() {
       setState('denied')
       return
     }
-    swReady().then((reg) => {
-      if (!reg) {
-        // SW not ready — still show prompt based on permission state
-        setState(Notification.permission === 'granted' ? 'unsubscribed' : 'unsubscribed')
+    // getRegistration() resolves immediately with the current SW (if any),
+    // avoiding the long wait that serviceWorker.ready can cause.
+    navigator.serviceWorker.getRegistration('/').then(async (reg) => {
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription().catch(() => null)
+        setState(sub ? 'subscribed' : 'unsubscribed')
         return
       }
-      reg.pushManager.getSubscription().then((sub) => {
-        setState(sub ? 'subscribed' : 'unsubscribed')
-      }).catch(() => setState('unsubscribed'))
-    })
+      // No registration yet — fall back to waiting
+      const readyReg = await swReady()
+      if (!readyReg) { setState('unsubscribed'); return }
+      const sub = await readyReg.pushManager.getSubscription().catch(() => null)
+      setState(sub ? 'subscribed' : 'unsubscribed')
+    }).catch(() => setState('unsubscribed'))
   }, [])
 
   async function subscribe() {
