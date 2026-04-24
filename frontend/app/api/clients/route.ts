@@ -18,34 +18,32 @@ export async function GET(req: NextRequest) {
     if ('error' in result) return result.error
     const { tenant } = result
 
-    const clients = await prisma.client.findMany({
-      where: {
-        organizationId: tenant.organizationId,
-        NOT: {
-          user: {
-            organizations: {
-              some: {
-                organizationId: tenant.organizationId,
-                role: { in: ['OWNER', 'ADMIN'] },
-              },
-            },
-          },
+    const [allClients, adminOrgs] = await Promise.all([
+      prisma.client.findMany({
+        where: { organizationId: tenant.organizationId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          notes: true,
+          userId: true,
+          sessionAllowance: true,
+          createdAt: true,
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        notes: true,
-        userId: true,
-        sessionAllowance: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.userOrganization.findMany({
+        where: {
+          organizationId: tenant.organizationId,
+          role: { in: ['OWNER', 'ADMIN'] },
+        },
+        select: { userId: true },
+      }),
+    ])
+
+    const adminUserIds = new Set(adminOrgs.map((o) => o.userId))
+    const clients = allClients.filter((c) => !c.userId || !adminUserIds.has(c.userId))
 
     return NextResponse.json(clients)
   } catch (error) {

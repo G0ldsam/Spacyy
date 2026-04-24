@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
         userId: session.user.id,
         organizationId: tenant.organizationId,
       },
+      select: { id: true },
     })
 
     if (!client) {
