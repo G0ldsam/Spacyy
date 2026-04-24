@@ -25,6 +25,12 @@ export default async function DashboardPage() {
 
   const now = new Date()
 
+  const adminUserOrgs = await prisma.userOrganization.findMany({
+    where: { organizationId: userOrg.organization.id, role: { in: ['OWNER', 'ADMIN'] } },
+    select: { userId: true },
+  })
+  const adminUserIds = adminUserOrgs.map((u) => u.userId)
+
   const [sessionsCount, activeBookingsCount, totalBookingsCount, clientsCount] = await Promise.all([
     prisma.serviceSession.count({
       where: { organizationId: userOrg.organization.id },
@@ -42,16 +48,10 @@ export default async function DashboardPage() {
     prisma.client.count({
       where: {
         organizationId: userOrg.organization.id,
-        NOT: {
-          user: {
-            organizations: {
-              some: {
-                organizationId: userOrg.organization.id,
-                role: { in: ['OWNER', 'ADMIN'] },
-              },
-            },
-          },
-        },
+        OR: [
+          { userId: null },
+          { userId: { notIn: adminUserIds } },
+        ],
       },
     }),
   ])
