@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import NotificationBell from '@/components/NotificationBell'
-import PushNotificationPrompt from '@/components/PushNotificationPrompt'
+import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import SettingsSidebar from '@/components/SettingsSidebar'
 
 interface Booking {
@@ -125,7 +125,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PushNotificationPrompt />
+      <AutoPushSubscribe />
       {isAdmin && (
         <div className="bg-[#8B1538] text-white text-center text-sm py-2 px-4">
           You are previewing the client view.{' '}

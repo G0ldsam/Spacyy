@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import PushNotificationPrompt from '@/components/PushNotificationPrompt'
+import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import DashboardHeader from '@/components/DashboardHeader'
 
 export default async function DashboardPage() {
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PushNotificationPrompt />
+      <AutoPushSubscribe />
       <div className="mobile-container">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8 relative">

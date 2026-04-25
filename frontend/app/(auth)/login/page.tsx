@@ -49,6 +49,11 @@ export default function LoginPage() {
           return
         }
 
+        // Request push permission right after sign-in (user gesture context)
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          Notification.requestPermission().catch(() => {})
+        }
+
         const adminOrg = session?.user?.organizations?.find(
           (org) => org.role === 'OWNER' || org.role === 'ADMIN'
         )

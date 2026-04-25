@@ -11,7 +11,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
-function swReady(timeoutMs = 5000): Promise<ServiceWorkerRegistration | null> {
+function swReady(timeoutMs = 8000): Promise<ServiceWorkerRegistration | null> {
   return Promise.race([
     navigator.serviceWorker.ready,
     new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
@@ -22,35 +22,61 @@ export function usePushSubscription() {
   const [state, setState] = useState<PushState>('loading')
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    // 'unsupported' only when the browser lacks the required APIs entirely
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window)
+    ) {
       setState('unsupported')
       return
     }
+
     if (Notification.permission === 'denied') {
       setState('denied')
       return
     }
-    // getRegistration() resolves immediately with the current SW (if any),
-    // avoiding the long wait that serviceWorker.ready can cause.
-    navigator.serviceWorker.getRegistration('/').then(async (reg) => {
-      if (reg) {
-        const sub = await reg.pushManager.getSubscription().catch(() => null)
-        setState(sub ? 'subscribed' : 'unsubscribed')
-        return
-      }
-      // No registration yet — fall back to waiting (e.g. first install)
-      const readyReg = await swReady()
-      // If still no SW after timeout, push is not available in this environment
-      if (!readyReg) { setState('unsupported'); return }
-      const sub = await readyReg.pushManager.getSubscription().catch(() => null)
-      setState(sub ? 'subscribed' : 'unsubscribed')
-    }).catch(() => setState('unsupported'))
+
+    let active = true
+
+    async function checkSubscription(reg: ServiceWorkerRegistration) {
+      const sub = await reg.pushManager.getSubscription().catch(() => null)
+      if (active) setState(sub ? 'subscribed' : 'unsubscribed')
+    }
+
+    navigator.serviceWorker
+      .getRegistration('/')
+      .then((reg) => {
+        if (!active) return
+
+        if (reg) {
+          // SW already registered — check subscription immediately
+          checkSubscription(reg)
+          return
+        }
+
+        // SW not registered yet (first load / still installing).
+        // Show unsubscribed right away so the UI is not stuck on "loading",
+        // then update once the SW finishes activating — no hard timeout.
+        setState('unsubscribed')
+        navigator.serviceWorker.ready
+          .then((readyReg) => {
+            if (active) checkSubscription(readyReg)
+          })
+          .catch(() => {})
+      })
+      .catch(() => {
+        if (active) setState('unsubscribed')
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   async function subscribe() {
     setState('loading')
     try {
-      // Request permission first if not yet granted
       if (Notification.permission === 'default') {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') {
@@ -58,32 +84,34 @@ export function usePushSubscription() {
           return
         }
       }
+
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidKey) {
         setState('unsubscribed')
         throw new Error('Push notifications are not configured on this server')
       }
-      const reg = await swReady(8000)
+
+      const reg = await swReady(10000)
       if (!reg) {
         setState('unsubscribed')
-        throw new Error('Service worker not ready. Try reloading the page.')
+        throw new Error('Service worker not ready — try reloading the page')
       }
+
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
-      await fetch('/api/push/subscribe', {
+
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
       })
+      if (!res.ok) throw new Error('Failed to save subscription on server')
+
       setState('subscribed')
     } catch (err) {
-      if (Notification.permission === 'denied') {
-        setState('denied')
-      } else {
-        setState('unsubscribed')
-      }
+      setState(Notification.permission === 'denied' ? 'denied' : 'unsubscribed')
       throw err
     }
   }
