@@ -76,7 +76,12 @@ export default function BookPage() {
       const response = await fetch('/api/bookings/my')
       if (response.ok) {
         const data = await response.json()
-        setMyBookings(data)
+        const now = new Date()
+        const active = data.filter((b: Booking) => {
+          if (b.status === 'CANCELLED') return false
+          return new Date(b.endTime) >= now
+        })
+        setMyBookings(active)
       }
     } catch (error) {
       console.error('Error fetching bookings:', error)

@@ -85,27 +85,37 @@ export async function verifyTenantAccess(): Promise<
   { tenant: TenantContext } | { error: NextResponse }
 > {
   const session = await getServerSession(authOptions)
-  
+
   if (!session?.user) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
   const tenant = await getTenantContext()
-  
-  if (!tenant) {
+
+  if (tenant) {
+    const hasAccess = session.user.organizations?.some(
+      (org) => org.organization.id === tenant.organizationId
+    )
+    if (!hasAccess) {
+      return { error: NextResponse.json({ error: 'Forbidden - No access to this organization' }, { status: 403 }) }
+    }
+    return { tenant }
+  }
+
+  // No tenant from hostname — fall back to the user's own org (e.g. client on main domain)
+  const sessionOrg = session.user.organizations?.[0]
+  if (!sessionOrg) {
     return { error: NextResponse.json({ error: 'No organization context' }, { status: 400 }) }
   }
 
-  // Verify user has access to this organization
-  const hasAccess = session.user.organizations?.some(
-    (org) => org.organization.id === tenant.organizationId
-  )
-
-  if (!hasAccess) {
-    return { error: NextResponse.json({ error: 'Forbidden - No access to this organization' }, { status: 403 }) }
+  return {
+    tenant: {
+      organizationId: sessionOrg.organization.id,
+      slug: sessionOrg.organization.slug,
+      name: sessionOrg.organization.name,
+      type: 'session',
+    },
   }
-
-  return { tenant }
 }
 
 /**

@@ -38,12 +38,13 @@ export function usePushSubscription() {
         setState(sub ? 'subscribed' : 'unsubscribed')
         return
       }
-      // No registration yet — fall back to waiting
+      // No registration yet — fall back to waiting (e.g. first install)
       const readyReg = await swReady()
-      if (!readyReg) { setState('unsubscribed'); return }
+      // If still no SW after timeout, push is not available in this environment
+      if (!readyReg) { setState('unsupported'); return }
       const sub = await readyReg.pushManager.getSubscription().catch(() => null)
       setState(sub ? 'subscribed' : 'unsubscribed')
-    }).catch(() => setState('unsubscribed'))
+    }).catch(() => setState('unsupported'))
   }, [])
 
   async function subscribe() {

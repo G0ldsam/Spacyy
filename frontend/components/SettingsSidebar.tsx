@@ -26,8 +26,8 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
       } else {
         await subscribe()
       }
-    } catch {
-      setPushError('Could not update notification settings. Try again.')
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : 'Could not update notification settings. Try again.')
     }
   }
 
