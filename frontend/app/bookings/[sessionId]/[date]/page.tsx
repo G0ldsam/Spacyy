@@ -195,13 +195,13 @@ export default function TimeSlotBookingsPage() {
   const handleAssign = async () => {
     if (!selectedClientId || !selectedTimeSlot) return
     try {
-      const selectedDate = new Date(date)
       const [startHour, startMin] = selectedTimeSlot.startTime.split(':').map(Number)
       const [endHour, endMin] = selectedTimeSlot.endTime.split(':').map(Number)
-      const startTime = new Date(selectedDate)
-      startTime.setHours(startHour, startMin, 0, 0)
-      const endTime = new Date(selectedDate)
-      endTime.setHours(endHour, endMin, 0, 0)
+      // Use UTC so "16:00" is stored as T16:00:00Z regardless of browser timezone
+      const startTime = new Date(`${date}T00:00:00Z`)
+      startTime.setUTCHours(startHour, startMin, 0, 0)
+      const endTime = new Date(`${date}T00:00:00Z`)
+      endTime.setUTCHours(endHour, endMin, 0, 0)
 
       const response = await fetch('/api/bookings', {
         method: 'POST',

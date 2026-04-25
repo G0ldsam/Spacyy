@@ -20,10 +20,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'start and end are required' }, { status: 400 })
     }
 
-    const startDate = new Date(start)
-    startDate.setHours(0, 0, 0, 0)
-    const endDate = new Date(end)
-    endDate.setHours(23, 59, 59, 999)
+    const startDate = new Date(`${start}T00:00:00Z`)
+    const endDate = new Date(`${end}T23:59:59.999Z`)
 
     const bookings = await prisma.booking.findMany({
       where: {

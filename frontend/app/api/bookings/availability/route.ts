@@ -25,12 +25,9 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Parse the date
-    const selectedDate = new Date(date)
-    const startOfDay = new Date(selectedDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(selectedDate)
-    endOfDay.setHours(23, 59, 59, 999)
+    // Parse the date as explicit UTC boundaries to match naive-UTC stored booking times
+    const startOfDay = new Date(`${date}T00:00:00Z`)
+    const endOfDay = new Date(`${date}T23:59:59.999Z`)
 
     // Get all bookings for this session on this date
     const bookings = await prisma.booking.findMany({
@@ -63,8 +60,9 @@ export async function GET(req: NextRequest) {
 
     // Group bookings by time slot (startTime-endTime)
     const timeSlotBookings = bookings.map((booking) => {
-      const startTime = booking.startTime.toTimeString().slice(0, 5) // HH:mm format
-      const endTime = booking.endTime.toTimeString().slice(0, 5) // HH:mm format
+      // Use UTC hours so they match TimeSlot.startTime/endTime strings (stored as naive "local" UTC)
+      const startTime = booking.startTime.toISOString().slice(11, 16) // HH:mm UTC
+      const endTime = booking.endTime.toISOString().slice(11, 16) // HH:mm UTC
       return {
         id: booking.id,
         startTime,
