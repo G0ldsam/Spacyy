@@ -4,6 +4,7 @@ import { signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { usePushSubscription } from '@/hooks/usePushSubscription'
+import { PUSH_OPT_OUT_KEY } from '@/components/AutoPushSubscribe'
 
 interface Props {
   open: boolean
@@ -22,8 +23,10 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
     setPushError('')
     try {
       if (state === 'subscribed') {
+        sessionStorage.setItem(PUSH_OPT_OUT_KEY, '1')
         await unsubscribe()
       } else {
+        sessionStorage.removeItem(PUSH_OPT_OUT_KEY)
         await subscribe()
       }
     } catch (err) {
