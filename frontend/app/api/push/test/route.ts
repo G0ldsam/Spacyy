@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
   })
 
   if (subs.length === 0) {
-    return NextResponse.json({ error: 'No push subscriptions found for this user' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'No push subscriptions found. Enable notifications via the Settings toggle first.' },
+      { status: 422 }
+    )
   }
 
   await sendPushToUser(targetUserId, {

@@ -21,11 +21,25 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
-async function getSwReg(timeoutMs = 10000): Promise<ServiceWorkerRegistration | null> {
+function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
   return Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
   ])
+}
+
+async function getActiveSW(): Promise<ServiceWorkerRegistration | null> {
+  try {
+    // Explicitly register in case next-pwa auto-registration hasn't fired yet
+    await navigator.serviceWorker.register('/sw.js').catch(() => {})
+    return await withTimeout(
+      navigator.serviceWorker.ready,
+      8000,
+      'Service worker did not activate in time.'
+    )
+  } catch {
+    return null
+  }
 }
 
 export function PushSubscriptionProvider({ children }: { children: ReactNode }) {
@@ -49,20 +63,20 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
 
     let mounted = true
 
-    // Use serviceWorker.ready directly — avoids the race of getRegistration()
-    // returning undefined before the SW has activated.
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => {
-        if (mounted) setState(sub ? 'subscribed' : 'unsubscribed')
-      })
-      .catch(() => {
-        if (mounted) setState('unsubscribed')
-      })
-
-    return () => {
-      mounted = false
+    async function detectState() {
+      const reg = await getActiveSW()
+      if (!mounted) return
+      if (!reg) {
+        // SW unavailable — still render toggle so user sees a helpful message
+        setState('unsubscribed')
+        return
+      }
+      const sub = await reg.pushManager.getSubscription().catch(() => null)
+      if (mounted) setState(sub ? 'subscribed' : 'unsubscribed')
     }
+
+    detectState()
+    return () => { mounted = false }
   }, [])
 
   const subscribe = useCallback(async () => {
@@ -84,26 +98,31 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidKey) {
         setState('unsubscribed')
-        throw new Error('Push notifications are not configured on this server.')
+        throw new Error('Push notifications are not configured. Contact support.')
       }
 
-      const reg = await getSwReg()
+      const reg = await getActiveSW()
       if (!reg) {
         setState('unsubscribed')
-        throw new Error('Service worker not ready — try reloading the page.')
+        throw new Error('Service worker not ready — reload the page and try again.')
       }
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      })
+      // pushManager.subscribe makes a network call to the push service; cap it.
+      const sub = await withTimeout(
+        reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        }),
+        15000,
+        'Subscription timed out — check your connection and try again.'
+      )
 
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
       })
-      if (!res.ok) throw new Error('Failed to save subscription on server.')
+      if (!res.ok) throw new Error('Failed to save subscription. Try again.')
 
       setState('subscribed')
     } catch (err) {
@@ -119,7 +138,7 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
   const unsubscribe = useCallback(async () => {
     setState('loading')
     try {
-      const reg = await getSwReg()
+      const reg = await getActiveSW()
       const sub = await reg?.pushManager.getSubscription()
       if (sub) {
         await fetch('/api/push/subscribe', {
