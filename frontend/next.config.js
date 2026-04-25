@@ -4,6 +4,15 @@ const withPWA = require('next-pwa')({
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   customWorkerDir: 'worker',
+  // Exclude Next.js internal manifests — they are not publicly accessible
+  // so Workbox would get 404 trying to precache them, aborting SW install.
+  buildExcludes: [
+    /app-build-manifest\.json$/,
+    /middleware-manifest\.json$/,
+    /middleware-build-manifest\.js$/,
+    /react-loadable-manifest\.json$/,
+    /server\//,
+  ],
 })
 
 /** @type {import('next').NextConfig} */
