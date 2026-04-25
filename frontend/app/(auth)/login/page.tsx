@@ -49,12 +49,6 @@ export default function LoginPage() {
           return
         }
 
-        // Request push permission right after sign-in while still in user-gesture context.
-        // Must await so the redirect doesn't dismiss the dialog before user responds.
-        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-          await Notification.requestPermission().catch(() => {})
-        }
-
         const adminOrg = session?.user?.organizations?.find(
           (org) => org.role === 'OWNER' || org.role === 'ADMIN'
         )

@@ -112,6 +112,20 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production'
+          ? `.${process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'}`
+          : undefined,
+      },
+    },
+  },
   pages: {
     signIn: '/login',
   },

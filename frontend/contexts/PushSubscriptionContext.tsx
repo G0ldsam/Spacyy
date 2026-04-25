@@ -2,24 +2,26 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 
-type PushState = 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed' | 'loading'
+type PushState = 'loading' | 'unsupported' | 'denied' | 'unsubscribed' | 'subscribed'
 
-interface PushSubscriptionContextType {
+interface PushContextValue {
   state: PushState
   subscribe: () => Promise<void>
   unsubscribe: () => Promise<void>
 }
 
-const PushSubscriptionContext = createContext<PushSubscriptionContextType | null>(null)
+const PushContext = createContext<PushContextValue | null>(null)
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = atob(base64)
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(b64)
+  const bytes = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i)
+  return bytes
 }
 
-function swReady(timeoutMs = 8000): Promise<ServiceWorkerRegistration | null> {
+async function getSwReg(timeoutMs = 10000): Promise<ServiceWorkerRegistration | null> {
   return Promise.race([
     navigator.serviceWorker.ready,
     new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
@@ -31,6 +33,7 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
 
   useEffect(() => {
     if (
+      typeof window === 'undefined' ||
       !('serviceWorker' in navigator) ||
       !('PushManager' in window) ||
       !('Notification' in window)
@@ -44,43 +47,35 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
       return
     }
 
-    let active = true
+    let mounted = true
 
-    async function checkSubscription(reg: ServiceWorkerRegistration) {
-      const sub = await reg.pushManager.getSubscription().catch(() => null)
-      if (active) setState(sub ? 'subscribed' : 'unsubscribed')
-    }
-
-    navigator.serviceWorker
-      .getRegistration('/')
-      .then((reg) => {
-        if (!active) return
-        if (reg) {
-          checkSubscription(reg)
-          return
-        }
-        setState('unsubscribed')
-        navigator.serviceWorker.ready
-          .then((readyReg) => {
-            if (active) checkSubscription(readyReg)
-          })
-          .catch(() => {})
+    // Use serviceWorker.ready directly — avoids the race of getRegistration()
+    // returning undefined before the SW has activated.
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => {
+        if (mounted) setState(sub ? 'subscribed' : 'unsubscribed')
       })
       .catch(() => {
-        if (active) setState('unsubscribed')
+        if (mounted) setState('unsubscribed')
       })
 
     return () => {
-      active = false
+      mounted = false
     }
   }, [])
 
   const subscribe = useCallback(async () => {
     setState('loading')
     try {
-      if (Notification.permission === 'default') {
-        const permission = await Notification.requestPermission()
-        if (permission !== 'granted') {
+      if (Notification.permission === 'denied') {
+        setState('denied')
+        return
+      }
+
+      if (Notification.permission !== 'granted') {
+        const result = await Notification.requestPermission()
+        if (result !== 'granted') {
           setState('denied')
           return
         }
@@ -89,13 +84,13 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidKey) {
         setState('unsubscribed')
-        throw new Error('Push notifications are not configured on this server')
+        throw new Error('Push notifications are not configured on this server.')
       }
 
-      const reg = await swReady(10000)
+      const reg = await getSwReg()
       if (!reg) {
         setState('unsubscribed')
-        throw new Error('Service worker not ready — try reloading the page')
+        throw new Error('Service worker not ready — try reloading the page.')
       }
 
       const sub = await reg.pushManager.subscribe({
@@ -108,11 +103,15 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
       })
-      if (!res.ok) throw new Error('Failed to save subscription on server')
+      if (!res.ok) throw new Error('Failed to save subscription on server.')
 
       setState('subscribed')
     } catch (err) {
-      setState(Notification.permission === 'denied' ? 'denied' : 'unsubscribed')
+      setState(
+        typeof Notification !== 'undefined' && Notification.permission === 'denied'
+          ? 'denied'
+          : 'unsubscribed'
+      )
       throw err
     }
   }, [])
@@ -120,7 +119,7 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
   const unsubscribe = useCallback(async () => {
     setState('loading')
     try {
-      const reg = await swReady()
+      const reg = await getSwReg()
       const sub = await reg?.pushManager.getSubscription()
       if (sub) {
         await fetch('/api/push/subscribe', {
@@ -130,22 +129,20 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
         })
         await sub.unsubscribe()
       }
+    } finally {
       setState('unsubscribed')
-    } catch (err) {
-      setState('unsubscribed')
-      throw err
     }
   }, [])
 
   return (
-    <PushSubscriptionContext.Provider value={{ state, subscribe, unsubscribe }}>
+    <PushContext.Provider value={{ state, subscribe, unsubscribe }}>
       {children}
-    </PushSubscriptionContext.Provider>
+    </PushContext.Provider>
   )
 }
 
-export function usePushSubscription() {
-  const ctx = useContext(PushSubscriptionContext)
+export function usePushSubscription(): PushContextValue {
+  const ctx = useContext(PushContext)
   if (!ctx) throw new Error('usePushSubscription must be used within PushSubscriptionProvider')
   return ctx
 }
