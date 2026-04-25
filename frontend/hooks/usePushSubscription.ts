@@ -58,9 +58,15 @@ export function usePushSubscription() {
         }
       }
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidKey) throw new Error('Push notifications are not configured')
+      if (!vapidKey) {
+        setState('unsubscribed')
+        throw new Error('Push notifications are not configured on this server')
+      }
       const reg = await swReady(8000)
-      if (!reg) throw new Error('Service worker not ready')
+      if (!reg) {
+        setState('unsubscribed')
+        throw new Error('Service worker not ready. Try reloading the page.')
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -71,8 +77,13 @@ export function usePushSubscription() {
         body: JSON.stringify(sub.toJSON()),
       })
       setState('subscribed')
-    } catch {
-      setState(Notification.permission === 'denied' ? 'denied' : 'unsubscribed')
+    } catch (err) {
+      if (Notification.permission === 'denied') {
+        setState('denied')
+      } else {
+        setState('unsubscribed')
+      }
+      throw err
     }
   }
 
@@ -90,8 +101,9 @@ export function usePushSubscription() {
         await sub.unsubscribe()
       }
       setState('unsubscribed')
-    } catch {
+    } catch (err) {
       setState('unsubscribed')
+      throw err
     }
   }
 

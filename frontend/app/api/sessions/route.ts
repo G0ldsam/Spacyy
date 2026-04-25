@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { serviceSessionSchema } from '@/lib/validation'
-import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
+import { verifyTenantAccess, verifyTenantAdmin, getTenantContext } from '@/lib/api-helpers'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -11,14 +11,32 @@ export const dynamic = 'force-dynamic'
 // GET /api/sessions - List sessions
 export async function GET(req: NextRequest) {
   try {
-    const result = await verifyTenantAccess()
-    if ('error' in result) return result.error
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    const { tenant } = result
+    // Resolve org: tenant context first, fall back to user's session org
+    const tenant = await getTenantContext()
+    const organizationId = tenant
+      ? tenant.organizationId
+      : session.user.organizations?.[0]?.organization.id
+
+    if (!organizationId) {
+      return NextResponse.json({ error: 'No organization context' }, { status: 400 })
+    }
+
+    // Verify user belongs to this org
+    const hasAccess = session.user.organizations?.some(
+      (org) => org.organization.id === organizationId
+    )
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const sessions = await prisma.serviceSession.findMany({
       where: {
-        organizationId: tenant.organizationId,
+        organizationId,
       },
       include: {
         timetable: {

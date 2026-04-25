@@ -21,7 +21,11 @@ export default function PushNotificationPrompt() {
   }
 
   async function handleEnable() {
-    await subscribe()
+    try {
+      await subscribe()
+    } catch {
+      // subscribe() already updates state; ignore here
+    }
     dismiss()
   }
 
