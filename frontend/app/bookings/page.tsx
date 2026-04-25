@@ -35,6 +35,7 @@ export default function BookingsPage() {
   const [availableSessions, setAvailableSessions] = useState<Session[]>([])
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [timeSlotBookings, setTimeSlotBookings] = useState<Record<string, number>>({})
+  const [bookedDates, setBookedDates] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -57,6 +58,20 @@ export default function BookingsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, sessions])
+
+  // Fetch which dates in the visible week have bookings
+  useEffect(() => {
+    const week = getWeekDays(selectedDate)
+    const start = week[0].toISOString().split('T')[0]
+    const end = week[6].toISOString().split('T')[0]
+    fetch(`/api/bookings/dates?start=${start}&end=${end}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.dates) setBookedDates(new Set(data.dates))
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate])
 
   useEffect(() => {
     if (selectedSession) {
@@ -184,6 +199,10 @@ export default function BookingsPage() {
     )
   }
 
+  const hasBookings = (date: Date) => {
+    return bookedDates.has(date.toISOString().split('T')[0])
+  }
+
   if (status === 'loading' || loading) {
     return (
       <PageSpinner />
@@ -257,8 +276,8 @@ export default function BookingsPage() {
                           onClick={() => selectDate(date)}
                           className={`
                             flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0
-                            ${isSelected(date) 
-                              ? 'bg-[#8B1538] text-white' 
+                            ${isSelected(date)
+                              ? 'bg-[#8B1538] text-white'
                               : isToday(date)
                               ? 'bg-gray-200 text-gray-900'
                               : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
@@ -267,6 +286,11 @@ export default function BookingsPage() {
                         >
                           <span className="text-[9px] sm:text-[10px] md:text-xs mb-0.5 sm:mb-1 opacity-70">{dayName}</span>
                           <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{dayNumber}</span>
+                          <span className={`mt-0.5 w-1.5 h-1.5 rounded-full ${
+                            hasBookings(date)
+                              ? isSelected(date) ? 'bg-white' : 'bg-[#8B1538]'
+                              : 'invisible'
+                          }`} />
                         </button>
                       )
                     })}
