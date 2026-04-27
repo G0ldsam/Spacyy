@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,9 +7,11 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const { data: session, status, update } = useSession()
   const mustChangePassword = (session?.user as any)?.mustChangePassword
 
@@ -32,14 +33,13 @@ export default function ChangePasswordPage() {
     e.preventDefault()
     setError('')
 
-    // Validation
     if (formData.newPassword.length < 8) {
-      setError('New password must be at least 8 characters')
+      setError(t('change_password.error_length'))
       return
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('change_password.error_match'))
       return
     }
 
@@ -48,9 +48,7 @@ export default function ChangePasswordPage() {
     try {
       const response = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
@@ -63,10 +61,8 @@ export default function ChangePasswordPage() {
         throw new Error(data.error || 'Failed to change password')
       }
 
-      // Update session to clear mustChangePassword flag
       await update()
 
-      // Redirect based on user role - use window.location for full page reload
       const userOrg = session?.user?.organizations?.find(
         (org) => org.role === 'OWNER' || org.role === 'ADMIN'
       )
@@ -84,9 +80,7 @@ export default function ChangePasswordPage() {
   }
 
   if (status === 'loading') {
-    return (
-      <PageSpinner />
-    )
+    return <PageSpinner />
   }
 
   return (
@@ -94,10 +88,10 @@ export default function ChangePasswordPage() {
       <div className="max-w-md w-full">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Change Password</CardTitle>
-            <CardDescription>
-              You must change your password before continuing
-            </CardDescription>
+            <CardTitle className="text-2xl">{t('change_password.title')}</CardTitle>
+            {mustChangePassword && (
+              <CardDescription>{t('change_password.must_change')}</CardDescription>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,12 +104,12 @@ export default function ChangePasswordPage() {
               {!mustChangePassword && (
                 <div className="space-y-2">
                   <label htmlFor="currentPassword" className="text-sm font-medium text-gray-900">
-                    Current Password *
+                    {t('change_password.current_label')}
                   </label>
                   <Input
                     id="currentPassword"
                     type="password"
-                    placeholder="Enter current password"
+                    placeholder={t('change_password.current_placeholder')}
                     value={formData.currentPassword}
                     onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
                     required={!mustChangePassword}
@@ -125,28 +119,28 @@ export default function ChangePasswordPage() {
 
               <div className="space-y-2">
                 <label htmlFor="newPassword" className="text-sm font-medium text-gray-900">
-                  New Password *
+                  {t('change_password.new_label')}
                 </label>
                 <Input
                   id="newPassword"
                   type="password"
-                  placeholder="At least 8 characters"
+                  placeholder={t('change_password.new_placeholder')}
                   value={formData.newPassword}
                   onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
                   required
                   minLength={8}
                 />
-                <p className="text-xs text-gray-600">Must be at least 8 characters long</p>
+                <p className="text-xs text-gray-600">{t('change_password.new_hint')}</p>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-900">
-                  Confirm New Password *
+                  {t('change_password.confirm_label')}
                 </label>
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm new password"
+                  placeholder={t('change_password.confirm_placeholder')}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required
@@ -155,7 +149,7 @@ export default function ChangePasswordPage() {
               </div>
 
               <Button type="submit" className="w-full" disabled={changing}>
-                {changing ? 'Changing Password...' : 'Change Password'}
+                {changing ? t('change_password.submitting') : t('change_password.submit')}
               </Button>
             </form>
           </CardContent>

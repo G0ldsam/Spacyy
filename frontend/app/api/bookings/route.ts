@@ -150,6 +150,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Prevent same client booking the same session+time twice
+    const duplicate = await prisma.booking.findFirst({
+      where: {
+        clientId: validated.clientId,
+        sessionId: validated.sessionId || undefined,
+        startTime: new Date(validated.startTime),
+        endTime: new Date(validated.endTime),
+        status: { not: 'CANCELLED' },
+      },
+    })
+    if (duplicate) {
+      return NextResponse.json(
+        { error: 'You already have a booking for this session.' },
+        { status: 409 }
+      )
+    }
+
     // Check for conflicts - count existing bookings for this time slot
     const existingBookings = await prisma.booking.findMany({
       where: {

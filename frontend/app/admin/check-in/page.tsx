@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Html5Qrcode } from 'html5-qrcode'
 import { format } from 'date-fns'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface CheckInInfo {
   clientId: string
@@ -22,6 +23,7 @@ interface CheckInInfo {
 }
 
 export default function CheckInPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -61,14 +63,14 @@ export default function CheckInPage() {
       // Check if we're in a secure context (HTTPS or localhost)
       const isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       if (!isSecure) {
-        setError('Camera access requires HTTPS. Please use a secure connection or localhost.')
+        setError(t('check_in.error_https'))
         setScanning(false)
         return
       }
 
       // Check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Camera API is not available in this browser. Please use a modern browser that supports camera access.')
+        setError(t('check_in.error_api'))
         setScanning(false)
         return
       }
@@ -121,7 +123,7 @@ export default function CheckInPage() {
       }
 
       if (!cameraId) {
-        setError('No camera found. Please ensure a camera is available.')
+        setError(t('check_in.error_no_camera'))
         setScanning(false)
         return
       }
@@ -141,21 +143,21 @@ export default function CheckInPage() {
       )
     } catch (error: any) {
       console.error('Error starting scanner:', error)
-      
-      let errorMessage = 'Failed to start camera. '
-      
+
+      let errorMessage = t('check_in.error_start') + ' '
+
       if (error.name === 'NotAllowedError' || error.message?.includes('permission')) {
-        errorMessage += 'Camera permission denied. Please allow camera access in your browser settings and try again.'
+        errorMessage += t('check_in.error_denied')
       } else if (error.name === 'NotFoundError' || error.message?.includes('not found')) {
-        errorMessage += 'No camera found. Please connect a camera device.'
+        errorMessage += t('check_in.error_no_camera2')
       } else if (error.name === 'NotReadableError' || error.message?.includes('not readable')) {
-        errorMessage += 'Camera is already in use by another application. Please close other apps using the camera.'
+        errorMessage += t('check_in.error_in_use')
       } else if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
-        errorMessage += 'Camera access requires HTTPS. Please use a secure connection.'
+        errorMessage += t('check_in.error_https2')
       } else {
-        errorMessage += 'Please ensure camera permissions are granted and try again.'
+        errorMessage += t('check_in.error_permissions')
       }
-      
+
       setError(errorMessage)
       setScanning(false)
     }
@@ -184,17 +186,17 @@ export default function CheckInPage() {
         const response = await fetch(`/api/admin/check-in/client/${parsed.clientId}`)
         if (!response.ok) {
           const data = await response.json()
-          throw new Error(data.error || 'No booking found for today')
+          throw new Error(data.error || t('check_in.error_no_booking'))
         }
         
         const bookingData = await response.json()
         setCheckInInfo(bookingData)
       } else {
-        setError('Invalid QR code. Please scan a membership QR code.')
+        setError(t('check_in.error_invalid_qr'))
       }
     } catch (error: any) {
       console.error('Error processing QR code:', error)
-      setError(error.message || 'Invalid QR code format. Please try again.')
+      setError(error.message || t('check_in.error_invalid_qr'))
     }
   }
 
@@ -258,11 +260,11 @@ export default function CheckInPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              {t('check_in.back')}
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Check-In</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('check_in.title')}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Scan a member&apos;s QR code to check them in for their session
+              {t('check_in.subtitle')}
             </p>
           </div>
 
@@ -270,19 +272,19 @@ export default function CheckInPage() {
             {/* QR Scanner */}
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>Scan Membership QR Code</CardTitle>
+                <CardTitle>{t('check_in.scan_title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {!scanning ? (
                     <Button onClick={startScanning} className="w-full">
-                      Start Scanning
+                      {t('check_in.start')}
                     </Button>
                   ) : (
                     <div className="space-y-4">
                       <div id="qr-reader-checkin" className="w-full max-w-full overflow-hidden"></div>
                       <Button onClick={stopScanning} variant="outline" className="w-full">
-                        Stop Scanning
+                        {t('check_in.stop')}
                       </Button>
                     </div>
                   )}
@@ -306,35 +308,35 @@ export default function CheckInPage() {
             {checkInInfo && (
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle>Check-In Information</CardTitle>
+                  <CardTitle>{t('check_in.info_title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Client Name</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('check_in.client_name')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900 break-words">{checkInInfo.clientName}</p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Session</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('check_in.session')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900 break-words">{checkInInfo.sessionName}</p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Time</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('check_in.time')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900">
                           {format(new Date(checkInInfo.startTime), 'HH:mm')} -{' '}
                           {format(new Date(checkInInfo.endTime), 'HH:mm')}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Date</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('check_in.date')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900 break-words">
                           {format(new Date(checkInInfo.startTime), 'EEEE, MMMM d, yyyy')}
                         </p>
                       </div>
                       {checkInInfo.status === 'CHECKED_IN' && (
                         <div className="rounded-md bg-green-50 p-3 border border-green-200">
-                          <p className="text-xs sm:text-sm text-green-800 font-semibold">Already Checked In</p>
+                          <p className="text-xs sm:text-sm text-green-800 font-semibold">{t('check_in.already_checked')}</p>
                         </div>
                       )}
                     </div>
@@ -345,7 +347,7 @@ export default function CheckInPage() {
                         className="w-full"
                         disabled={checkingIn}
                       >
-                        {checkingIn ? 'Checking In...' : 'Check In'}
+                        {checkingIn ? t('check_in.checking_in') : t('check_in.check_in_btn')}
                       </Button>
                     )}
                   </div>

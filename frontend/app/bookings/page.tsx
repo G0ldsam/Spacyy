@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
@@ -9,6 +8,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { DAYS_OF_WEEK } from '@/shared/types/session'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface TimeSlot {
   id: string
@@ -27,6 +27,7 @@ interface Session {
 }
 
 export default function BookingsPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -230,11 +231,11 @@ export default function BookingsPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              {t('bookings.back')}
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Bookings</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('bookings.title')}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Select a date to view available sessions
+              {t('bookings.select_date')}
             </p>
           </div>
 
@@ -366,13 +367,13 @@ export default function BookingsPage() {
                                     <span
                                       className={`
                                         px-3 py-1 rounded-full text-sm font-semibold
-                                        ${isAvailable 
-                                          ? 'bg-green-500 text-white' 
+                                        ${isAvailable
+                                          ? 'bg-green-500 text-white'
                                           : 'bg-red-500 text-white'
                                         }
                                       `}
                                     >
-                                      {remaining} {remaining === 1 ? 'slot' : 'slots'} left
+                                      {t(remaining === 1 ? 'bookings.slots_left_one' : 'bookings.slots_left_other', { count: remaining })}
                                     </span>
                                   </div>
                                 </div>
@@ -385,17 +386,17 @@ export default function BookingsPage() {
                   <>
                     <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
                       <CardTitle className="text-sm sm:text-base md:text-lg break-words">
-                        Available Sessions - {formatDate(selectedDate)}
+                        {t('bookings.available', { date: formatDate(selectedDate) })}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-3 sm:p-4 md:p-6">
                       {availableSessions.length === 0 ? (
                         <div className="text-center py-8 sm:py-12">
                           <p className="text-sm sm:text-base text-gray-700 mb-2 break-words px-2">
-                            No sessions available for {DAYS_OF_WEEK[selectedDate.getDay()]}
+                            {t('bookings.no_sessions', { day: DAYS_OF_WEEK[selectedDate.getDay()] })}
                           </p>
                           <p className="text-xs sm:text-sm text-gray-600 break-words px-2">
-                            Select another date to see available sessions
+                            {t('bookings.no_sessions_hint')}
                           </p>
                         </div>
                       ) : (
@@ -424,7 +425,7 @@ export default function BookingsPage() {
                                 />
                               </div>
                               <div className="mt-3">
-                                <p className="text-xs text-gray-600 mb-2">Available time slots:</p>
+                                <p className="text-xs text-gray-600 mb-2">{t('bookings.time_slots')}</p>
                                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                   {session.timetable
                                     .sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -438,7 +439,7 @@ export default function BookingsPage() {
                                     ))}
                                 </div>
                                 <p className="text-xs text-gray-600 mt-2">
-                                  Slots available: {session.slots}
+                                  {t('bookings.slots_available', { count: session.slots })}
                                 </p>
                               </div>
                             </div>

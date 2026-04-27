@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Html5Qrcode } from 'html5-qrcode'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ScannedClient {
   id: string
@@ -20,6 +21,7 @@ interface ScannedClient {
 }
 
 export default function MembershipManagementPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -60,14 +62,14 @@ export default function MembershipManagementPage() {
       // Check if we're in a secure context (HTTPS or localhost)
       const isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       if (!isSecure) {
-        setError('Camera access requires HTTPS. Please use a secure connection or localhost.')
+        setError(t('membership_mgmt.error_https'))
         setScanning(false)
         return
       }
 
       // Check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Camera API is not available in this browser. Please use a modern browser that supports camera access.')
+        setError(t('membership_mgmt.error_api'))
         setScanning(false)
         return
       }
@@ -120,7 +122,7 @@ export default function MembershipManagementPage() {
       }
 
       if (!cameraId) {
-        setError('No camera found. Please ensure a camera is available.')
+        setError(t('membership_mgmt.error_no_camera'))
         setScanning(false)
         return
       }
@@ -140,21 +142,21 @@ export default function MembershipManagementPage() {
       )
     } catch (error: any) {
       console.error('Error starting scanner:', error)
-      
-      let errorMessage = 'Failed to start camera. '
-      
+
+      let errorMessage = ''
+
       if (error.name === 'NotAllowedError' || error.message?.includes('permission')) {
-        errorMessage += 'Camera permission denied. Please allow camera access in your browser settings and try again.'
+        errorMessage = t('check_in.error_denied')
       } else if (error.name === 'NotFoundError' || error.message?.includes('not found')) {
-        errorMessage += 'No camera found. Please connect a camera device.'
+        errorMessage = t('check_in.error_no_camera2')
       } else if (error.name === 'NotReadableError' || error.message?.includes('not readable')) {
-        errorMessage += 'Camera is already in use by another application. Please close other apps using the camera.'
+        errorMessage = t('check_in.error_in_use')
       } else if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
-        errorMessage += 'Camera access requires HTTPS. Please use a secure connection.'
+        errorMessage = t('check_in.error_https2')
       } else {
-        errorMessage += 'Please ensure camera permissions are granted and try again.'
+        errorMessage = t('check_in.error_permissions')
       }
-      
+
       setError(errorMessage)
       setScanning(false)
     }
@@ -182,18 +184,18 @@ export default function MembershipManagementPage() {
         // Fetch client information
         const response = await fetch(`/api/admin/clients/${parsed.clientId}`)
         if (!response.ok) {
-          throw new Error('Client not found')
+          throw new Error(t('membership_mgmt.error_not_found'))
         }
         
         const clientData = await response.json()
         setScannedClient(clientData)
         setSessionsToAdd('')
       } else {
-        setError('Invalid QR code. Please scan a membership QR code.')
+        setError(t('membership_mgmt.error_invalid_qr'))
       }
     } catch (error: any) {
       console.error('Error processing QR code:', error)
-      setError('Invalid QR code format. Please try again.')
+      setError(t('membership_mgmt.error_invalid_qr'))
     }
   }
 
@@ -222,7 +224,7 @@ export default function MembershipManagementPage() {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to renew membership')
+        throw new Error(data.error || t('membership_mgmt.error_renew'))
       }
 
       const updated = await response.json()
@@ -272,11 +274,11 @@ export default function MembershipManagementPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              {t('membership_mgmt.back')}
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Membership Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('membership_mgmt.title')}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Scan a member&apos;s QR code to renew their membership
+              {t('membership_mgmt.subtitle')}
             </p>
           </div>
 
@@ -284,19 +286,19 @@ export default function MembershipManagementPage() {
             {/* QR Scanner */}
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>Scan Membership QR Code</CardTitle>
+                <CardTitle>{t('membership_mgmt.scan_title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {!scanning ? (
                     <Button onClick={startScanning} className="w-full">
-                      Start Scanning
+                      {t('membership_mgmt.start')}
                     </Button>
                   ) : (
                     <div className="space-y-4">
                       <div id="qr-reader" className="w-full max-w-full overflow-hidden" ref={scanAreaRef}></div>
                       <Button onClick={stopScanning} variant="outline" className="w-full">
-                        Stop Scanning
+                        {t('membership_mgmt.stop')}
                       </Button>
                     </div>
                   )}
@@ -320,7 +322,7 @@ export default function MembershipManagementPage() {
             {scannedClient && (
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle>Renew Membership</CardTitle>
+                  <CardTitle>{t('membership_mgmt.renew')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -331,10 +333,10 @@ export default function MembershipManagementPage() {
                         </svg>
                         <div>
                           <p className="text-sm font-semibold text-amber-800">
-                            {scannedClient.pendingSlotsUsed} pending slot{scannedClient.pendingSlotsUsed > 1 ? 's' : ''} owed
+                            {t(scannedClient.pendingSlotsUsed === 1 ? 'membership_mgmt.pending_slots_one' : 'membership_mgmt.pending_slots_other', { count: scannedClient.pendingSlotsUsed })}
                           </p>
                           <p className="text-xs text-amber-700 mt-0.5">
-                            This client booked {scannedClient.pendingSlotsUsed} session{scannedClient.pendingSlotsUsed > 1 ? 's' : ''} on a pending slot. Subtract {scannedClient.pendingSlotsUsed} from the sessions you add below.
+                            {t(scannedClient.pendingSlotsUsed === 1 ? 'membership_mgmt.pending_desc_one' : 'membership_mgmt.pending_desc_other', { count: scannedClient.pendingSlotsUsed })}
                           </p>
                         </div>
                       </div>
@@ -342,46 +344,50 @@ export default function MembershipManagementPage() {
 
                     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Name</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('membership_mgmt.name')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900 break-words">{scannedClient.name}</p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Email</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('membership_mgmt.email')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900 break-words break-all">{scannedClient.email}</p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Current Session Allowance</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('membership_mgmt.current_allowance')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900">
                           {scannedClient.sessionAllowance !== null
-                            ? `${scannedClient.sessionAllowance} sessions`
-                            : 'Unlimited'}
+                            ? t('membership_mgmt.sessions_count', { count: scannedClient.sessionAllowance })
+                            : t('membership_mgmt.unlimited')}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Active Bookings</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{t('membership_mgmt.active_bookings')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900">{scannedClient.activeBookings}</p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <label htmlFor="sessionsToAdd" className="text-sm font-medium text-gray-900">
-                        Sessions to Add
+                        {t('membership_mgmt.sessions_to_add')}
                       </label>
                       <Input
                         id="sessionsToAdd"
                         type="number"
                         min="1"
-                        placeholder="Enter number of sessions"
+                        placeholder={t('membership_mgmt.sessions_placeholder')}
                         value={sessionsToAdd}
                         onChange={(e) => setSessionsToAdd(e.target.value)}
                         className="h-12 text-base"
                       />
                       <p className="text-xs text-gray-600">
-                        Enter the number of sessions to add to the current allowance. Current allowance: {scannedClient.sessionAllowance !== null ? `${scannedClient.sessionAllowance} sessions` : 'Unlimited'}
+                        {t('membership_mgmt.sessions_hint', {
+                          current: scannedClient.sessionAllowance !== null
+                            ? t('membership_mgmt.sessions_count', { count: scannedClient.sessionAllowance })
+                            : t('membership_mgmt.unlimited')
+                        })}
                       </p>
                       {scannedClient.sessionAllowance !== null && sessionsToAdd && !isNaN(parseInt(sessionsToAdd)) && (
                         <p className="text-sm font-semibold text-[#8B1538]">
-                          New total will be: {scannedClient.sessionAllowance + parseInt(sessionsToAdd)} sessions
+                          {t('membership_mgmt.new_total', { count: scannedClient.sessionAllowance + parseInt(sessionsToAdd) })}
                         </p>
                       )}
                     </div>
@@ -391,7 +397,7 @@ export default function MembershipManagementPage() {
                       className="w-full"
                       disabled={saving}
                     >
-                      {saving ? 'Renewing...' : 'Renew Membership'}
+                      {saving ? t('membership_mgmt.submitting') : t('membership_mgmt.renew')}
                     </Button>
                   </div>
                 </CardContent>

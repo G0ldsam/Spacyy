@@ -1,51 +1,56 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SessionCard } from '@/components/sessions/SessionCard'
+import { useLanguage } from '@/contexts/LanguageContext'
 
-export default async function SessionsPage() {
-  const session = await getServerSession(authOptions)
+export default function SessionsPage() {
+  const { t } = useLanguage()
+  const { data: authSession, status } = useSession()
+  const router = useRouter()
+  const [sessions, setSessions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  if (!session) {
-    redirect('/login')
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    if (status === 'authenticated') {
+      const userOrg = authSession?.user?.organizations?.find(
+        (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+      )
+      if (!userOrg) {
+        router.push('/book')
+        return
+      }
+      fetchSessions()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, router])
+
+  const fetchSessions = async () => {
+    try {
+      const response = await fetch('/api/sessions')
+      if (!response.ok) throw new Error('Failed to fetch sessions')
+      const data = await response.json()
+      setSessions(data)
+    } catch (error) {
+      console.error('Error fetching sessions:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Check if user is an owner/admin
-  const userOrg = session.user.organizations?.find(
-    (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-  )
-
-  if (!userOrg) {
-    redirect('/book')
+  if (status === 'loading' || loading) {
+    return <PageSpinner />
   }
-
-  // Get all sessions for this organization
-  const sessions = await prisma.serviceSession.findMany({
-    where: {
-      organizationId: userOrg.organization.id,
-    },
-    include: {
-      timetable: {
-        orderBy: [
-          { dayOfWeek: 'asc' },
-          { startTime: 'asc' },
-        ],
-      },
-      _count: {
-        select: {
-          bookings: true,
-          timetable: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,18 +68,18 @@ export default async function SessionsPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              {t('sessions.back')}
             </Link>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Sessions</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('sessions.title')}</h1>
                 <p className="text-gray-800 mt-2 text-sm sm:text-base">
-                  Manage your service sessions
+                  {t('sessions.subtitle')}
                 </p>
               </div>
               <Link href="/sessions/new">
                 <Button className="w-full sm:w-auto">
-                  Create Session
+                  {t('sessions.create')}
                 </Button>
               </Link>
             </div>
@@ -83,7 +88,7 @@ export default async function SessionsPage() {
           {sessions.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-gray-700">No sessions yet. Click &quot;Create Session&quot; above to get started.</p>
+                <p className="text-gray-700">{t('sessions.no_sessions')}</p>
               </CardContent>
             </Card>
           ) : (

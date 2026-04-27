@@ -6,8 +6,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function EditSessionPage() {
+  const { t } = useLanguage()
   const params = useParams()
   const router = useRouter()
   const sessionId = params.id as string
@@ -34,7 +36,7 @@ export default function EditSessionPage() {
         slots: data.slots.toString(),
       })
     } catch (err: any) {
-      setError(err.message || 'Failed to load session')
+      setError(err.message || t('sessions_edit.error_load'))
     } finally {
       setLoading(false)
     }
@@ -109,16 +111,16 @@ export default function EditSessionPage() {
       <div className="mobile-container">
         <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edit Session</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('sessions_edit.title')}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Update your session details
+              {t('sessions_edit.subtitle')}
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Session Details</CardTitle>
-              <CardDescription>Update the information for your session</CardDescription>
+              <CardTitle>{t('sessions_edit.section_title')}</CardTitle>
+              <CardDescription>{t('sessions_edit.section_desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -130,12 +132,12 @@ export default function EditSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium text-gray-900">
-                    Session Name *
+                    {t('sessions_edit.name_label')}
                   </label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="e.g., Morning Yoga"
+                    placeholder={t('sessions_edit.name_placeholder')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="h-12 text-base"
@@ -145,12 +147,12 @@ export default function EditSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="description" className="text-sm font-medium text-gray-900">
-                    Description
+                    {t('sessions_edit.desc_label')}
                   </label>
                   <textarea
                     id="description"
                     rows={4}
-                    placeholder="Describe your session..."
+                    placeholder={t('sessions_edit.desc_placeholder')}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="flex w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-base sm:text-sm text-gray-900 ring-offset-white placeholder:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B1538] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -159,7 +161,7 @@ export default function EditSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="themeColor" className="text-sm font-medium text-gray-900">
-                    Theme Color
+                    {t('sessions_edit.color_label')}
                   </label>
                   <div className="flex items-center gap-3">
                     <Input
@@ -182,7 +184,7 @@ export default function EditSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="slots" className="text-sm font-medium text-gray-900">
-                    Number of Slots *
+                    {t('sessions_edit.slots_label')}
                   </label>
                   <Input
                     id="slots"
@@ -194,7 +196,7 @@ export default function EditSessionPage() {
                     className="h-12 text-base"
                     required
                   />
-                  <p className="text-xs text-gray-700">How many people can book this session?</p>
+                  <p className="text-xs text-gray-700">{t('sessions_edit.slots_placeholder')}</p>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -204,10 +206,10 @@ export default function EditSessionPage() {
                     className="flex-1"
                     onClick={() => router.back()}
                   >
-                    Cancel
+                    {t('sessions_edit.cancel')}
                   </Button>
                   <Button type="submit" className="flex-1" disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? t('sessions_edit.submitting') : t('sessions_edit.submit')}
                   </Button>
                 </div>
               </form>

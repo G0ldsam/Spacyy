@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { TimeInput } from '@/components/ui/time-input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface TimeSlot {
   id: string
@@ -19,6 +20,7 @@ const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 type Preset = 'weekdays' | 'weekends' | 'all' | 'clear'
 
 export default function TimetablePage() {
+  const { t } = useLanguage()
   const params = useParams()
   const router = useRouter()
   const sessionId = params.id as string
@@ -168,7 +170,7 @@ export default function TimetablePage() {
               onClick={() => router.back()}
               className="text-gray-700 hover:text-gray-900 mb-2 block"
             >
-              ← Back
+              {t('timetable.back')}
             </button>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               {session?.name} — Timetable
@@ -178,14 +180,14 @@ export default function TimetablePage() {
           {/* Add form */}
           <Card className="mb-6">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Add Time Slot</CardTitle>
+              <CardTitle className="text-lg">{t('timetable.add_slot')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Time inputs */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-gray-700 mb-1 block">
-                    Start Time
+                    {t('timetable.start_time')}
                   </label>
                   <TimeInput
                     value={startTime}
@@ -196,7 +198,7 @@ export default function TimetablePage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-700 mb-1 block">
-                    End Time
+                    {t('timetable.end_time')}
                   </label>
                   <TimeInput
                     value={endTime}
@@ -205,20 +207,20 @@ export default function TimetablePage() {
                     min={startTime || undefined}
                   />
                   {startTime && endTime && !isTimeValid && (
-                    <p className="text-xs text-red-600 mt-1">End time must be after start time</p>
+                    <p className="text-xs text-red-600 mt-1">{t('timetable.error_time')}</p>
                   )}
                 </div>
               </div>
 
               {/* Presets */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-gray-500">Quick select:</span>
+                <span className="text-xs text-gray-500">{t('timetable.quick')}</span>
                 {(
                   [
-                    ['weekdays', 'Weekdays'],
-                    ['weekends', 'Weekends'],
-                    ['all', 'Every day'],
-                    ['clear', 'Clear'],
+                    ['weekdays', t('timetable.weekdays')],
+                    ['weekends', t('timetable.weekends')],
+                    ['all', t('timetable.every_day')],
+                    ['clear', t('timetable.clear')],
                   ] as const
                 ).map(([preset, label]) => (
                   <button
@@ -241,7 +243,7 @@ export default function TimetablePage() {
                       key={i}
                       onClick={() => toggleDay(i)}
                       disabled={isConflict}
-                      title={isConflict ? 'Already has this time slot' : name}
+                      title={isConflict ? t('timetable.duplicate_slot') : name}
                       className={[
                         'flex flex-col items-center justify-center w-12 h-12 rounded-lg text-xs font-medium transition-colors',
                         isConflict
@@ -264,10 +266,10 @@ export default function TimetablePage() {
                 className="w-full"
               >
                 {saving
-                  ? 'Adding…'
+                  ? t('timetable.adding')
                   : canSubmit
-                  ? `Add to ${validDays.length} day${validDays.length !== 1 ? 's' : ''}`
-                  : 'Select days to add'}
+                  ? t(validDays.length === 1 ? 'timetable.add_to_days_one' : 'timetable.add_to_days_other', { count: validDays.length })
+                  : t('timetable.select_days')}
               </Button>
             </CardContent>
           </Card>
@@ -275,7 +277,7 @@ export default function TimetablePage() {
           {/* Existing slots */}
           {sortedGroups.length > 0 ? (
             <div className="space-y-3">
-              <h2 className="text-base font-semibold text-gray-900">Current Timetable</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t('timetable.current')}</h2>
               {sortedGroups.map(([key, slots]) => {
                 const [start, end] = key.split('|')
                 const sortedSlots = [...slots].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
@@ -328,7 +330,7 @@ export default function TimetablePage() {
             </div>
           ) : (
             <div className="text-center py-12 text-gray-500">
-              <p className="text-sm">No time slots yet. Add your first slot above.</p>
+              <p className="text-sm">{t('timetable.no_slots')}</p>
             </div>
           )}
         </div>

@@ -3,14 +3,17 @@
 import { SessionProvider } from 'next-auth/react'
 import { NavigationSpinner } from '@/components/ui/navigation-spinner'
 import { PushSubscriptionProvider } from '@/contexts/PushSubscriptionContext'
+import { LanguageProvider } from '@/contexts/LanguageContext'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
-      <PushSubscriptionProvider>
-        <NavigationSpinner />
-        {children}
-      </PushSubscriptionProvider>
-    </SessionProvider>
+    <LanguageProvider>
+      <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
+        <PushSubscriptionProvider>
+          <NavigationSpinner />
+          {children}
+        </PushSubscriptionProvider>
+      </SessionProvider>
+    </LanguageProvider>
   )
 }

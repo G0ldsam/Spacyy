@@ -6,8 +6,10 @@ import { signIn } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function SetupAccountPage() {
+    const { t } = useLanguage()
     const router = useRouter()
     const [email, setEmail] = useState('')
     const [code, setCode] = useState('')
@@ -34,17 +36,17 @@ export default function SetupAccountPage() {
 
         // Validation
         if (newPassword.length < 8) {
-            setError('New password must be at least 8 characters')
+            setError(t('setup_account.error_length'))
             return
         }
 
         if (newPassword !== confirmPassword) {
-            setError('Passwords do not match')
+            setError(t('setup_account.error_match'))
             return
         }
 
         if (!email || !code) {
-            setError('Invalid setup link. Please contact your administrator.')
+            setError(t('setup_account.error_invalid_link'))
             return
         }
 
@@ -59,7 +61,7 @@ export default function SetupAccountPage() {
             })
 
             if (result?.error) {
-                throw new Error('Your setup link is invalid or expired. Please contact your administrator.')
+                throw new Error(t('setup_account.error_expired'))
             }
 
             // 2. Complete the setup by setting the new password using the established session logic
@@ -77,13 +79,13 @@ export default function SetupAccountPage() {
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to securely set your password. Please try again.')
+                throw new Error(data.error || t('setup_account.error_password'))
             }
 
             // 3. User is securely set up and logged in, redirect them seamlessly to their space
             window.location.href = '/home'
         } catch (err: any) {
-            setError(err.message || 'An error occurred during account setup. Please try again.')
+            setError(err.message || t('setup_account.error_generic'))
             setLoading(false)
         }
     }
@@ -92,9 +94,9 @@ export default function SetupAccountPage() {
         <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 mobile-container">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl sm:text-3xl">Set Up Your Account</CardTitle>
+                    <CardTitle className="text-2xl sm:text-3xl">{t('setup_account.title')}</CardTitle>
                     <CardDescription className="text-base text-gray-600">
-                        Welcome to Spacyy! Complete your account by choosing a secure password.
+                        {t('setup_account.subtitle')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -107,29 +109,29 @@ export default function SetupAccountPage() {
 
                         <div className="space-y-2">
                             <label htmlFor="newPassword" className="text-sm font-medium text-gray-900">
-                                New Password *
+                                {t('setup_account.new_label')}
                             </label>
                             <Input
                                 id="newPassword"
                                 type="password"
-                                placeholder="At least 8 characters"
+                                placeholder={t('setup_account.new_placeholder')}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 className="h-12 text-base"
                                 required
                                 minLength={8}
                             />
-                            <p className="text-xs text-gray-600">Must be at least 8 characters long</p>
+                            <p className="text-xs text-gray-600">{t('setup_account.new_hint')}</p>
                         </div>
 
                         <div className="space-y-2">
                             <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-900">
-                                Confirm New Password *
+                                {t('setup_account.confirm_label')}
                             </label>
                             <Input
                                 id="confirmPassword"
                                 type="password"
-                                placeholder="Confirm your password"
+                                placeholder={t('setup_account.confirm_placeholder')}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 className="h-12 text-base"
@@ -139,7 +141,7 @@ export default function SetupAccountPage() {
                         </div>
 
                         <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
-                            {loading ? 'Setting up your account...' : 'Complete Setup & Sign In'}
+                            {loading ? t('setup_account.submitting') : t('setup_account.submit')}
                         </Button>
                     </form>
                 </CardContent>

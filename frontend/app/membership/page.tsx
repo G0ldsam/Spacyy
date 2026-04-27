@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
@@ -9,6 +8,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import QRCode from 'qrcode'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ClientInfo {
   id: string
@@ -18,6 +18,7 @@ interface ClientInfo {
 }
 
 export default function MembershipPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -149,7 +150,7 @@ export default function MembershipPage() {
   if (!clientInfo) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-700">Unable to load membership information</p>
+        <p className="text-gray-700">{t('membership.load_error')}</p>
       </div>
     )
   }
@@ -174,16 +175,16 @@ export default function MembershipPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Home
+              {t('membership.back')}
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Member Card</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('membership.title')}</h1>
           </div>
 
           <div className="space-y-6">
             {/* QR Code */}
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="text-center">Membership QR Code</CardTitle>
+                <CardTitle className="text-center">{t('membership.qr_title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-center">
@@ -197,7 +198,7 @@ export default function MembershipPage() {
                     />
                   ) : (
                     <div className="w-full max-w-[280px] aspect-square bg-gray-200 rounded flex items-center justify-center sm:max-w-[320px]">
-                      <p className="text-gray-500 text-sm px-4 text-center">Generating QR code...</p>
+                      <p className="text-gray-500 text-sm px-4 text-center">{t('membership.generating')}</p>
                     </div>
                   )}
                 </div>
@@ -207,35 +208,35 @@ export default function MembershipPage() {
             {/* Membership Info Card */}
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>Membership Information</CardTitle>
+                <CardTitle>{t('membership.info_title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-[#8B1538] to-[#722F37] rounded-lg p-4 sm:p-6 text-white">
                     <div className="space-y-3">
                       <div>
-                        <p className="text-xs sm:text-sm opacity-90">Member Since</p>
+                        <p className="text-xs sm:text-sm opacity-90">{t('membership.member_since')}</p>
                         <p className="text-base sm:text-lg font-semibold break-words">
                           {new Date(clientInfo.id.substring(0, 8)).getFullYear() || new Date().getFullYear()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm opacity-90">Name</p>
+                        <p className="text-xs sm:text-sm opacity-90">{t('membership.name')}</p>
                         <p className="text-base sm:text-lg font-semibold break-words">{clientInfo.name}</p>
                       </div>
                       <div>
-                        <p className="text-xs sm:text-sm opacity-90">Email</p>
+                        <p className="text-xs sm:text-sm opacity-90">{t('membership.email')}</p>
                         <p className="text-base sm:text-lg font-semibold break-words break-all">{clientInfo.email}</p>
                       </div>
                       <div className="pt-3 border-t border-white/20">
-                        <p className="text-xs sm:text-sm opacity-90">Total Sessions Booked</p>
+                        <p className="text-xs sm:text-sm opacity-90">{t('membership.total_sessions')}</p>
                         <p className="text-xl sm:text-2xl font-bold">{activeBookings}</p>
                       </div>
                       {clientInfo.sessionAllowance !== null && (
                         <div className="pt-3 border-t border-white/20">
-                          <p className="text-xs sm:text-sm opacity-90">Available Sessions</p>
+                          <p className="text-xs sm:text-sm opacity-90">{t('membership.available_sessions')}</p>
                           <p className="text-xl sm:text-2xl font-bold">
-                            {availableSessions !== null ? availableSessions : 'Unlimited'}
+                            {availableSessions !== null ? availableSessions : t('membership.unlimited')}
                           </p>
                         </div>
                       )}
@@ -243,22 +244,24 @@ export default function MembershipPage() {
                         <div className="pt-3 border-t border-white/20">
                           <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-3">
                             <p className="text-xs sm:text-sm font-semibold text-yellow-100 mb-1">
-                              ⚠️ Membership Expiring
+                              {t('membership.expiring_title')}
                             </p>
                             <p className="text-xs text-yellow-100/90">
-                              Your last session ends {expirationWarning.lastBookingDate?.toLocaleDateString('en-US', { 
-                                weekday: 'short',
-                                month: 'short', 
-                                day: 'numeric' 
-                              })}. Please renew to continue booking.
+                              {t('membership.expiring_desc', {
+                                date: expirationWarning.lastBookingDate?.toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                }) ?? ''
+                              })}
                             </p>
                           </div>
                         </div>
                       )}
                       {clientInfo.sessionAllowance === null && (
                         <div className="pt-3 border-t border-white/20">
-                          <p className="text-xs sm:text-sm opacity-90">Session Allowance</p>
-                          <p className="text-xl sm:text-2xl font-bold">Unlimited</p>
+                          <p className="text-xs sm:text-sm opacity-90">{t('membership.session_allowance')}</p>
+                          <p className="text-xl sm:text-2xl font-bold">{t('membership.unlimited')}</p>
                         </div>
                       )}
                     </div>

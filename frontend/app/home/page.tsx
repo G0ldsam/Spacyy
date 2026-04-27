@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import NotificationBell from '@/components/NotificationBell'
 import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import SettingsSidebar from '@/components/SettingsSidebar'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
   id: string
@@ -35,6 +35,7 @@ interface Session {
 export default function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { t } = useLanguage()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [myBookings, setMyBookings] = useState<Booking[]>([])
   const [sessionAllowance, setSessionAllowance] = useState<number | null>(null)
@@ -128,9 +129,9 @@ export default function HomePage() {
       <AutoPushSubscribe />
       {isAdmin && (
         <div className="bg-[#8B1538] text-white text-center text-sm py-2 px-4">
-          You are previewing the client view.{' '}
+          {t('home.preview_banner')}{' '}
           <a href="/dashboard" className="underline font-medium hover:opacity-80">
-            Back to Dashboard
+            {t('home.preview_link')}
           </a>
         </div>
       )}
@@ -142,7 +143,7 @@ export default function HomePage() {
               <button
                 onClick={() => setSettingsOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                aria-label="Settings"
+                aria-label={t('home.settings_label')}
               >
                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -156,9 +157,9 @@ export default function HomePage() {
               user={{ name: session?.user?.name, email: session?.user?.email }}
             />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Home</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('home.title')}</h1>
               <p className="text-gray-800 mt-2 text-sm sm:text-base">
-                Welcome, {session?.user?.name || session?.user?.email}
+                {t('home.welcome', { name: session?.user?.name || session?.user?.email || '' })}
               </p>
             </div>
           </div>
@@ -169,7 +170,7 @@ export default function HomePage() {
               <Link href="/my-sessions">
                 <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg sm:text-xl">My Sessions</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl">{t('home.my_sessions')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
@@ -177,7 +178,7 @@ export default function HomePage() {
                         {myBookings.length}
                       </p>
                       <p className="text-sm text-gray-700">
-                        {myBookings.length === 1 ? 'Session' : 'Sessions'}
+                        {myBookings.length === 1 ? t('home.session_one') : t('home.session_other')}
                       </p>
                     </div>
                   </CardContent>
@@ -190,15 +191,15 @@ export default function HomePage() {
               {/* Book a Session */}
               <Card className="shadow-sm h-full">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg sm:text-xl">Book a Session</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">{t('home.book_session')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-700 mb-4">
-                    Browse available sessions and book your preferred time slot.
+                    {t('home.book_desc')}
                   </p>
                   <Link href="/book">
                     <Button className="w-full">
-                      Browse Sessions
+                      {t('home.browse')}
                     </Button>
                   </Link>
                 </CardContent>
@@ -215,7 +216,7 @@ export default function HomePage() {
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <p className="text-xs opacity-80 mb-1">Member Since</p>
+                        <p className="text-xs opacity-80 mb-1">{t('home.member_since')}</p>
                         <p className="text-base font-semibold">
                           {session?.user?.email ? new Date().getFullYear() : '2024'}
                         </p>
@@ -240,7 +241,7 @@ export default function HomePage() {
 
                     {/* Member Info */}
                     <div className="mb-6">
-                      <p className="text-xs opacity-80 mb-2">Member</p>
+                      <p className="text-xs opacity-80 mb-2">{t('home.member_label')}</p>
                       <p className="text-lg font-bold mb-1 truncate">
                         {session?.user?.name || session?.user?.email?.split('@')[0] || 'Member'}
                       </p>
@@ -253,7 +254,7 @@ export default function HomePage() {
 
                     {/* Sessions Info */}
                     <div className="border-t border-white/20 pt-4">
-                      <p className="text-xs opacity-80 mb-2">Sessions</p>
+                      <p className="text-xs opacity-80 mb-2">{t('home.sessions_label')}</p>
                       <div className="flex items-baseline gap-2">
                         <p className="text-3xl font-bold">{myBookings.length}</p>
                         <p className="text-sm opacity-70">
@@ -262,7 +263,7 @@ export default function HomePage() {
                       </div>
                       {sessionAllowance !== null && (
                         <p className="text-xs opacity-60 mt-1">
-                          {sessionAllowance - myBookings.length} remaining
+                          {t('home.remaining', { count: sessionAllowance - myBookings.length })}
                         </p>
                       )}
                     </div>
@@ -270,10 +271,10 @@ export default function HomePage() {
                       <div className="border-t border-white/20 pt-4 mt-4">
                         <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-2.5">
                           <p className="text-[10px] sm:text-xs font-semibold text-yellow-100 mb-1">
-                            ⚠️ Expiring Soon
+                            {t('home.expiring_title')}
                           </p>
                           <p className="text-[10px] text-yellow-100/90">
-                            Renew to continue booking
+                            {t('home.expiring_desc')}
                           </p>
                         </div>
                       </div>
@@ -282,7 +283,7 @@ export default function HomePage() {
 
                   {/* Footer hint */}
                   <div className="relative z-10 mt-4 pt-4 border-t border-white/10">
-                    <p className="text-xs opacity-70 text-center">Tap to view QR code</p>
+                    <p className="text-xs opacity-70 text-center">{t('home.tap_qr')}</p>
                   </div>
                 </div>
               </Link>

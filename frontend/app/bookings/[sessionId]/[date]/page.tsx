@@ -7,6 +7,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
   id: string
@@ -34,6 +35,7 @@ interface SlotException {
 }
 
 export default function TimeSlotBookingsPage() {
+  const { t } = useLanguage()
   const params = useParams()
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -365,7 +367,7 @@ export default function TimeSlotBookingsPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Bookings
+              {t('booking_slot.back_bookings')}
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{sessionName}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">{formatDate(date)}</p>
@@ -373,11 +375,11 @@ export default function TimeSlotBookingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Time Slots</CardTitle>
+              <CardTitle>{t('booking_slot.time_slots')}</CardTitle>
             </CardHeader>
             <CardContent>
               {timeSlots.length === 0 ? (
-                <p className="text-center text-gray-700 py-8">No time slots for this day</p>
+                <p className="text-center text-gray-700 py-8">{t('booking_slot.no_slots')}</p>
               ) : (
                 <div className="space-y-4">
                   {timeSlots.map((timeSlot) => {
@@ -411,15 +413,15 @@ export default function TimeSlotBookingsPage() {
                                 </h3>
                                 {isClosed && (
                                   <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                                    Closed
+                                    {t('booking_slot.closed')}
                                   </span>
                                 )}
                               </div>
                               {isClosed ? (
                                 <p className="text-sm text-red-600 mt-1">
                                   {exception.reason
-                                    ? `Reason: ${exception.reason}`
-                                    : 'This occurrence has been cancelled'}
+                                    ? t('booking_slot.reason', { reason: exception.reason })
+                                    : t('booking_slot.cancelled')}
                                 </p>
                               ) : (
                                 <div className="flex items-center gap-2 mt-1">
@@ -431,7 +433,7 @@ export default function TimeSlotBookingsPage() {
                                     <>
                                       <span className="text-xs text-gray-400">•</span>
                                       <span className="text-xs text-green-700 font-medium">
-                                        {activeBookings.filter((b) => b.checkedIn).length} checked in
+                                        {t('booking_slot.checked_in_count', { count: activeBookings.filter((b) => b.checkedIn).length })}
                                       </span>
                                     </>
                                   )}
@@ -450,7 +452,7 @@ export default function TimeSlotBookingsPage() {
                                     onClick={() => handleReopen(timeSlot.id)}
                                     className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
                                   >
-                                    Re-open
+                                    {t('booking_slot.reopen')}
                                   </button>
                                 ) : (
                                   <button
@@ -460,7 +462,7 @@ export default function TimeSlotBookingsPage() {
                                     }}
                                     className="text-xs text-red-500 hover:text-red-700 font-medium whitespace-nowrap"
                                   >
-                                    {isClosing ? 'Cancel' : 'Close occurrence'}
+                                    {isClosing ? t('booking_slot.cancel_slot') : t('booking_slot.close_occurrence')}
                                   </button>
                                 )}
                               </div>
@@ -490,7 +492,7 @@ export default function TimeSlotBookingsPage() {
                             >
                               <input
                                 type="text"
-                                placeholder="Reason (optional)"
+                                placeholder={t('booking_slot.reason_placeholder')}
                                 value={closeReason}
                                 onChange={(e) => setCloseReason(e.target.value)}
                                 className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -502,7 +504,7 @@ export default function TimeSlotBookingsPage() {
                                   onClick={() => handleCloseOccurrence(timeSlot)}
                                   className="bg-red-600 hover:bg-red-700 text-white flex-1"
                                 >
-                                  {closingSaving ? 'Closing…' : 'Confirm close'}
+                                  {closingSaving ? 'Closing…' : t('booking_slot.close_confirm')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -513,14 +515,12 @@ export default function TimeSlotBookingsPage() {
                                   }}
                                   className="flex-1"
                                 >
-                                  Cancel
+                                  {t('booking_slot.cancel_slot')}
                                 </Button>
                               </div>
                               {activeBookings.length > 0 && (
                                 <p className="text-xs text-red-600">
-                                  This will cancel {activeBookings.length} existing booking
-                                  {activeBookings.length !== 1 ? 's' : ''} and restore their session
-                                  allowance.
+                                  {t(activeBookings.length === 1 ? 'booking_slot.close_cancel_warning_one' : 'booking_slot.close_cancel_warning_other', { count: activeBookings.length })}
                                 </p>
                               )}
                             </div>
@@ -549,11 +549,11 @@ export default function TimeSlotBookingsPage() {
                                     </span>
                                     {booking.checkedIn ? (
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                        ✓ Checked In
+                                        {t('booking_slot.checked_in_badge')}
                                       </span>
                                     ) : (
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        Pending
+                                        {t('booking_slot.pending')}
                                       </span>
                                     )}
                                   </div>
@@ -562,10 +562,11 @@ export default function TimeSlotBookingsPage() {
                                   </span>
                                   {booking.checkedIn && booking.checkedInAt && (
                                     <span className="text-xs text-green-700 block mt-0.5">
-                                      Checked in at{' '}
-                                      {new Date(booking.checkedInAt).toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
+                                      {t('booking_slot.checked_in_at', {
+                                        time: new Date(booking.checkedInAt).toLocaleTimeString('en-US', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })
                                       })}
                                     </span>
                                   )}
@@ -580,7 +581,7 @@ export default function TimeSlotBookingsPage() {
                                     }}
                                     className="flex-shrink-0 text-xs"
                                   >
-                                    Check In
+                                    {t('booking_slot.check_in_btn')}
                                   </Button>
                                 )}
                               </div>
@@ -591,7 +592,7 @@ export default function TimeSlotBookingsPage() {
                                 onClick={() => handleClientClick(null)}
                                 className="text-sm text-gray-600 py-2 cursor-pointer hover:text-gray-900 border border-dashed border-gray-300 rounded px-3 hover:border-gray-400 transition-colors"
                               >
-                                Empty — Click to assign a client
+                                {t('booking_slot.empty_slot')}
                               </div>
                             ))}
                             {activeBookings.length > 0 && (
@@ -599,7 +600,7 @@ export default function TimeSlotBookingsPage() {
                                 onClick={() => {
                                   if (
                                     confirm(
-                                      `Cancel all ${activeBookings.length} booking(s) in this slot?`
+                                      t('booking_slot.cancel_all', { count: activeBookings.length })
                                     )
                                   ) {
                                     handleEmpty()
@@ -607,7 +608,7 @@ export default function TimeSlotBookingsPage() {
                                 }}
                                 className="text-sm text-red-600 py-2 cursor-pointer hover:text-red-800 font-medium"
                               >
-                                Make Slot Empty
+                                {t('booking_slot.make_empty')}
                               </div>
                             )}
 

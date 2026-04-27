@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PolicySettings {
   bookingChangeHours: number | null
@@ -15,6 +16,7 @@ interface PolicySettings {
 }
 
 export default function PolicyPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -56,7 +58,7 @@ export default function PolicyPage() {
       })
     } catch (error) {
       console.error('Error fetching settings:', error)
-      setError('Failed to load settings')
+      setError(t('policy.error_load'))
     } finally {
       setLoading(false)
     }
@@ -85,10 +87,10 @@ export default function PolicyPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update settings')
+        throw new Error(data.error || t('policy.error_save'))
       }
 
-      setSuccess('Settings saved successfully!')
+      setSuccess(t('policy.saved'))
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       setError(err.message || 'An error occurred')
@@ -117,19 +119,19 @@ export default function PolicyPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              {t('policy.back')}
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Policy Settings</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('policy.title')}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Configure booking policies and rules
+              {t('policy.subtitle')}
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Booking Policies</CardTitle>
+              <CardTitle>{t('policy.section_title')}</CardTitle>
               <CardDescription>
-                Set rules for booking changes and membership requirements
+                {t('policy.section_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -149,13 +151,13 @@ export default function PolicyPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="bookingChangeHours" className="text-sm font-medium text-gray-900">
-                      Hours Before Booking to Allow Changes
+                      {t('policy.hours_label')}
                     </label>
                     <Input
                       id="bookingChangeHours"
                       type="number"
                       min="0"
-                      placeholder="Leave empty for no restriction"
+                      placeholder={t('policy.hours_placeholder')}
                       value={settings.bookingChangeHours || ''}
                       onChange={(e) => {
                         const value = e.target.value
@@ -167,7 +169,7 @@ export default function PolicyPage() {
                       className="h-12 text-base"
                     />
                     <p className="text-xs text-gray-600">
-                      Clients can only change bookings if there are at least this many hours before the session starts. Leave empty to allow changes at any time.
+                      {t('policy.hours_hint')}
                     </p>
                   </div>
 
@@ -186,11 +188,11 @@ export default function PolicyPage() {
                         className="h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300 rounded"
                       />
                       <label htmlFor="allowPendingSlot" className="text-sm font-medium text-gray-900">
-                        Allow booking on pending slot
+                        {t('policy.pending_label')}
                       </label>
                     </div>
                     <p className="text-xs text-gray-600 ml-6">
-                      When enabled, clients with no remaining slots can still book a session. The used slot is recorded as pending and should be subtracted from their next renewal.
+                      {t('policy.pending_hint')}
                     </p>
                   </div>
                 </div>
@@ -202,10 +204,10 @@ export default function PolicyPage() {
                     className="flex-1"
                     onClick={() => router.back()}
                   >
-                    Cancel
+                    {t('policy.cancel')}
                   </Button>
                   <Button type="submit" className="flex-1" disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Settings'}
+                    {saving ? t('policy.saving') : t('policy.save')}
                   </Button>
                 </div>
               </form>

@@ -6,21 +6,21 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Only access window in useEffect which runs on the client
     if (globalThis.window !== undefined) {
       const params = new URLSearchParams(globalThis.location.search)
       const emailParam = params.get('email')
       const passwordParam = params.get('password')
-
       if (emailParam) setEmail(emailParam)
       if (passwordParam) setPassword(passwordParam)
     }
@@ -39,7 +39,7 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError('Invalid email or password')
+        setError(t('login.error_invalid'))
       } else if (result?.ok) {
         const session = await getSession()
         const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
@@ -66,8 +66,8 @@ export default function LoginPage() {
         router.push('/dashboard')
         router.refresh()
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.')
+    } catch {
+      setError(t('login.error_generic'))
     } finally {
       setLoading(false)
     }
@@ -77,8 +77,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 mobile-container">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl sm:text-3xl">Welcome to Spacyy</CardTitle>
-          <CardDescription className="text-base">Sign in to your account</CardDescription>
+          <CardTitle className="text-2xl sm:text-3xl">{t('login.title')}</CardTitle>
+          <CardDescription className="text-base">{t('login.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -89,7 +89,7 @@ export default function LoginPage() {
             )}
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-gray-900">
-                Email
+                {t('login.email_label')}
               </label>
               <Input
                 id="email"
@@ -106,7 +106,7 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-gray-900">
-                Password
+                {t('login.password_label')}
               </label>
               <Input
                 id="password"
@@ -121,7 +121,7 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </Button>
           </form>
         </CardContent>

@@ -116,8 +116,15 @@ export default function BookSessionPage() {
     return Math.max(0, sessionSlots - activeBookings.length)
   }
 
+  const isAlreadyBooked = (timeSlot: TimeSlot) => {
+    const key = `${timeSlot.startTime}-${timeSlot.endTime}`
+    return (bookings[key] || []).some(
+      (b) => b.status !== 'CANCELLED' && b.client.email === session?.user?.email
+    )
+  }
+
   const handleBookSlot = (timeSlot: TimeSlot) => {
-    if (getRemainingSlots(timeSlot) > 0) {
+    if (!isAlreadyBooked(timeSlot) && getRemainingSlots(timeSlot) > 0) {
       setBookingSlot(timeSlot)
       setShowConfirmModal(true)
     }
@@ -127,13 +134,12 @@ export default function BookSessionPage() {
     if (!bookingSlot || !session?.user?.id) return
 
     try {
-      const selectedDate = new Date(date)
       const [startHour, startMin] = bookingSlot.startTime.split(':').map(Number)
       const [endHour, endMin] = bookingSlot.endTime.split(':').map(Number)
-      const startTime = new Date(selectedDate)
-      startTime.setHours(startHour, startMin, 0, 0)
-      const endTime = new Date(selectedDate)
-      endTime.setHours(endHour, endMin, 0, 0)
+      const startTime = new Date(`${date}T00:00:00Z`)
+      startTime.setUTCHours(startHour, startMin, 0, 0)
+      const endTime = new Date(`${date}T00:00:00Z`)
+      endTime.setUTCHours(endHour, endMin, 0, 0)
 
       const clientResponse = await fetch('/api/clients/me')
       if (!clientResponse.ok) throw new Error('Failed to get client information')
@@ -250,7 +256,8 @@ export default function BookSessionPage() {
                 <div className="space-y-3">
                   {timeSlots.map((timeSlot) => {
                     const remaining = getRemainingSlots(timeSlot)
-                    const isAvailable = remaining > 0
+                    const alreadyBooked = isAlreadyBooked(timeSlot)
+                    const isAvailable = remaining > 0 && !alreadyBooked
                     const isInterested = !!interests[timeSlot.id]
                     const isLoadingInterest = interestLoading[timeSlot.id]
 
@@ -266,7 +273,9 @@ export default function BookSessionPage() {
                         key={timeSlot.id}
                         className={[
                           'relative p-4 rounded-lg border-2 transition-colors',
-                          isAvailable
+                          alreadyBooked
+                            ? 'border-blue-200 bg-blue-50'
+                            : isAvailable
                             ? 'border-green-200 bg-green-50 cursor-pointer hover:shadow-md'
                             : 'border-red-200 bg-red-50',
                         ].join(' ')}
@@ -277,38 +286,46 @@ export default function BookSessionPage() {
                             {timeSlot.startTime} - {timeSlot.endTime}
                           </span>
                           <div className="flex items-center gap-2">
-                            <span
-                              className={[
-                                'px-3 py-1 rounded-full text-sm font-semibold',
-                                isAvailable ? 'bg-green-500 text-white' : 'bg-red-500 text-white',
-                              ].join(' ')}
-                            >
-                              {remaining} {remaining === 1 ? 'slot' : 'slots'} available
-                            </span>
-                            {!isAvailable && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleToggleInterest(timeSlot)
-                                }}
-                                disabled={isLoadingInterest}
-                                className={[
-                                  'px-3 py-1 rounded-full text-sm font-semibold border transition-colors',
-                                  isInterested
-                                    ? 'bg-[#8B1538] text-white border-[#8B1538]'
-                                    : 'bg-white text-[#8B1538] border-[#8B1538] hover:bg-[#8B1538]/10',
-                                ].join(' ')}
-                              >
-                                {isLoadingInterest
-                                  ? '…'
-                                  : isInterested
-                                  ? "I'm interested ✓"
-                                  : "I'm interested"}
-                              </button>
+                            {alreadyBooked ? (
+                              <span className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-500 text-white">
+                                ✓ Booked
+                              </span>
+                            ) : (
+                              <>
+                                <span
+                                  className={[
+                                    'px-3 py-1 rounded-full text-sm font-semibold',
+                                    isAvailable ? 'bg-green-500 text-white' : 'bg-red-500 text-white',
+                                  ].join(' ')}
+                                >
+                                  {remaining} {remaining === 1 ? 'slot' : 'slots'} available
+                                </span>
+                                {!isAvailable && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleToggleInterest(timeSlot)
+                                    }}
+                                    disabled={isLoadingInterest}
+                                    className={[
+                                      'px-3 py-1 rounded-full text-sm font-semibold border transition-colors',
+                                      isInterested
+                                        ? 'bg-[#8B1538] text-white border-[#8B1538]'
+                                        : 'bg-white text-[#8B1538] border-[#8B1538] hover:bg-[#8B1538]/10',
+                                    ].join(' ')}
+                                  >
+                                    {isLoadingInterest
+                                      ? '…'
+                                      : isInterested
+                                      ? "I'm interested ✓"
+                                      : "I'm interested"}
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
-                        {!isAvailable && isInterested && (
+                        {!isAvailable && !alreadyBooked && isInterested && (
                           <p className="text-xs text-[#8B1538] mt-2">
                             You&apos;re on the interest list. We&apos;ll notify you if a spot opens up.
                           </p>

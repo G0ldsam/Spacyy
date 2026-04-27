@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
@@ -9,6 +8,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/LogoutButton'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface TimeSlot {
   id: string
@@ -39,6 +39,7 @@ interface Booking {
 }
 
 export default function BookPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -217,11 +218,11 @@ export default function BookPage() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Home
+                {t('book.back')}
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Book a Session</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('book.title')}</h1>
               <p className="text-gray-800 mt-2 text-sm sm:text-base">
-                Select a date to view available sessions
+                {t('book.select_date')}
               </p>
             </div>
           </div>
@@ -295,17 +296,17 @@ export default function BookPage() {
               <Card className="w-full overflow-hidden">
                 <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
                   <CardTitle className="text-sm sm:text-base md:text-lg break-words">
-                    Available Sessions - {formatDate(selectedDate)}
+                    {t('book.available', { date: formatDate(selectedDate) })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 sm:p-4 md:p-6">
                   {availableSessions.length === 0 ? (
                     <div className="text-center py-8 sm:py-12">
                       <p className="text-sm sm:text-base text-gray-700 mb-2 break-words px-2">
-                        No sessions available for this day
+                        {t('book.no_sessions')}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-600 break-words px-2">
-                        Select another date to see available sessions
+                        {t('book.no_sessions_hint')}
                       </p>
                     </div>
                   ) : (
@@ -337,7 +338,7 @@ export default function BookPage() {
                               />
                             </div>
                             <div className="mt-3">
-                              <p className="text-xs text-gray-600 mb-2">Available time slots:</p>
+                              <p className="text-xs text-gray-600 mb-2">{t('book.time_slots')}</p>
                               <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                 {sessionItem.timetable
                                   .sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -364,11 +365,11 @@ export default function BookPage() {
           {/* My Bookings */}
           <Card className="w-full overflow-hidden">
             <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
-              <CardTitle className="text-sm sm:text-base md:text-lg">My Bookings</CardTitle>
+              <CardTitle className="text-sm sm:text-base md:text-lg">{t('book.my_bookings')}</CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-4 md:p-6">
               {myBookings.length === 0 ? (
-                <p className="text-center text-sm sm:text-base text-gray-700 py-8">No bookings yet</p>
+                <p className="text-center text-sm sm:text-base text-gray-700 py-8">{t('book.no_bookings')}</p>
               ) : (
                 <div className="space-y-3">
                   {myBookings.map((booking) => (

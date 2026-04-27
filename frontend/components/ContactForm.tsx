@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function ContactForm() {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -21,9 +23,7 @@ export default function ContactForm() {
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
 
@@ -33,24 +33,15 @@ export default function ContactForm() {
       }
 
       setStatus('success')
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        businessName: '',
-        message: ''
-      })
-    } catch (error: any) {
+      setFormData({ name: '', email: '', phone: '', businessName: '', message: '' })
+    } catch (error: unknown) {
       setStatus('error')
-      setErrorMessage(error.message || 'Failed to send message. Please try again.')
+      setErrorMessage(error instanceof Error ? error.message : t('contact.error_generic'))
     }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }))
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   if (status === 'success') {
@@ -61,15 +52,13 @@ export default function ContactForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
-        <p className="text-gray-600 mb-6">
-          Thank you for your interest. We&apos;ll get back to you soon!
-        </p>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('contact.success_title')}</h3>
+        <p className="text-gray-600 mb-6">{t('contact.success_desc')}</p>
         <button
           onClick={() => setStatus('idle')}
           className="text-blue-600 hover:text-blue-700 font-medium"
         >
-          Send another message
+          {t('contact.send_another')}
         </button>
       </div>
     )
@@ -79,7 +68,7 @@ export default function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-          Your Name *
+          {t('contact.name_label')}
         </label>
         <input
           type="text"
@@ -89,13 +78,13 @@ export default function ContactForm() {
           value={formData.name}
           onChange={handleChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-          placeholder="John Doe"
+          placeholder={t('contact.name_placeholder')}
         />
       </div>
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-          Email Address *
+          {t('contact.email_label')}
         </label>
         <input
           type="email"
@@ -105,13 +94,13 @@ export default function ContactForm() {
           value={formData.email}
           onChange={handleChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-          placeholder="john@example.com"
+          placeholder={t('contact.email_placeholder')}
         />
       </div>
 
       <div>
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-          Phone Number
+          {t('contact.phone_label')}
         </label>
         <input
           type="tel"
@@ -120,13 +109,13 @@ export default function ContactForm() {
           value={formData.phone}
           onChange={handleChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-          placeholder="+1 (555) 123-4567"
+          placeholder={t('contact.phone_placeholder')}
         />
       </div>
 
       <div>
         <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
-          Business Name *
+          {t('contact.business_label')}
         </label>
         <input
           type="text"
@@ -136,13 +125,13 @@ export default function ContactForm() {
           value={formData.businessName}
           onChange={handleChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-          placeholder="Your Studio Name"
+          placeholder={t('contact.business_placeholder')}
         />
       </div>
 
       <div>
         <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-          Message *
+          {t('contact.message_label')}
         </label>
         <textarea
           id="message"
@@ -152,7 +141,7 @@ export default function ContactForm() {
           value={formData.message}
           onChange={handleChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-          placeholder="Tell us about your business and what you're looking for..."
+          placeholder={t('contact.message_placeholder')}
         />
       </div>
 
@@ -167,7 +156,7 @@ export default function ContactForm() {
         disabled={status === 'loading'}
         className="w-full px-8 py-4 bg-[#8B1538] text-white rounded-lg hover:bg-[#6d1029] transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {status === 'loading' ? 'Sending...' : 'Send Message'}
+        {status === 'loading' ? t('contact.submitting') : t('contact.submit')}
       </button>
     </form>
   )

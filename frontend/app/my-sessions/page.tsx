@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
@@ -9,6 +8,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/LogoutButton'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
   id: string
@@ -23,6 +23,7 @@ interface Booking {
 }
 
 export default function MySessionsPage() {
+  const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -179,11 +180,11 @@ export default function MySessionsPage() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Home
+                {t('my_sessions.back')}
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Sessions</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('my_sessions.title')}</h1>
               <p className="text-gray-800 mt-2 text-sm sm:text-base">
-                View and manage your booked sessions
+                {t('my_sessions.subtitle')}
               </p>
             </div>
           </div>
@@ -266,17 +267,17 @@ export default function MySessionsPage() {
               <Card className="w-full overflow-hidden">
                 <CardHeader className="pb-3 p-3 sm:p-4 md:p-6">
                   <CardTitle className="text-sm sm:text-base md:text-lg break-words">
-                    Sessions - {formatDate(selectedDate)}
+                    {t('my_sessions.sessions_on', { date: formatDate(selectedDate) })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 sm:p-4 md:p-6">
                   {selectedDateBookings.length === 0 ? (
                     <div className="text-center py-8 sm:py-12">
                       <p className="text-sm sm:text-base text-gray-700 mb-2 break-words px-2">
-                        No sessions booked for this day
+                        {t('my_sessions.no_sessions')}
                       </p>
                       <Link href="/book">
-                        <Button variant="outline" className="text-xs sm:text-sm">Book a Session</Button>
+                        <Button variant="outline" className="text-xs sm:text-sm">{t('my_sessions.book_link')}</Button>
                       </Link>
                     </div>
                   ) : (

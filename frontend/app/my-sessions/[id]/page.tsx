@@ -1,5 +1,4 @@
 'use client'
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -8,6 +7,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
   id: string
@@ -23,6 +23,7 @@ interface Booking {
 }
 
 export default function SessionDetailPage() {
+  const { t } = useLanguage()
   const params = useParams()
   const router = useRouter()
   const { status } = useSession()
@@ -132,9 +133,9 @@ export default function SessionDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-700 mb-4">Booking not found</p>
+          <p className="text-gray-700 mb-4">{t('booking_detail.not_found')}</p>
           <Link href="/my-sessions">
-            <Button>Back to My Sessions</Button>
+            <Button>{t('booking_detail.back')}</Button>
           </Link>
         </div>
       </div>
@@ -157,7 +158,7 @@ export default function SessionDetailPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to My Sessions
+              {t('booking_detail.back')}
             </Link>
           </div>
 
@@ -181,7 +182,7 @@ export default function SessionDetailPage() {
             <CardContent className="pt-6">
               {booking.serviceSession?.description && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('booking_detail.description')}</h3>
                   <p className="text-gray-700">{booking.serviceSession.description}</p>
                 </div>
               )}
@@ -193,7 +194,7 @@ export default function SessionDetailPage() {
                   onClick={handleChangeBooking}
                   disabled={!canChangeBooking || booking.status === 'CANCELLED'}
                 >
-                  Change Booking
+                  {t('booking_detail.change_booking')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -201,7 +202,7 @@ export default function SessionDetailPage() {
                   onClick={() => setShowCancelModal(true)}
                   disabled={booking.status === 'CANCELLED'}
                 >
-                  Cancel
+                  {t('booking_detail.cancel_booking')}
                 </Button>
               </div>
               {changeRestrictionMessage && (
@@ -216,9 +217,9 @@ export default function SessionDetailPage() {
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Cancel Booking</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t('booking_detail.cancel_booking')}</h2>
             <p className="text-gray-700 mb-6">
-              This lesson can not be rescheduled. Are you sure you want to cancel?
+              {t('booking_detail.cancel_confirm')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -227,7 +228,7 @@ export default function SessionDetailPage() {
                 onClick={() => setShowCancelModal(false)}
                 disabled={cancelling}
               >
-                No, Keep Booking
+                {t('booking_detail.keep')}
               </Button>
               <Button
                 variant="destructive"
@@ -235,7 +236,7 @@ export default function SessionDetailPage() {
                 onClick={handleCancel}
                 disabled={cancelling}
               >
-                {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
+                {cancelling ? t('booking_detail.cancelling') : t('booking_detail.yes_cancel')}
               </Button>
             </div>
           </div>

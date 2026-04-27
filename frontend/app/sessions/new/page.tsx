@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function NewSessionPage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -54,16 +56,16 @@ export default function NewSessionPage() {
       <div className="mobile-container">
         <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create New Session</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('sessions_new.title')}</h1>
             <p className="text-gray-800 mt-2 text-sm sm:text-base">
-              Set up a new service session
+              {t('sessions_new.subtitle')}
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Session Details</CardTitle>
-              <CardDescription>Enter the information for your new session</CardDescription>
+              <CardTitle>{t('sessions_new.section_title')}</CardTitle>
+              <CardDescription>{t('sessions_new.section_desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -75,12 +77,12 @@ export default function NewSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium text-gray-900">
-                    Session Name *
+                    {t('sessions_new.name_label')}
                   </label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="e.g., Morning Yoga"
+                    placeholder={t('sessions_new.name_placeholder')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="h-12 text-base"
@@ -90,12 +92,12 @@ export default function NewSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="description" className="text-sm font-medium text-gray-900">
-                    Description
+                    {t('sessions_new.desc_label')}
                   </label>
                   <textarea
                     id="description"
                     rows={4}
-                    placeholder="Describe your session..."
+                    placeholder={t('sessions_new.desc_placeholder')}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="flex w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-base sm:text-sm text-gray-900 ring-offset-white placeholder:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B1538] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -104,7 +106,7 @@ export default function NewSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="themeColor" className="text-sm font-medium text-gray-900">
-                    Theme Color
+                    {t('sessions_new.color_label')}
                   </label>
                   <div className="flex items-center gap-3">
                     <Input
@@ -127,7 +129,7 @@ export default function NewSessionPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="slots" className="text-sm font-medium text-gray-900">
-                    Number of Slots *
+                    {t('sessions_new.slots_label')}
                   </label>
                   <Input
                     id="slots"
@@ -139,7 +141,7 @@ export default function NewSessionPage() {
                     className="h-12 text-base"
                     required
                   />
-                  <p className="text-xs text-gray-700">How many people can book this session?</p>
+                  <p className="text-xs text-gray-700">{t('sessions_new.slots_placeholder')}</p>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -149,10 +151,10 @@ export default function NewSessionPage() {
                     className="flex-1"
                     onClick={() => router.back()}
                   >
-                    Cancel
+                    {t('sessions_new.cancel')}
                   </Button>
                   <Button type="submit" className="flex-1" disabled={loading}>
-                    {loading ? 'Creating...' : 'Create Session'}
+                    {loading ? t('sessions_new.submitting') : t('sessions_new.submit')}
                   </Button>
                 </div>
               </form>
