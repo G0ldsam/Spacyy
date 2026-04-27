@@ -193,6 +193,9 @@ export default function BookPage() {
     )
   }
 
+  const toLocalDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   const weekDays = getWeekDays(selectedDate)
   const weekStart = weekDays[0]
   const weekEnd = weekDays[6]
@@ -314,7 +317,7 @@ export default function BookPage() {
                       {availableSessions.map((sessionItem) => (
                         <Link
                           key={sessionItem.id}
-                          href={`/book/${sessionItem.id}/${selectedDate.toISOString().split('T')[0]}`}
+                          href={`/book/${sessionItem.id}/${toLocalDateStr(selectedDate)}`}
                           className="block w-full"
                         >
                           <div

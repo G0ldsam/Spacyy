@@ -63,8 +63,8 @@ export default function BookingsPage() {
   // Fetch which dates in the visible week have bookings
   useEffect(() => {
     const week = getWeekDays(selectedDate)
-    const start = week[0].toISOString().split('T')[0]
-    const end = week[6].toISOString().split('T')[0]
+    const start = toLocalDateStr(week[0])
+    const end = toLocalDateStr(week[6])
     fetch(`/api/bookings/dates?start=${start}&end=${end}`)
       .then((r) => r.json())
       .then((data) => {
@@ -110,9 +110,12 @@ export default function BookingsPage() {
     setAvailableSessions(mapped)
   }
 
+  const toLocalDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   const fetchTimeSlotBookings = async (sessionId: string, date: Date) => {
     try {
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toLocalDateStr(date)
       const response = await fetch(
         `/api/bookings/availability?sessionId=${sessionId}&date=${dateStr}`
       )
@@ -201,7 +204,7 @@ export default function BookingsPage() {
   }
 
   const hasBookings = (date: Date) => {
-    return bookedDates.has(date.toISOString().split('T')[0])
+    return bookedDates.has(toLocalDateStr(date))
   }
 
   if (status === 'loading' || loading) {
@@ -349,7 +352,7 @@ export default function BookingsPage() {
                                 <div
                                   key={timeSlot.id}
                                   onClick={() => {
-                                    const dateStr = selectedDate.toISOString().split('T')[0]
+                                    const dateStr = toLocalDateStr(selectedDate)
                                     router.push(`/bookings/${selectedSession.id}/${dateStr}`)
                                   }}
                                   className={`
