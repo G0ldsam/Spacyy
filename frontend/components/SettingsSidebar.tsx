@@ -17,10 +17,29 @@ interface Props {
   }
 }
 
+const PUSH_HINT_SEEN_KEY = 'push-hint-seen'
+
 export default function SettingsSidebar({ open, onClose, user }: Props) {
   const { state, subscribe, unsubscribe, isAndroid, isPWAInstalled, error: contextError } = usePushSubscription()
   const [pushError, setPushError] = useState('')
+  const [showPushHint, setShowPushHint] = useState(false)
   const { t } = useLanguage()
+
+  useEffect(() => {
+    // Check if hint already shown
+    if (typeof window !== 'undefined') {
+      const seen = localStorage.getItem(PUSH_HINT_SEEN_KEY)
+      setShowPushHint(!seen && state === 'unsubscribed')
+    }
+  }, [state])
+
+  useEffect(() => {
+    // Mark as seen when sidebar opens and hint is visible
+    if (open && showPushHint) {
+      localStorage.setItem(PUSH_HINT_SEEN_KEY, '1')
+      // Keep showing until they close sidebar
+    }
+  }, [open, showPushHint])
 
   async function handleToggle() {
     setPushError('')
@@ -97,7 +116,15 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
 
           {/* Notifications */}
           <div className="px-5 py-5 border-b border-gray-100">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{t('settings.notifications')}</p>
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t('settings.notifications')}</p>
+              {showPushHint && state === 'unsubscribed' && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+              )}
+            </div>
 
             {state === 'unsupported' && (
               <p className="text-sm text-gray-500">{t('settings.push_unsupported')}</p>
