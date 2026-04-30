@@ -123,6 +123,7 @@ export const authOptions: NextAuthOptions = {
         domain: process.env.NODE_ENV === 'production'
           ? `.${process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'}`
           : undefined,
+        maxAge: 30 * 24 * 60 * 60,
       },
     },
   },
@@ -131,5 +132,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
   },
 }

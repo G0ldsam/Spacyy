@@ -20,6 +20,7 @@ interface Booking {
   startTime: string
   endTime: string
   status: string
+  userId: string | null
   client: { id: string; name: string; email: string }
 }
 
@@ -119,7 +120,7 @@ export default function BookSessionPage() {
   const isAlreadyBooked = (timeSlot: TimeSlot) => {
     const key = `${timeSlot.startTime}-${timeSlot.endTime}`
     return (bookings[key] || []).some(
-      (b) => b.status !== 'CANCELLED' && b.client.email === session?.user?.email
+      (b) => b.status !== 'CANCELLED' && b.userId === session?.user?.id
     )
   }
 

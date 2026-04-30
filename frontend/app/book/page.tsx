@@ -38,6 +38,9 @@ interface Booking {
   status: string
 }
 
+const toLocalDateStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 export default function BookPage() {
   const { t } = useLanguage()
   const { data: session, status } = useSession()
@@ -47,6 +50,8 @@ export default function BookPage() {
   const [myBookings, setMyBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [availableSessions, setAvailableSessions] = useState<Session[]>([])
+  // sessionId → "HH:mm-HH:mm" → booked count
+  const [slotBookedCounts, setSlotBookedCounts] = useState<Record<string, Record<string, number>>>({})
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -89,6 +94,30 @@ export default function BookPage() {
     }
   }
 
+  const fetchSlotAvailability = useCallback(async (sessionsToFetch: Session[], date: Date) => {
+    const dateStr = toLocalDateStr(date)
+    const results = await Promise.all(
+      sessionsToFetch.map(async (s) => {
+        try {
+          const res = await fetch(`/api/bookings/availability?sessionId=${s.id}&date=${dateStr}`)
+          if (!res.ok) return { id: s.id, countMap: {} }
+          const bookings: { startTime: string; endTime: string }[] = await res.json()
+          const countMap: Record<string, number> = {}
+          bookings.forEach((b) => {
+            const key = `${b.startTime}-${b.endTime}`
+            countMap[key] = (countMap[key] || 0) + 1
+          })
+          return { id: s.id, countMap }
+        } catch {
+          return { id: s.id, countMap: {} }
+        }
+      })
+    )
+    const merged: Record<string, Record<string, number>> = {}
+    results.forEach(({ id, countMap }) => { merged[id] = countMap })
+    setSlotBookedCounts(merged)
+  }, [])
+
   const filterSessionsByDate = useCallback(() => {
     const dayOfWeek = selectedDate.getDay()
     
@@ -118,6 +147,12 @@ export default function BookPage() {
       filterSessionsByDate()
     }
   }, [selectedDate, sessions, filterSessionsByDate])
+
+  useEffect(() => {
+    if (availableSessions.length > 0) {
+      fetchSlotAvailability(availableSessions, selectedDate)
+    }
+  }, [availableSessions, selectedDate, fetchSlotAvailability])
 
   const getWeekDays = (date: Date) => {
     const week = []
@@ -192,9 +227,6 @@ export default function BookPage() {
       <PageSpinner />
     )
   }
-
-  const toLocalDateStr = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   const weekDays = getWeekDays(selectedDate)
   const weekStart = weekDays[0]
@@ -345,14 +377,25 @@ export default function BookPage() {
                               <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                 {sessionItem.timetable
                                   .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                                  .map((slot) => (
-                                    <span
-                                      key={slot.id}
-                                      className="px-2 sm:px-3 py-1 bg-gray-100 rounded-md text-xs sm:text-sm text-gray-900 whitespace-nowrap"
-                                    >
-                                      {slot.startTime} - {slot.endTime}
-                                    </span>
-                                  ))}
+                                  .map((slot) => {
+                                    const key = `${slot.startTime}-${slot.endTime}`
+                                    const booked = slotBookedCounts[sessionItem.id]?.[key] ?? null
+                                    const remaining = booked !== null ? sessionItem.slots - booked : null
+                                    const isFull = remaining !== null && remaining <= 0
+                                    return (
+                                      <span
+                                        key={slot.id}
+                                        className="px-2 sm:px-3 py-1 bg-gray-100 rounded-md text-xs sm:text-sm text-gray-900 whitespace-nowrap flex items-center gap-1.5"
+                                      >
+                                        {slot.startTime} - {slot.endTime}
+                                        {remaining !== null && (
+                                          <span className={`font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>
+                                            {remaining}/{sessionItem.slots}
+                                          </span>
+                                        )}
+                                      </span>
+                                    )
+                                  })}
                               </div>
                             </div>
                           </div>
