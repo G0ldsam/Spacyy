@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
@@ -9,6 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { DAYS_OF_WEEK } from '@/shared/types/session'
 import { useLanguage } from '@/contexts/LanguageContext'
+import {
+  useSessions,
+  useClients,
+  useMultipleAvailability,
+  useBookedDates,
+  useExceptions,
+  useMultipleInterestLists,
+  useCheckIn,
+  useCreateBooking,
+  useCancelBooking,
+  useCloseOccurrence,
+  useReopenOccurrence,
+  useNotifyInterestList,
+} from '@/hooks/useBookingsData'
 
 interface TimeSlot {
   id: string
@@ -49,7 +63,20 @@ interface InterestEntry {
 }
 
 const toLocalDateStr = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  \`\${d.getFullYear()}-\${String(d.getMonth() + 1).padStart(2, '0')}-\${String(d.getDate()).padStart(2, '0')}\`
+
+const getWeekDays = (date: Date) => {
+  const week = []
+  const start = new Date(date)
+  const day = start.getDay()
+  const diff = start.getDate() - (day === 0 ? 6 : day - 1)
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start)
+    d.setDate(diff + i)
+    week.push(d)
+  }
+  return week
+}
 
 export default function BookingsPage() {
   const { t } = useLanguage()
@@ -58,23 +85,8 @@ export default function BookingsPage() {
 
   // — calendar / session list —
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [loading, setLoading] = useState(true)
-  const [availableSessions, setAvailableSessions] = useState<Session[]>([])
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
-  const [bookedDates, setBookedDates] = useState<Set<string>>(new Set())
-  // sessionId → "HH:mm-HH:mm" → count
-  const [slotBookedCounts, setSlotBookedCounts] = useState<Record<string, Record<string, number>>>({})
-  // sessionId → "HH:mm-HH:mm" → Booking[]
-  const [slotBookings, setSlotBookings] = useState<Record<string, Record<string, Booking[]>>>({})
-  const [availabilityLoading, setAvailabilityLoading] = useState(false)
-
-  // — detail panel —
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null)
-  const [clients, setClients] = useState<Array<{ id: string; name: string; email: string }>>([])
-  const [exceptions, setExceptions] = useState<Record<string, SlotException>>({})
-  const [interestLists, setInterestLists] = useState<Record<string, InterestEntry[]>>({})
-  const [detailLoading, setDetailLoading] = useState(false)
 
   // — modal / action state —
   const [showModal, setShowModal] = useState(false)
@@ -83,144 +95,120 @@ export default function BookingsPage() {
   const [selectedClientId, setSelectedClientId] = useState('')
   const [closingSlotId, setClosingSlotId] = useState<string | null>(null)
   const [closeReason, setCloseReason] = useState('')
-  const [closingSaving, setClosingSaving] = useState(false)
-  const [notifyingSlotId, setNotifyingSlotId] = useState<string | null>(null)
 
   const isAdmin = session?.user?.organizations?.some(
     (org) => org.role === 'OWNER' || org.role === 'ADMIN'
   )
 
-  // — effects —
-  useEffect(() => {
-    if (status === 'unauthenticated') { router.push('/login'); return }
-    if (status === 'authenticated') fetchSessions()
-  }, [status, router])
+  // ========================================
+  // React Query Hooks — Replaces all useEffect cascades
+  // ========================================
 
-  useEffect(() => {
-    if (sessions.length > 0) {
-      filterSessionsByDate()
-      if (selectedSession) { setSelectedSession(null); setSelectedTimeSlot(null) }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, sessions])
+  const { data: sessions = [], isLoading: sessionsLoading } = useSessions()
+  const { data: clients = [] } = useClients()
 
-  useEffect(() => {
-    const week = getWeekDays(selectedDate)
-    const start = toLocalDateStr(week[0])
-    const end = toLocalDateStr(week[6])
-    fetch(`/api/bookings/dates?start=${start}&end=${end}`)
-      .then((r) => r.json())
-      .then((data) => { if (data.dates) setBookedDates(new Set(data.dates)) })
-      .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate])
+  // Filter sessions by selected date — computed, not fetched
+  const availableSessions = useMemo(() => {
+    const dow = selectedDate.getDay()
+    return sessions
+      .filter((s) => s.timetable.some((sl) => sl.dayOfWeek === dow))
+      .map((s) => ({ ...s, timetable: s.timetable.filter((sl) => sl.dayOfWeek === dow) }))
+  }, [sessions, selectedDate])
 
-  useEffect(() => {
-    if (availableSessions.length > 0) fetchAllSlotAvailability(availableSessions, selectedDate)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableSessions, selectedDate])
+  // Fetch availability for ALL visible sessions in parallel — CACHED
+  const dateStr = toLocalDateStr(selectedDate)
+  const availabilityQueries = useMultipleAvailability(availableSessions, dateStr)
+  const availabilityLoading = availabilityQueries.some((q) => q.isLoading)
 
-  // — data fetchers —
-  const fetchSessions = async () => {
-    try {
-      const res = await fetch('/api/sessions')
-      if (!res.ok) throw new Error()
-      setSessions(await res.json())
-    } catch {
-      console.error('Failed to fetch sessions')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Transform availability data into lookup maps
+  const { slotBookedCounts, slotBookings } = useMemo(() => {
+    const counts: Record<string, Record<string, number>> = {}
+    const bookings: Record<string, Record<string, Booking[]>> = {}
 
-  const fetchAllSlotAvailability = async (sessionsToFetch: Session[], date: Date) => {
-    setAvailabilityLoading(true)
-    const dateStr = toLocalDateStr(date)
-    const results = await Promise.all(
-      sessionsToFetch.map(async (s) => {
-        try {
-          const res = await fetch(`/api/bookings/availability?sessionId=${s.id}&date=${dateStr}`)
-          if (!res.ok) return { id: s.id, countMap: {} as Record<string, number>, bookingsMap: {} as Record<string, Booking[]> }
-          const list: Booking[] = await res.json()
-          const countMap: Record<string, number> = {}
-          const bookingsMap: Record<string, Booking[]> = {}
-          list.forEach((b) => {
-            const key = `${b.startTime}-${b.endTime}`
-            countMap[key] = (countMap[key] || 0) + 1
-            if (!bookingsMap[key]) bookingsMap[key] = []
-            bookingsMap[key].push(b)
-          })
-          return { id: s.id, countMap, bookingsMap }
-        } catch {
-          return { id: s.id, countMap: {} as Record<string, number>, bookingsMap: {} as Record<string, Booking[]> }
-        }
-      })
-    )
-    const mergedCounts: Record<string, Record<string, number>> = {}
-    const mergedBookings: Record<string, Record<string, Booking[]>> = {}
-    results.forEach(({ id, countMap, bookingsMap }) => {
-      mergedCounts[id] = countMap
-      mergedBookings[id] = bookingsMap
-    })
-    setSlotBookedCounts(mergedCounts)
-    setSlotBookings(mergedBookings)
-    setAvailabilityLoading(false)
-  }
+    availableSessions.forEach((session, index) => {
+      const queryData = availabilityQueries[index]?.data as Booking[] | undefined
+      if (!queryData) return
 
-  const refreshSession = async (sessionId: string) => {
-    const dateStr = toLocalDateStr(selectedDate)
-    try {
-      const res = await fetch(`/api/bookings/availability?sessionId=${sessionId}&date=${dateStr}`)
-      if (!res.ok) return
-      const list: Booking[] = await res.json()
       const countMap: Record<string, number> = {}
       const bookingsMap: Record<string, Booking[]> = {}
-      list.forEach((b) => {
-        const key = `${b.startTime}-${b.endTime}`
+
+      queryData.forEach((b) => {
+        const key = \`\${b.startTime}-\${b.endTime}\`
         countMap[key] = (countMap[key] || 0) + 1
         if (!bookingsMap[key]) bookingsMap[key] = []
         bookingsMap[key].push(b)
       })
-      setSlotBookedCounts((prev) => ({ ...prev, [sessionId]: countMap }))
-      setSlotBookings((prev) => ({ ...prev, [sessionId]: bookingsMap }))
-    } catch {}
-  }
 
-  // — session/date helpers —
-  const filterSessionsByDate = () => {
-    const dow = selectedDate.getDay()
-    const filtered = sessions.filter((s) => s.timetable.some((sl) => sl.dayOfWeek === dow))
-    setAvailableSessions(filtered.map((s) => ({ ...s, timetable: s.timetable.filter((sl) => sl.dayOfWeek === dow) })))
-  }
+      counts[session.id] = countMap
+      bookings[session.id] = bookingsMap
+    })
 
-  const handleSessionClick = async (sess: Session) => {
+    return { slotBookedCounts: counts, slotBookings: bookings }
+  }, [availableSessions, availabilityQueries])
+
+  // Fetch booked dates for week calendar indicators
+  const weekDays = getWeekDays(selectedDate)
+  const weekStart = toLocalDateStr(weekDays[0])
+  const weekEnd = toLocalDateStr(weekDays[6])
+  const { data: bookedDatesArray = [] } = useBookedDates(weekStart, weekEnd)
+  const bookedDates = useMemo(() => new Set(bookedDatesArray), [bookedDatesArray])
+
+  // Fetch exceptions and interest lists when session is selected
+  const { data: exceptions = {} } = useExceptions(
+    selectedSession?.id || '',
+    dateStr
+  )
+
+  const daySlots = selectedSession?.timetable.filter((sl) => sl.dayOfWeek === selectedDate.getDay()) || []
+  const interestQueries = useMultipleInterestLists(selectedSession?.id || '', daySlots, dateStr)
+  const interestLists = useMemo(() => {
+    const lists: Record<string, InterestEntry[]> = {}
+    daySlots.forEach((slot, index) => {
+      const data = interestQueries[index]?.data as InterestEntry[] | undefined
+      if (data) lists[slot.id] = data
+    })
+    return lists
+  }, [daySlots, interestQueries])
+
+  const detailLoading = interestQueries.some((q) => q.isLoading)
+
+  // ========================================
+  // Mutations
+  // ========================================
+
+  const checkInMutation = useCheckIn()
+  const createBookingMutation = useCreateBooking()
+  const cancelBookingMutation = useCancelBooking()
+  const closeOccurrenceMutation = useCloseOccurrence()
+  const reopenOccurrenceMutation = useReopenOccurrence()
+  const notifyInterestMutation = useNotifyInterestList()
+
+  // ========================================
+  // Auth redirect
+  // ========================================
+
+  useEffect(() => {
+    if (status === 'unauthenticated') router.push('/login')
+  }, [status, router])
+
+  // Reset selection when date changes
+  useEffect(() => {
+    if (selectedSession) {
+      setSelectedSession(null)
+      setSelectedTimeSlot(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate])
+
+  // ========================================
+  // Action handlers
+  // ========================================
+
+  const handleSessionClick = (sess: Session) => {
     setSelectedSession(sess)
     setSelectedTimeSlot(null)
-    setExceptions({})
-    setInterestLists({})
-    setDetailLoading(true)
-    const dateStr = toLocalDateStr(selectedDate)
-    const daySlots = sess.timetable.filter((sl) => sl.dayOfWeek === selectedDate.getDay())
-    const [clientsRes, exceptionsRes, ...interestResults] = await Promise.all([
-      fetch('/api/clients'),
-      fetch(`/api/sessions/${sess.id}/exceptions?date=${dateStr}`),
-      ...daySlots.map((sl) =>
-        fetch(`/api/interest?sessionId=${sess.id}&timeSlotId=${sl.id}&date=${dateStr}`)
-          .then((r) => (r.ok ? r.json().then((entries) => ({ slotId: sl.id, entries })) : null))
-          .catch(() => null)
-      ),
-    ])
-    if (clientsRes.ok) setClients(await clientsRes.json())
-    if (exceptionsRes.ok) setExceptions(await exceptionsRes.json())
-    const newInterests: Record<string, InterestEntry[]> = {}
-    interestResults.forEach((result) => {
-      if (result) newInterests[result.slotId] = result.entries
-    })
-    setInterestLists(newInterests)
-    setDetailLoading(false)
   }
 
-  // — action handlers —
   const handleTimeSlotClick = (timeSlot: TimeSlot) => {
     setSelectedTimeSlot((prev) => (prev?.id === timeSlot.id ? null : timeSlot))
     setShowModal(false)
@@ -231,10 +219,10 @@ export default function BookingsPage() {
 
   const handleCheckIn = async (bookingId: string) => {
     try {
-      const res = await fetch(`/api/admin/check-in/booking/${bookingId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
-      if (selectedSession) refreshSession(selectedSession.id)
-    } catch (error: any) { alert(error.message || 'Failed to check in client') }
+      await checkInMutation.mutateAsync(bookingId)
+    } catch (error: any) {
+      alert(error.message || 'Failed to check in client')
+    }
   }
 
   const handleAssign = async () => {
@@ -243,60 +231,67 @@ export default function BookingsPage() {
       const [sh, sm] = selectedTimeSlot.startTime.split(':').map(Number)
       const [eh, em] = selectedTimeSlot.endTime.split(':').map(Number)
       const dateStr = toLocalDateStr(selectedDate)
-      const startTime = new Date(`${dateStr}T00:00:00Z`)
+      const startTime = new Date(\`\${dateStr}T00:00:00Z\`)
       startTime.setUTCHours(sh, sm, 0, 0)
-      const endTime = new Date(`${dateStr}T00:00:00Z`)
+      const endTime = new Date(\`\${dateStr}T00:00:00Z\`)
       endTime.setUTCHours(eh, em, 0, 0)
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: selectedSession.id, clientId: selectedClientId, startTime: startTime.toISOString(), endTime: endTime.toISOString() }),
+
+      await createBookingMutation.mutateAsync({
+        sessionId: selectedSession.id,
+        clientId: selectedClientId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
       })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
-      setShowModal(false); setAction(null); setSelectedClientId(''); setSelectedBooking(null)
-      refreshSession(selectedSession.id)
-    } catch (error: any) { alert(error.message || 'Failed to assign client') }
+
+      setShowModal(false)
+      setAction(null)
+      setSelectedClientId('')
+      setSelectedBooking(null)
+    } catch (error: any) {
+      alert(error.message || 'Failed to assign client')
+    }
   }
 
   const handleCancel = async (bookingId: string) => {
     try {
-      const res = await fetch(`/api/bookings/${bookingId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
-      if (!res.ok) throw new Error('Failed to cancel')
-      setShowModal(false); setSelectedBooking(null)
-      if (selectedSession) refreshSession(selectedSession.id)
-    } catch (error: any) { alert(error.message || 'Failed to cancel booking') }
+      await cancelBookingMutation.mutateAsync(bookingId)
+      setShowModal(false)
+      setSelectedBooking(null)
+    } catch (error: any) {
+      alert(error.message || 'Failed to cancel booking')
+    }
   }
 
   const handleEmpty = async () => {
     if (!selectedTimeSlot || !selectedSession) return
-    const key = `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}`
+    const key = \`\${selectedTimeSlot.startTime}-\${selectedTimeSlot.endTime}\`
     const active = (slotBookings[selectedSession.id]?.[key] || []).filter((b) => b.status !== 'CANCELLED')
-    if (active.length === 0) { alert('Slot already empty'); return }
+    if (active.length === 0) {
+      alert('Slot already empty')
+      return
+    }
     try {
-      await Promise.all(active.map((b) =>
-        fetch(`/api/bookings/${b.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
-      ))
+      await Promise.all(active.map((b) => cancelBookingMutation.mutateAsync(b.id)))
       setSelectedTimeSlot(null)
-      refreshSession(selectedSession.id)
-    } catch (error: any) { alert(error.message || 'Failed to empty slot') }
+    } catch (error: any) {
+      alert(error.message || 'Failed to empty slot')
+    }
   }
 
   const handleCloseOccurrence = async (timeSlot: TimeSlot) => {
     if (!selectedSession) return
-    setClosingSaving(true)
     try {
-      const res = await fetch(`/api/sessions/${selectedSession.id}/exceptions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timeSlotId: timeSlot.id, date: toLocalDateStr(selectedDate), reason: closeReason.trim() || null }),
+      await closeOccurrenceMutation.mutateAsync({
+        sessionId: selectedSession.id,
+        timeSlotId: timeSlot.id,
+        date: toLocalDateStr(selectedDate),
+        reason: closeReason.trim() || null,
       })
-      if (!res.ok) throw new Error('Failed to close')
-      const { exception, cancelledCount } = await res.json()
-      setExceptions((prev) => ({ ...prev, [timeSlot.id]: exception }))
-      setClosingSlotId(null); setCloseReason('')
-      if (cancelledCount > 0) refreshSession(selectedSession.id)
-    } catch (error: any) { alert(error.message || 'Failed to close occurrence') }
-    finally { setClosingSaving(false) }
+      setClosingSlotId(null)
+      setCloseReason('')
+    } catch (error: any) {
+      alert(error.message || 'Failed to close occurrence')
+    }
   }
 
   const handleReopen = async (timeSlotId: string) => {
@@ -304,44 +299,33 @@ export default function BookingsPage() {
     const exc = exceptions[timeSlotId]
     if (!exc) return
     try {
-      const res = await fetch(`/api/sessions/${selectedSession.id}/exceptions/${exc.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to reopen')
-      setExceptions((prev) => { const n = { ...prev }; delete n[timeSlotId]; return n })
-    } catch (error: any) { alert(error.message || 'Failed to reopen') }
+      await reopenOccurrenceMutation.mutateAsync({
+        sessionId: selectedSession.id,
+        exceptionId: exc.id,
+        date: toLocalDateStr(selectedDate),
+      })
+    } catch (error: any) {
+      alert(error.message || 'Failed to reopen')
+    }
   }
 
   const handleNotifyAll = async (timeSlot: TimeSlot) => {
     if (!selectedSession) return
-    setNotifyingSlotId(timeSlot.id)
     try {
-      const dateStr = toLocalDateStr(selectedDate)
-      const res = await fetch('/api/interest/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: selectedSession.id, timeSlotId: timeSlot.id, date: dateStr }),
+      const result = await notifyInterestMutation.mutateAsync({
+        sessionId: selectedSession.id,
+        timeSlotId: timeSlot.id,
+        date: toLocalDateStr(selectedDate),
       })
-      if (!res.ok) throw new Error('Failed to notify')
-      const { notifiedCount } = await res.json()
-      const slotRes = await fetch(`/api/interest?sessionId=${selectedSession.id}&timeSlotId=${timeSlot.id}&date=${dateStr}`)
-      if (slotRes.ok) { const updated = await slotRes.json(); setInterestLists((prev) => ({ ...prev, [timeSlot.id]: updated })) }
-      alert(`Notifications sent to ${notifiedCount} client${notifiedCount !== 1 ? 's' : ''}.`)
-    } catch (error: any) { alert(error.message || 'Failed to send notifications') }
-    finally { setNotifyingSlotId(null) }
+      alert(\`Notifications sent to \${result.notifiedCount} client\${result.notifiedCount !== 1 ? 's' : ''}.\`)
+    } catch (error: any) {
+      alert(error.message || 'Failed to send notifications')
+    }
   }
 
-  // — calendar helpers —
-  const getWeekDays = (date: Date) => {
-    const week = []
-    const start = new Date(date)
-    const day = start.getDay()
-    const diff = start.getDate() - (day === 0 ? 6 : day - 1)
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start)
-      d.setDate(diff + i)
-      week.push(d)
-    }
-    return week
-  }
+  // ========================================
+  // Calendar helpers
+  // ========================================
 
   const navigateWeek = (dir: 'prev' | 'next') => {
     const d = new Date(selectedDate)
@@ -353,15 +337,24 @@ export default function BookingsPage() {
     const t = new Date()
     return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear()
   }
+
   const isDateSelected = (d: Date) =>
     d.getDate() === selectedDate.getDate() && d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+
   const hasBookings = (d: Date) => bookedDates.has(toLocalDateStr(d))
+
   const formatDate = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
-  if (status === 'loading' || loading) return <PageSpinner />
+  // ========================================
+  // Render
+  // ========================================
 
-  const weekDays = getWeekDays(selectedDate)
-  const weekRange = `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+  if (status === 'loading' || sessionsLoading) return <PageSpinner />
+
+  const weekRange = \`\${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - \${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\`
+
+  const closingSaving = closeOccurrenceMutation.isPending
+  const notifyingSlotId = notifyInterestMutation.isPending ? notifyInterestMutation.variables?.timeSlotId : null
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
@@ -397,17 +390,17 @@ export default function BookingsPage() {
                       <button
                         key={i}
                         onClick={() => setSelectedDate(date)}
-                        className={`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 rounded-md text-[10px] sm:text-xs font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] ${
+                        className={\`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 rounded-md text-[10px] sm:text-xs font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] \${
                           isDateSelected(date) ? 'bg-[#8B1538] text-white' : isToday(date) ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
-                        }`}
+                        }\`}
                       >
                         <span className="text-[9px] sm:text-[10px] mb-0.5 opacity-70">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</span>
                         <span className="text-xs sm:text-base font-semibold">{date.getDate()}</span>
-                        <span className={`mt-0.5 w-1.5 h-1.5 rounded-full ${hasBookings(date) ? isDateSelected(date) ? 'bg-white' : 'bg-[#8B1538]' : 'invisible'}`} />
+                        <span className={\`mt-0.5 w-1.5 h-1.5 rounded-full \${hasBookings(date) ? isDateSelected(date) ? 'bg-white' : 'bg-[#8B1538]' : 'invisible'}\`} />
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-700 mt-2 sm:mt-3 text-center">{t('bookings.selected', { date: formatDate(selectedDate) }) || `Selected: ${formatDate(selectedDate)}`}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-700 mt-2 sm:mt-3 text-center">{t('bookings.selected', { date: formatDate(selectedDate) }) || \`Selected: \${formatDate(selectedDate)}\`}</p>
                 </CardContent>
               </Card>
             </div>
@@ -443,7 +436,7 @@ export default function BookingsPage() {
                           {selectedSession.timetable
                             .sort((a, b) => a.startTime.localeCompare(b.startTime))
                             .map((timeSlot) => {
-                              const key = `${timeSlot.startTime}-${timeSlot.endTime}`
+                              const key = \`\${timeSlot.startTime}-\${timeSlot.endTime}\`
                               const activeBookings = (slotBookings[selectedSession.id]?.[key] || []).filter((b) => b.status !== 'CANCELLED')
                               const remaining = Math.max(0, selectedSession.slots - activeBookings.length)
                               const isExpanded = selectedTimeSlot?.id === timeSlot.id
@@ -514,12 +507,12 @@ export default function BookingsPage() {
                                           )
                                         )}
                                         {!isClosed && (
-                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${remaining > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                          <span className={\`px-2 py-1 rounded-full text-xs font-semibold \${remaining > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}\`}>
                                             {t(remaining === 1 ? 'bookings.slots_left_one' : 'bookings.slots_left_other', { count: remaining })}
                                           </span>
                                         )}
                                         {!isClosed && (
-                                          <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <svg xmlns="http://www.w3.org/2000/svg" className={\`h-4 w-4 text-gray-400 transition-transform \${isExpanded ? 'rotate-90' : ''}\`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                           </svg>
                                         )}
@@ -559,7 +552,7 @@ export default function BookingsPage() {
                                       {activeBookings.map((booking) => (
                                         <div
                                           key={booking.id}
-                                          className={`text-sm rounded px-3 py-2 flex items-center justify-between gap-2 ${booking.checkedIn ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}
+                                          className={\`text-sm rounded px-3 py-2 flex items-center justify-between gap-2 \${booking.checkedIn ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}\`}
                                         >
                                           <div
                                             className="flex-1 cursor-pointer"
@@ -591,7 +584,7 @@ export default function BookingsPage() {
                                       {/* Empty slots — click to assign */}
                                       {Array.from({ length: remaining }).map((_, i) => (
                                         <div
-                                          key={`empty-${i}`}
+                                          key={\`empty-\${i}\`}
                                           onClick={() => { setSelectedBooking(null); setShowModal(true); setAction('assign') }}
                                           className="text-sm text-gray-600 py-2 cursor-pointer hover:text-gray-900 border border-dashed border-gray-300 rounded px-3 hover:border-gray-400 transition-colors"
                                         >
@@ -624,7 +617,7 @@ export default function BookingsPage() {
                                                   disabled={notifyingSlotId === timeSlot.id}
                                                   className="text-xs font-semibold text-[#8B1538] hover:text-[#6d1029] disabled:opacity-50"
                                                 >
-                                                  {notifyingSlotId === timeSlot.id ? 'Sending…' : `Notify all (${remaining} spot${remaining !== 1 ? 's' : ''} open)`}
+                                                  {notifyingSlotId === timeSlot.id ? 'Sending…' : \`Notify all (\${remaining} spot\${remaining !== 1 ? 's' : ''} open)\`}
                                                 </button>
                                               )}
                                             </div>
@@ -662,7 +655,12 @@ export default function BookingsPage() {
                           <p className="text-xs sm:text-sm text-gray-600 break-words px-2">{t('bookings.no_sessions_hint')}</p>
                         </div>
                       ) : (
-                        <div className="space-y-3 sm:space-y-4">
+                        <div className="space-y-3 sm:space-y-4 relative">
+                          {availabilityLoading && (
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                              <div className="w-6 h-6 border-2 border-[#8B1538] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          )}
                           {availableSessions.map((sess) => (
                             <div
                               key={sess.id}
@@ -683,13 +681,13 @@ export default function BookingsPage() {
                                   {sess.timetable
                                     .sort((a, b) => a.startTime.localeCompare(b.startTime))
                                     .map((slot) => {
-                                      const key = `${slot.startTime}-${slot.endTime}`
+                                      const key = \`\${slot.startTime}-\${slot.endTime}\`
                                       const booked = slotBookedCounts[sess.id]?.[key] ?? 0
                                       const isFull = booked >= sess.slots
                                       return (
                                         <span key={slot.id} className="px-2 sm:px-3 py-1 bg-gray-100 rounded-md text-xs sm:text-sm text-gray-900 whitespace-nowrap flex items-center gap-1.5">
                                           {slot.startTime} - {slot.endTime}
-                                          <span className={`font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>{booked}/{sess.slots}</span>
+                                          <span className={\`font-semibold \${isFull ? 'text-red-600' : 'text-green-600'}\`}>{booked}/{sess.slots}</span>
                                         </span>
                                       )
                                     })}

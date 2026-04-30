@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import QRCode from 'qrcode'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useClients } from '@/hooks/useBookingsData'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Client {
   id: string
@@ -26,8 +28,8 @@ export default function ClientsPage() {
   const { t } = useLanguage()
   const router = useRouter()
   const { data: session, status } = useSession()
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const { data: clients = [], isLoading, refetch } = useClients()
   const [fetchError, setFetchError] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [formData, setFormData] = useState({
@@ -65,10 +67,8 @@ export default function ClientsPage() {
         router.push('/dashboard')
         return
       }
-      fetchClients()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, router])
+  }, [status, router, session])
 
   useEffect(() => {
     if (tempPassword && formData.email && typeof window !== 'undefined') {
@@ -80,24 +80,6 @@ export default function ClientsPage() {
       setQrCodeUrl('')
     }
   }, [tempPassword, formData.email])
-
-  const fetchClients = async () => {
-    try {
-      const response = await fetch('/api/clients')
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || `Error ${response.status}`)
-      }
-      const data = await response.json()
-      setClients(data)
-      setFetchError('')
-    } catch (error: any) {
-      console.error('Error fetching clients:', error)
-      setFetchError(error.message || t('clients.error_load', { error: '' }))
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,7 +114,7 @@ export default function ClientsPage() {
           createAccount: true,
         })
         setShowCreateModal(false)
-        fetchClients()
+        queryClient.invalidateQueries({ queryKey: ['clients'] })
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred')
@@ -152,7 +134,7 @@ export default function ClientsPage() {
       createAccount: true,
     })
     setShowCreateModal(false)
-    fetchClients()
+    queryClient.invalidateQueries({ queryKey: ['clients'] })
   }
 
   const handleUpdateClient = async (e: React.FormEvent) => {
@@ -203,7 +185,7 @@ export default function ClientsPage() {
         notes: '',
         sessionAllowance: '',
       })
-      fetchClients()
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
     } catch (err: any) {
       setError(err.message || 'An error occurred')
     } finally {
@@ -238,7 +220,7 @@ export default function ClientsPage() {
         notes: '',
         sessionAllowance: '',
       })
-      fetchClients()
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
     } catch (err: any) {
       setError(err.message || 'An error occurred')
     } finally {
@@ -246,7 +228,7 @@ export default function ClientsPage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || isLoading) {
     return <PageSpinner />
   }
 

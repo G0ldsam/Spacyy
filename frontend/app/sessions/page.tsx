@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { PageSpinner } from '@/components/ui/spinner'
@@ -9,13 +9,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SessionCard } from '@/components/sessions/SessionCard'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useSessions } from '@/hooks/useBookingsData'
 
 export default function SessionsPage() {
   const { t } = useLanguage()
   const { data: authSession, status } = useSession()
   const router = useRouter()
-  const [sessions, setSessions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: sessions = [], isLoading } = useSessions()
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -30,25 +30,10 @@ export default function SessionsPage() {
         router.push('/book')
         return
       }
-      fetchSessions()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, router])
+  }, [status, router, authSession])
 
-  const fetchSessions = async () => {
-    try {
-      const response = await fetch('/api/sessions')
-      if (!response.ok) throw new Error('Failed to fetch sessions')
-      const data = await response.json()
-      setSessions(data)
-    } catch (error) {
-      console.error('Error fetching sessions:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || isLoading) {
     return <PageSpinner />
   }
 
