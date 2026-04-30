@@ -684,15 +684,12 @@ export default function BookingsPage() {
                                     .sort((a, b) => a.startTime.localeCompare(b.startTime))
                                     .map((slot) => {
                                       const key = `${slot.startTime}-${slot.endTime}`
-                                      const booked = slotBookedCounts[sess.id]?.[key] ?? null
-                                      const rem = booked !== null ? sess.slots - booked : null
-                                      const isFull = rem !== null && rem <= 0
+                                      const booked = slotBookedCounts[sess.id]?.[key] ?? 0
+                                      const isFull = booked >= sess.slots
                                       return (
                                         <span key={slot.id} className="px-2 sm:px-3 py-1 bg-gray-100 rounded-md text-xs sm:text-sm text-gray-900 whitespace-nowrap flex items-center gap-1.5">
                                           {slot.startTime} - {slot.endTime}
-                                          {rem !== null && (
-                                            <span className={`font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>{rem}/{sess.slots}</span>
-                                          )}
+                                          <span className={`font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>{booked}/{sess.slots}</span>
                                         </span>
                                       )
                                     })}
