@@ -63,7 +63,7 @@ interface InterestEntry {
 }
 
 const toLocalDateStr = (d: Date) =>
-  \`\${d.getFullYear()}-\${String(d.getMonth() + 1).padStart(2, '0')}-\${String(d.getDate()).padStart(2, '0')}\`
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 const getWeekDays = (date: Date) => {
   const week = []
@@ -133,7 +133,7 @@ export default function BookingsPage() {
       const bookingsMap: Record<string, Booking[]> = {}
 
       queryData.forEach((b) => {
-        const key = \`\${b.startTime}-\${b.endTime}\`
+        const key = `${b.startTime}-${b.endTime}`
         countMap[key] = (countMap[key] || 0) + 1
         if (!bookingsMap[key]) bookingsMap[key] = []
         bookingsMap[key].push(b)
@@ -231,9 +231,9 @@ export default function BookingsPage() {
       const [sh, sm] = selectedTimeSlot.startTime.split(':').map(Number)
       const [eh, em] = selectedTimeSlot.endTime.split(':').map(Number)
       const dateStr = toLocalDateStr(selectedDate)
-      const startTime = new Date(\`\${dateStr}T00:00:00Z\`)
+      const startTime = new Date(`${dateStr}T00:00:00Z`)
       startTime.setUTCHours(sh, sm, 0, 0)
-      const endTime = new Date(\`\${dateStr}T00:00:00Z\`)
+      const endTime = new Date(`${dateStr}T00:00:00Z`)
       endTime.setUTCHours(eh, em, 0, 0)
 
       await createBookingMutation.mutateAsync({
@@ -264,7 +264,7 @@ export default function BookingsPage() {
 
   const handleEmpty = async () => {
     if (!selectedTimeSlot || !selectedSession) return
-    const key = \`\${selectedTimeSlot.startTime}-\${selectedTimeSlot.endTime}\`
+    const key = `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}`
     const active = (slotBookings[selectedSession.id]?.[key] || []).filter((b) => b.status !== 'CANCELLED')
     if (active.length === 0) {
       alert('Slot already empty')
@@ -317,7 +317,7 @@ export default function BookingsPage() {
         timeSlotId: timeSlot.id,
         date: toLocalDateStr(selectedDate),
       })
-      alert(\`Notifications sent to \${result.notifiedCount} client\${result.notifiedCount !== 1 ? 's' : ''}.\`)
+      alert(`Notifications sent to ${result.notifiedCount} client${result.notifiedCount !== 1 ? 's' : ''}.`)
     } catch (error: any) {
       alert(error.message || 'Failed to send notifications')
     }
@@ -351,7 +351,7 @@ export default function BookingsPage() {
 
   if (status === 'loading' || sessionsLoading) return <PageSpinner />
 
-  const weekRange = \`\${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - \${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\`
+  const weekRange = `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   const closingSaving = closeOccurrenceMutation.isPending
   const notifyingSlotId = notifyInterestMutation.isPending ? notifyInterestMutation.variables?.timeSlotId : null
@@ -390,17 +390,17 @@ export default function BookingsPage() {
                       <button
                         key={i}
                         onClick={() => setSelectedDate(date)}
-                        className={\`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 rounded-md text-[10px] sm:text-xs font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] \${
+                        className={`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 rounded-md text-[10px] sm:text-xs font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] ${
                           isDateSelected(date) ? 'bg-[#8B1538] text-white' : isToday(date) ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
-                        }\`}
+                        }`}
                       >
                         <span className="text-[9px] sm:text-[10px] mb-0.5 opacity-70">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</span>
                         <span className="text-xs sm:text-base font-semibold">{date.getDate()}</span>
-                        <span className={\`mt-0.5 w-1.5 h-1.5 rounded-full \${hasBookings(date) ? isDateSelected(date) ? 'bg-white' : 'bg-[#8B1538]' : 'invisible'}\`} />
+                        <span className={`mt-0.5 w-1.5 h-1.5 rounded-full ${hasBookings(date) ? isDateSelected(date) ? 'bg-white' : 'bg-[#8B1538]' : 'invisible'}`} />
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-700 mt-2 sm:mt-3 text-center">{t('bookings.selected', { date: formatDate(selectedDate) }) || \`Selected: \${formatDate(selectedDate)}\`}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-700 mt-2 sm:mt-3 text-center">{t('bookings.selected', { date: formatDate(selectedDate) }) || `Selected: ${formatDate(selectedDate)}`}</p>
                 </CardContent>
               </Card>
             </div>
@@ -436,7 +436,7 @@ export default function BookingsPage() {
                           {selectedSession.timetable
                             .sort((a, b) => a.startTime.localeCompare(b.startTime))
                             .map((timeSlot) => {
-                              const key = \`\${timeSlot.startTime}-\${timeSlot.endTime}\`
+                              const key = `${timeSlot.startTime}-${timeSlot.endTime}`
                               const activeBookings = (slotBookings[selectedSession.id]?.[key] || []).filter((b) => b.status !== 'CANCELLED')
                               const remaining = Math.max(0, selectedSession.slots - activeBookings.length)
                               const isExpanded = selectedTimeSlot?.id === timeSlot.id
@@ -507,12 +507,12 @@ export default function BookingsPage() {
                                           )
                                         )}
                                         {!isClosed && (
-                                          <span className={\`px-2 py-1 rounded-full text-xs font-semibold \${remaining > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}\`}>
+                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${remaining > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                                             {t(remaining === 1 ? 'bookings.slots_left_one' : 'bookings.slots_left_other', { count: remaining })}
                                           </span>
                                         )}
                                         {!isClosed && (
-                                          <svg xmlns="http://www.w3.org/2000/svg" className={\`h-4 w-4 text-gray-400 transition-transform \${isExpanded ? 'rotate-90' : ''}\`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                           </svg>
                                         )}
@@ -552,7 +552,7 @@ export default function BookingsPage() {
                                       {activeBookings.map((booking) => (
                                         <div
                                           key={booking.id}
-                                          className={\`text-sm rounded px-3 py-2 flex items-center justify-between gap-2 \${booking.checkedIn ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}\`}
+                                          className={`text-sm rounded px-3 py-2 flex items-center justify-between gap-2 ${booking.checkedIn ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}
                                         >
                                           <div
                                             className="flex-1 cursor-pointer"
@@ -584,7 +584,7 @@ export default function BookingsPage() {
                                       {/* Empty slots — click to assign */}
                                       {Array.from({ length: remaining }).map((_, i) => (
                                         <div
-                                          key={\`empty-\${i}\`}
+                                          key={`empty-${i}`}
                                           onClick={() => { setSelectedBooking(null); setShowModal(true); setAction('assign') }}
                                           className="text-sm text-gray-600 py-2 cursor-pointer hover:text-gray-900 border border-dashed border-gray-300 rounded px-3 hover:border-gray-400 transition-colors"
                                         >
@@ -617,7 +617,7 @@ export default function BookingsPage() {
                                                   disabled={notifyingSlotId === timeSlot.id}
                                                   className="text-xs font-semibold text-[#8B1538] hover:text-[#6d1029] disabled:opacity-50"
                                                 >
-                                                  {notifyingSlotId === timeSlot.id ? 'Sending…' : \`Notify all (\${remaining} spot\${remaining !== 1 ? 's' : ''} open)\`}
+                                                  {notifyingSlotId === timeSlot.id ? 'Sending…' : `Notify all (${remaining} spot${remaining !== 1 ? 's' : ''} open)`}
                                                 </button>
                                               )}
                                             </div>
@@ -681,13 +681,13 @@ export default function BookingsPage() {
                                   {sess.timetable
                                     .sort((a, b) => a.startTime.localeCompare(b.startTime))
                                     .map((slot) => {
-                                      const key = \`\${slot.startTime}-\${slot.endTime}\`
+                                      const key = `${slot.startTime}-${slot.endTime}`
                                       const booked = slotBookedCounts[sess.id]?.[key] ?? 0
                                       const isFull = booked >= sess.slots
                                       return (
                                         <span key={slot.id} className="px-2 sm:px-3 py-1 bg-gray-100 rounded-md text-xs sm:text-sm text-gray-900 whitespace-nowrap flex items-center gap-1.5">
                                           {slot.startTime} - {slot.endTime}
-                                          <span className={\`font-semibold \${isFull ? 'text-red-600' : 'text-green-600'}\`}>{booked}/{sess.slots}</span>
+                                          <span className={`font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>{booked}/{sess.slots}</span>
                                         </span>
                                       )
                                     })}

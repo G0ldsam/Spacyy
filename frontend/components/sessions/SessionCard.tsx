@@ -14,9 +14,9 @@ interface SessionCardProps {
     themeColor: string
     slots: number
     timetable: any[]
-    _count: {
+    _count?: {
       bookings: number
-      timetable: number
+      timetable?: number
     }
   }
 }

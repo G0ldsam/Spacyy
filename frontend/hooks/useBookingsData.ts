@@ -18,6 +18,10 @@ interface Session {
   themeColor: string
   slots: number
   timetable: TimeSlot[]
+  _count?: {
+    bookings: number
+    timetable?: number
+  }
 }
 
 interface Booking {
@@ -35,6 +39,11 @@ interface Client {
   id: string
   name: string
   email: string
+  phone: string | null
+  notes: string | null
+  userId: string | null
+  sessionAllowance: number | null
+  createdAt: string
 }
 
 interface SlotException {
