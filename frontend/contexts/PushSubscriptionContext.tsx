@@ -8,6 +8,9 @@ interface PushContextValue {
   state: PushState
   subscribe: () => Promise<void>
   unsubscribe: () => Promise<void>
+  isAndroid: boolean
+  isPWAInstalled: boolean
+  error: string | null
 }
 
 const PushContext = createContext<PushContextValue | null>(null)
@@ -44,6 +47,14 @@ async function getActiveSW(): Promise<ServiceWorkerRegistration | null> {
 
 export function PushSubscriptionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PushState>('loading')
+  const [error, setError] = useState<string | null>(null)
+  
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+  const isPWAInstalled = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true ||
+    document.referrer.includes('android-app://')
+  )
 
   useEffect(() => {
     if (
@@ -81,8 +92,13 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
 
   const subscribe = useCallback(async () => {
     setState('loading')
+    setError(null)
     try {
       if (Notification.permission === 'denied') {
+        const msg = isAndroid 
+          ? 'Notifications blocked. Go to Settings → Apps → Browser → Notifications and enable them.'
+          : 'Notifications blocked. Check your browser settings to allow notifications.'
+        setError(msg)
         setState('denied')
         return
       }
@@ -91,6 +107,7 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
         const result = await Notification.requestPermission()
         if (result !== 'granted') {
           setState('denied')
+          setError('Permission denied. You can change this in browser settings.')
           return
         }
       }
@@ -104,7 +121,11 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
       const reg = await getActiveSW()
       if (!reg) {
         setState('unsubscribed')
-        throw new Error('Service worker not ready — reload the page and try again.')
+        const msg = isAndroid && !isPWAInstalled
+          ? 'Service worker unavailable. Try installing the app to your home screen first (tap browser menu → Add to Home screen).'
+          : 'Service worker not ready — reload the page and try again.'
+        setError(msg)
+        throw new Error(msg)
       }
 
       // pushManager.subscribe makes a network call to the push service; cap it.
@@ -125,7 +146,10 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
       if (!res.ok) throw new Error('Failed to save subscription. Try again.')
 
       setState('subscribed')
+      setError(null)
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error'
+      setError(errMsg)
       setState(
         typeof Notification !== 'undefined' && Notification.permission === 'denied'
           ? 'denied'
@@ -133,7 +157,7 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
       )
       throw err
     }
-  }, [])
+  }, [isAndroid, isPWAInstalled])
 
   const unsubscribe = useCallback(async () => {
     setState('loading')
@@ -154,7 +178,7 @@ export function PushSubscriptionProvider({ children }: { children: ReactNode }) 
   }, [])
 
   return (
-    <PushContext.Provider value={{ state, subscribe, unsubscribe }}>
+    <PushContext.Provider value={{ state, subscribe, unsubscribe, isAndroid, isPWAInstalled, error }}>
       {children}
     </PushContext.Provider>
   )

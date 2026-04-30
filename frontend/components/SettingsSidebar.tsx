@@ -18,7 +18,7 @@ interface Props {
 }
 
 export default function SettingsSidebar({ open, onClose, user }: Props) {
-  const { state, subscribe, unsubscribe } = usePushSubscription()
+  const { state, subscribe, unsubscribe, isAndroid, isPWAInstalled, error: contextError } = usePushSubscription()
   const [pushError, setPushError] = useState('')
   const { t } = useLanguage()
 
@@ -104,14 +104,27 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
             )}
 
             {state === 'denied' && (
-              <div>
-                <p className="text-sm text-gray-700 mb-1">{t('settings.push_blocked')}</p>
-                <p className="text-xs text-gray-500">{t('settings.push_blocked_desc')}</p>
+              <div className="bg-red-50 rounded-lg p-3">
+                <p className="text-sm text-gray-900 font-medium mb-1">{t('settings.push_blocked')}</p>
+                <p className="text-xs text-gray-600 mb-2">{contextError || t('settings.push_blocked_desc')}</p>
+                {isAndroid && (
+                  <p className="text-xs text-gray-500 italic">💡 Android: Settings → Apps → Browser → Notifications</p>
+                )}
               </div>
             )}
 
             {(state === 'unsubscribed' || state === 'subscribed' || state === 'loading') && (
               <div>
+                {/* Install prompt for Android users not in PWA */}
+                {isAndroid && !isPWAInstalled && state === 'unsubscribed' && (
+                  <div className="bg-blue-50 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-gray-900 font-medium mb-1">📱 Install the app first</p>
+                    <p className="text-xs text-gray-600">
+                      For reliable notifications on Android, install Spacyy to your home screen: tap browser menu → "Add to Home screen"
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{t('settings.push_notifications')}</p>
@@ -144,8 +157,8 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
                   )}
                 </div>
 
-                {pushError && (
-                  <p className="text-xs text-red-500 mt-2">{pushError}</p>
+                {(pushError || contextError) && (
+                  <p className="text-xs text-red-500 mt-2">{pushError || contextError}</p>
                 )}
               </div>
             )}
