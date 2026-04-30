@@ -147,7 +147,7 @@ export default function SettingsSidebar({ open, onClose, user }: Props) {
                   <div className="bg-blue-50 rounded-lg p-3 mb-3">
                     <p className="text-xs text-gray-900 font-medium mb-1">📱 Install the app first</p>
                     <p className="text-xs text-gray-600">
-                      For reliable notifications on Android, install Spacyy to your home screen: tap browser menu → "Add to Home screen"
+                      For reliable notifications on Android, install Spacyy to your home screen: tap browser menu → &ldquo;Add to Home screen&rdquo;
                     </p>
                   </div>
                 )}
