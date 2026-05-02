@@ -123,6 +123,11 @@ export default function LoginPage() {
             <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
               {loading ? t('login.submitting') : t('login.submit')}
             </Button>
+            <p className="text-center text-sm text-gray-600">
+              <Link href="/forgot-password" className="text-[#8B1538] hover:underline font-medium">
+                Forgot your password?
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

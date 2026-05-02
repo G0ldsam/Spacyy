@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
-import { notifyAdminCancellation, notifyClientCancellation } from '@/lib/email'
-import { createNotifications } from '@/lib/notify'
+import { notifyAdminCancellation, notifyClientCancellation, notifyClientAdminCancellation } from '@/lib/email'
+import { createNotification, createNotifications } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       include: {
         organization: { select: { bookingChangeHours: true, name: true } },
-        client: { select: { id: true, name: true, email: true } },
+        client: { select: { id: true, name: true, email: true, userId: true } },
         serviceSession: { select: { name: true } },
       },
     })
@@ -104,6 +104,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       data: { status: newStatus },
     })
+
+    // Notify client when ADMIN cancels their booking
+    if (isAdmin && newStatus === 'CANCELLED') {
+      if (existingBooking.client.email) {
+        notifyClientAdminCancellation({
+          clientEmail: existingBooking.client.email,
+          clientName: existingBooking.client.name,
+          orgName: existingBooking.organization.name,
+          sessionName: existingBooking.serviceSession?.name ?? 'Session',
+          startTime: existingBooking.startTime,
+        }).catch(console.error)
+      }
+      if (existingBooking.client.userId) {
+        createNotification(existingBooking.client.userId, {
+          title: 'Booking cancelled',
+          body: `Your ${existingBooking.serviceSession?.name ?? 'session'} booking was cancelled by ${existingBooking.organization.name}`,
+          url: '/home',
+        }).catch(console.error)
+      }
+    }
 
     // Notify org admins when a CLIENT (not admin) cancels or reschedules
     if (!isAdmin && newStatus === 'CANCELLED') {

@@ -43,6 +43,7 @@ export default function BookSessionPage() {
   const [loading, setLoading] = useState(true)
   const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [isBooking, setIsBooking] = useState(false)
 
   // Interest state: timeSlotId -> entry (null = not interested)
   const [interests, setInterests] = useState<Record<string, InterestEntry | null>>({})
@@ -132,8 +133,9 @@ export default function BookSessionPage() {
   }
 
   const confirmBooking = async () => {
-    if (!bookingSlot || !session?.user?.id) return
+    if (!bookingSlot || !session?.user?.id || isBooking) return
 
+    setIsBooking(true)
     try {
       const [startHour, startMin] = bookingSlot.startTime.split(':').map(Number)
       const [endHour, endMin] = bookingSlot.endTime.split(':').map(Number)
@@ -182,6 +184,8 @@ export default function BookSessionPage() {
       router.refresh()
     } catch (error: any) {
       alert(error.message || 'Failed to book session')
+    } finally {
+      setIsBooking(false)
     }
   }
 
@@ -368,8 +372,15 @@ export default function BookSessionPage() {
               >
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={confirmBooking}>
-                Confirm Booking
+              <Button className="flex-1" onClick={confirmBooking} disabled={isBooking}>
+                {isBooking ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    {'Booking…'}
+                  </span>
+                ) : (
+                  'Confirm Booking'
+                )}
               </Button>
             </div>
           </div>

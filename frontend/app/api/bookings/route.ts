@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
 import { checkBookingConflict } from '@/shared/lib/booking'
 import { verifyTenantAccess } from '@/lib/api-helpers'
-import { notifyAdminNewBooking, sendBookingConfirmation } from '@/lib/email'
+import { notifyAdminNewBooking, sendBookingConfirmation, sendPendingSlotWarning, notifyAdminPendingSlotUsed } from '@/lib/email'
 import { createNotifications } from '@/lib/notify'
 
 // Force dynamic rendering
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       })
 
       if (activeBookingsCount >= client.sessionAllowance) {
-        if (organization?.allowPendingSlot) {
+        if (organization?.allowPendingSlot && activeBookingsCount < client.sessionAllowance + 1) {
           usePendingSlot = true
         } else {
           return NextResponse.json(
@@ -245,14 +245,38 @@ export async function POST(req: NextRequest) {
       url: '/dashboard',
     }).catch(console.error)
 
-    sendBookingConfirmation({
-      clientEmail: booking.client.email,
-      clientName: booking.client.name,
-      orgName,
-      sessionName,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-    }).catch(console.error)
+    if (usePendingSlot) {
+      sendPendingSlotWarning({
+        clientEmail: booking.client.email,
+        clientName: booking.client.name,
+        orgName,
+        sessionName,
+        startTime: booking.startTime,
+      }).catch(console.error)
+
+      notifyAdminPendingSlotUsed({
+        adminEmails,
+        orgName,
+        clientName: booking.client.name,
+        sessionName,
+        startTime: booking.startTime,
+      }).catch(console.error)
+
+      createNotifications(adminUserIds, {
+        title: 'Pending slot used',
+        body: `${booking.client.name} booked ${sessionName} with no remaining allowance — 1 session owed on next renewal`,
+        url: '/dashboard',
+      }).catch(console.error)
+    } else {
+      sendBookingConfirmation({
+        clientEmail: booking.client.email,
+        clientName: booking.client.name,
+        orgName,
+        sessionName,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      }).catch(console.error)
+    }
 
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {

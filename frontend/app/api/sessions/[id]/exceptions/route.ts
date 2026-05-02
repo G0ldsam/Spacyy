@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
+import { notifyClientAdminCancellation } from '@/lib/email'
+import { createNotification } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,10 +52,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'timeSlotId and date are required' }, { status: 400 })
   }
 
-  const timeSlot = await prisma.timeSlot.findUnique({
-    where: { id: timeSlotId },
-    include: { serviceSession: { select: { id: true, organizationId: true } } },
-  })
+  const [timeSlot, org] = await Promise.all([
+    prisma.timeSlot.findUnique({
+      where: { id: timeSlotId },
+      include: { serviceSession: { select: { id: true, name: true, organizationId: true } } },
+    }),
+    prisma.organization.findUnique({
+      where: { id: tenant.organizationId },
+      select: { name: true },
+    }),
+  ])
 
   if (
     !timeSlot ||
@@ -88,7 +96,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       status: { not: 'CANCELLED' },
     },
     include: {
-      client: { select: { id: true, sessionAllowance: true, pendingSlotsUsed: true } },
+      client: { select: { id: true, name: true, email: true, userId: true, sessionAllowance: true, pendingSlotsUsed: true } },
     },
   })
 
@@ -114,6 +122,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       } else {
         await cancelOp
       }
+    }
+  }
+
+  const sessionName = timeSlot.serviceSession.name
+  const orgName = org?.name ?? ''
+  for (const booking of bookingsToCancel) {
+    if (booking.client.email) {
+      notifyClientAdminCancellation({
+        clientEmail: booking.client.email,
+        clientName: booking.client.name,
+        orgName,
+        sessionName,
+        startTime: exactStart,
+        reason: reason || null,
+      }).catch(console.error)
+    }
+    if (booking.client.userId) {
+      createNotification(booking.client.userId, {
+        title: 'Session cancelled',
+        body: `Your ${sessionName} on ${exactStart.toLocaleDateString()} was cancelled by ${orgName}`,
+        url: '/home',
+      }).catch(console.error)
     }
   }
 

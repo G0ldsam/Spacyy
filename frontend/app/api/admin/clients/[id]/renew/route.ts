@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
+import { sendMembershipRenewedEmail } from '@/lib/email'
+import { createNotification } from '@/lib/notify'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -26,16 +28,16 @@ export async function POST(
     const validated = renewSchema.parse(body)
 
     // Verify client belongs to organization
-    const client = await prisma.client.findFirst({
-      where: {
-        id: params.id,
-        organizationId: tenant.organizationId,
-      },
-      select: {
-        id: true,
-        sessionAllowance: true,
-      },
-    })
+    const [client, org] = await Promise.all([
+      prisma.client.findFirst({
+        where: { id: params.id, organizationId: tenant.organizationId },
+        select: { id: true, name: true, email: true, userId: true, sessionAllowance: true },
+      }),
+      prisma.organization.findUnique({
+        where: { id: tenant.organizationId },
+        select: { name: true },
+      }),
+    ])
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -86,6 +88,26 @@ export async function POST(
         pendingSlotsUsed: true,
       },
     })
+
+    if (newAllowance !== null) {
+      const orgName = org?.name ?? ''
+      if (updated.email) {
+        sendMembershipRenewedEmail({
+          clientEmail: updated.email,
+          clientName: updated.name,
+          orgName,
+          sessionsAdded: validated.sessionsToAdd,
+          newAllowance,
+        }).catch(console.error)
+      }
+      if (updated.userId) {
+        createNotification(updated.userId, {
+          title: 'Membership renewed',
+          body: `${validated.sessionsToAdd} session${validated.sessionsToAdd !== 1 ? 's' : ''} added to your ${orgName} membership`,
+          url: '/home',
+        }).catch(console.error)
+      }
+    }
 
     return NextResponse.json(updated)
   } catch (error: any) {
