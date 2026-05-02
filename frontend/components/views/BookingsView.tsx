@@ -431,66 +431,64 @@ export default function BookingsView({ onBack }: Props) {
                                       'border-red-200 bg-red-50 cursor-pointer hover:shadow-md',
                                     ].join(' ')}
                                   >
-                                    <div className="flex items-center justify-between flex-wrap gap-2">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="text-sm sm:text-base font-semibold text-gray-900">
-                                            {timeSlot.startTime} - {timeSlot.endTime}
+                                    {/* Row 1: time + status badge + chevron */}
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm sm:text-base font-bold text-gray-900 tabular-nums">
+                                        {timeSlot.startTime} – {timeSlot.endTime}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        {isClosed ? (
+                                          <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                                            {t('booking_slot.closed')}
                                           </span>
-                                          {isClosed && (
-                                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                                              {t('booking_slot.closed')}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {!isClosed ? (
-                                          <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-xs text-gray-600">
-                                              {activeBookings.length}/{selectedSession.slots}{' '}
-                                              {activeBookings.length === 1 ? 'booking' : 'bookings'}
-                                            </span>
-                                            {activeBookings.length > 0 && (
-                                              <>
-                                                <span className="text-xs text-gray-400">•</span>
-                                                <span className="text-xs text-green-700 font-medium">
-                                                  {t('booking_slot.checked_in_count', { count: activeBookings.filter((b) => b.checkedIn).length })}
-                                                </span>
-                                              </>
-                                            )}
-                                          </div>
                                         ) : (
-                                          <p className="text-sm text-red-600 mt-1">
-                                            {exception.reason ? t('booking_slot.reason', { reason: exception.reason }) : t('booking_slot.cancelled')}
-                                          </p>
+                                          <>
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${remaining > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                              {t(remaining === 1 ? 'bookings.slots_left_one' : 'bookings.slots_left_other', { count: remaining })}
+                                            </span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                          </>
                                         )}
                                       </div>
+                                    </div>
 
-                                      <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                        {isAdmin && (
-                                          isClosed ? (
-                                            <button onClick={() => handleReopen(timeSlot.id)} className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap">
+                                    {/* Row 2: booking stats (left) + admin action (right) */}
+                                    <div className="flex items-center justify-between gap-2 mt-1.5">
+                                      {isClosed ? (
+                                        <p className="text-xs text-red-500 min-w-0 truncate">
+                                          {exception.reason ? t('booking_slot.reason', { reason: exception.reason }) : t('booking_slot.cancelled')}
+                                        </p>
+                                      ) : (
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 min-w-0">
+                                          <span className="tabular-nums">{activeBookings.length}/{selectedSession.slots} bookings</span>
+                                          {activeBookings.length > 0 && (
+                                            <>
+                                              <span className="text-gray-300">·</span>
+                                              <span className="text-green-600 font-medium whitespace-nowrap">
+                                                {t('booking_slot.checked_in_count', { count: activeBookings.filter((b) => b.checkedIn).length })}
+                                              </span>
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
+                                      {isAdmin && (
+                                        <div className="shrink-0">
+                                          {isClosed ? (
+                                            <button onClick={(e) => { e.stopPropagation(); handleReopen(timeSlot.id) }} className="text-xs text-blue-500 hover:text-blue-700 font-medium">
                                               {t('booking_slot.reopen')}
                                             </button>
                                           ) : (
                                             <button
-                                              onClick={() => { setClosingSlotId(isClosing ? null : timeSlot.id); setCloseReason('') }}
-                                              className="text-xs text-red-500 hover:text-red-700 font-medium whitespace-nowrap"
+                                              onClick={(e) => { e.stopPropagation(); setClosingSlotId(isClosing ? null : timeSlot.id); setCloseReason('') }}
+                                              className="text-xs text-red-400 hover:text-red-600 font-medium"
                                             >
                                               {isClosing ? t('booking_slot.cancel_slot') : t('booking_slot.close_occurrence')}
                                             </button>
-                                          )
-                                        )}
-                                        {!isClosed && (
-                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${remaining > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                                            {t(remaining === 1 ? 'bookings.slots_left_one' : 'bookings.slots_left_other', { count: remaining })}
-                                          </span>
-                                        )}
-                                        {!isClosed && (
-                                          <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                          </svg>
-                                        )}
-                                      </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
 
                                     {isClosing && !isClosed && (

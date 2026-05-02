@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(node -e ' *)",
-      "WebSearch"
+      "WebSearch",
+      "Read(//c/Users/vagos/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/**)",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"admin booking card mobile compact slot status\" --domain ux -n 8)"
     ]
   }
 }
