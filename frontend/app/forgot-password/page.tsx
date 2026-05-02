@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
           {submitted ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-gray-600">
-                If an account exists for <strong>{email}</strong>, you'll receive a password reset
+                If an account exists for <strong>{email}</strong>, you&apos;ll receive a password reset
                 email within a few minutes.
               </p>
               <Link href="/login" className="text-sm text-[#8B1538] hover:underline font-medium">

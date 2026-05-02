@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
         <CardContent>
           {success ? (
             <div className="space-y-4 text-center">
-              <p className="text-sm text-gray-600">You'll be redirected to login in a moment.</p>
+              <p className="text-sm text-gray-600">You&apos;ll be redirected to login in a moment.</p>
               <Link href="/login" className="text-sm text-[#8B1538] hover:underline font-medium">
                 Go to login
               </Link>
