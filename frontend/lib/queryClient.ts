@@ -11,8 +11,6 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       // Retry failed requests once
       retry: 1,
-      // Show cached data while fetching fresh data
-      refetchOnMount: 'always',
     },
     mutations: {
       // Retry mutations once on network error
