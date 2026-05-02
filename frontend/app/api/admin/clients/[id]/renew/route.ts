@@ -86,6 +86,7 @@ export async function POST(
         email: true,
         sessionAllowance: true,
         pendingSlotsUsed: true,
+        userId: true,
       },
     })
 
