@@ -1,74 +1,66 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
-import DashboardClient from '@/components/DashboardClient'
+'use client'
 
-export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { PageSpinner } from '@/components/ui/spinner'
+import AdminBottomNav from '@/components/AdminBottomNav'
+import DashboardHomeView from '@/components/views/DashboardHomeView'
+import BookingsView from '@/components/views/BookingsView'
+import SessionsView from '@/components/views/SessionsView'
+import ClientsView from '@/components/views/ClientsView'
 
-  if (!session) {
-    redirect('/login')
+type AdminView = 'home' | 'bookings' | 'sessions' | 'clients'
+
+export default function AdminShell() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [activeView, setActiveView] = useState<AdminView>('home')
+  const [mountedViews, setMountedViews] = useState<Set<AdminView>>(new Set(['home']))
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    if (status === 'authenticated') {
+      const userOrg = session?.user?.organizations?.find(
+        (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+      )
+      if (!userOrg) {
+        router.push('/home')
+      }
+    }
+  }, [status, session, router])
+
+  const navigate = (view: AdminView) => {
+    setMountedViews((prev) => new Set([...prev, view]))
+    setActiveView(view)
   }
 
-  const userOrg = session.user.organizations?.find(
-    (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-  )
-
-  if (!userOrg) {
-    redirect('/home')
-  }
-
-  const now = new Date()
-
-  let sessionsCount = 0
-  let activeBookingsCount = 0
-  let totalBookingsCount = 0
-  let clientsCount = 0
-
-  try {
-    const adminUserOrgs = await prisma.userOrganization.findMany({
-      where: { organizationId: userOrg.organization.id, role: { in: ['OWNER', 'ADMIN'] } },
-      select: { userId: true },
-    })
-    const adminUserIds = adminUserOrgs.map((u) => u.userId)
-
-    ;[sessionsCount, activeBookingsCount, totalBookingsCount, clientsCount] = await Promise.all([
-      prisma.serviceSession.count({
-        where: { organizationId: userOrg.organization.id },
-      }),
-      prisma.booking.count({
-        where: {
-          organizationId: userOrg.organization.id,
-          startTime: { gt: now },
-          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        },
-      }),
-      prisma.booking.count({
-        where: { organizationId: userOrg.organization.id },
-      }),
-      prisma.client.count({
-        where: {
-          organizationId: userOrg.organization.id,
-          OR: [
-            { userId: null },
-            { userId: { notIn: adminUserIds } },
-          ],
-        },
-      }),
-    ])
-  } catch (err) {
-    console.error('Dashboard DB error (likely DB cold start):', err)
-  }
+  if (status === 'loading') return <PageSpinner />
 
   return (
-    <DashboardClient
-      userName={session.user.name}
-      userEmail={session.user.email}
-      activeBookingsCount={activeBookingsCount}
-      totalBookingsCount={totalBookingsCount}
-      sessionsCount={sessionsCount}
-      clientsCount={clientsCount}
-    />
+    <div className="pb-16">
+      <div style={{ display: activeView === 'home' ? 'block' : 'none' }}>
+        {mountedViews.has('home') && (
+          <DashboardHomeView
+            userName={session?.user?.name}
+            userEmail={session?.user?.email}
+            onNavigate={navigate}
+          />
+        )}
+      </div>
+      <div style={{ display: activeView === 'bookings' ? 'block' : 'none' }}>
+        {mountedViews.has('bookings') && <BookingsView onBack={() => navigate('home')} />}
+      </div>
+      <div style={{ display: activeView === 'sessions' ? 'block' : 'none' }}>
+        {mountedViews.has('sessions') && <SessionsView onBack={() => navigate('home')} />}
+      </div>
+      <div style={{ display: activeView === 'clients' ? 'block' : 'none' }}>
+        {mountedViews.has('clients') && <ClientsView onBack={() => navigate('home')} />}
+      </div>
+      <AdminBottomNav activeView={activeView} onNavigate={navigate} />
+    </div>
   )
 }

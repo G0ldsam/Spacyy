@@ -13,8 +13,10 @@ export function NavigationSpinner() {
     setLoading(false)
   }, [pathname])
 
-  // Show when a link is clicked
+  // Show when a link is clicked — delay 150ms so fast navigations skip the spinner
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+
     const handleClick = (e: MouseEvent) => {
       const anchor = (e.target as Element).closest('a')
       if (!anchor) return
@@ -27,13 +29,15 @@ export function NavigationSpinner() {
         href.startsWith('tel') ||
         anchor.target === '_blank'
       ) return
-      // Don't show spinner if already on the same page
       if (href === pathname) return
-      setLoading(true)
+      timer = setTimeout(() => setLoading(true), 150)
     }
 
     document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      if (timer) clearTimeout(timer)
+    }
   }, [pathname])
 
   if (!loading) return null

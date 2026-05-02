@@ -102,6 +102,24 @@ const fetchInterestList = async (sessionId: string, timeSlotId: string, date: st
 // Query Hooks
 // ========================================
 
+interface DashboardStats {
+  sessionsCount: number
+  activeBookingsCount: number
+  totalBookingsCount: number
+  clientsCount: number
+}
+
+export const useDashboardStats = () => {
+  return useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/dashboard/stats')
+      if (!res.ok) throw new Error('Failed to fetch dashboard stats')
+      return res.json()
+    },
+  })
+}
+
 export const useSessions = () => {
   return useQuery({
     queryKey: ['sessions'],
