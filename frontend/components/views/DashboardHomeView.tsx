@@ -23,6 +23,7 @@ export default function DashboardHomeView({ userName, userEmail, onNavigate }: P
   if (isLoading) return <PageSpinner />
 
   const activeBookingsCount = stats?.activeBookingsCount ?? 0
+  const reservedBookingsCount = stats?.reservedBookingsCount ?? 0
   const totalBookingsCount = stats?.totalBookingsCount ?? 0
   const sessionsCount = stats?.sessionsCount ?? 0
   const clientsCount = stats?.clientsCount ?? 0
@@ -52,7 +53,14 @@ export default function DashboardHomeView({ userName, userEmail, onNavigate }: P
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl sm:text-4xl font-bold text-[#8B1538]">{activeBookingsCount}</p>
-                  <p className="text-sm text-gray-700 mt-1">{t('dashboard.active_bookings')}</p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {t('dashboard.active_bookings')}
+                    {reservedBookingsCount > 0 && (
+                      <span className="text-purple-600 font-medium ml-1">
+                        ({reservedBookingsCount} reserved)
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">{t('dashboard.total', { count: totalBookingsCount })}</p>
                 </CardContent>
               </Card>

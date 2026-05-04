@@ -28,13 +28,20 @@ export async function GET() {
     })
     const adminUserIds = adminUserOrgs.map((u) => u.userId)
 
-    const [sessionsCount, activeBookingsCount, totalBookingsCount, clientsCount] = await Promise.all([
+    const [sessionsCount, activeBookingsCount, reservedBookingsCount, totalBookingsCount, clientsCount] = await Promise.all([
       prisma.serviceSession.count({ where: { organizationId: orgId } }),
       prisma.booking.count({
         where: {
           organizationId: orgId,
           startTime: { gt: now },
           status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+      }),
+      prisma.booking.count({
+        where: {
+          organizationId: orgId,
+          startTime: { gt: now },
+          status: 'RESERVED',
         },
       }),
       prisma.booking.count({ where: { organizationId: orgId } }),
@@ -46,9 +53,9 @@ export async function GET() {
       }),
     ])
 
-    return NextResponse.json({ sessionsCount, activeBookingsCount, totalBookingsCount, clientsCount })
+    return NextResponse.json({ sessionsCount, activeBookingsCount, reservedBookingsCount, totalBookingsCount, clientsCount })
   } catch (err) {
     console.error('Dashboard stats error:', err)
-    return NextResponse.json({ sessionsCount: 0, activeBookingsCount: 0, totalBookingsCount: 0, clientsCount: 0 })
+    return NextResponse.json({ sessionsCount: 0, activeBookingsCount: 0, reservedBookingsCount: 0, totalBookingsCount: 0, clientsCount: 0 })
   }
 }

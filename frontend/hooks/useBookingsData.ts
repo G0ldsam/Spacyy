@@ -105,6 +105,7 @@ const fetchInterestList = async (sessionId: string, timeSlotId: string, date: st
 interface DashboardStats {
   sessionsCount: number
   activeBookingsCount: number
+  reservedBookingsCount: number
   totalBookingsCount: number
   clientsCount: number
 }
