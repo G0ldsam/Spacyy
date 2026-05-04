@@ -249,8 +249,7 @@ export default function BookingsView({ onBack }: Props) {
 
       // Check if waitlist exists for this slot
       if (selectedSession && selectedTimeSlot) {
-        const key = `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}`
-        const waitlist = interestLists[selectedSession.id]?.[key] || []
+        const waitlist = interestLists[selectedTimeSlot.id] || []
         if (waitlist.length > 0) {
           setWaitlistModalData({
             sessionId: selectedSession.id,
@@ -316,8 +315,7 @@ export default function BookingsView({ onBack }: Props) {
       // Trigger waitlist modal after reopening
       const timeSlot = selectedSession.timetable.find((ts) => ts.id === timeSlotId)
       if (timeSlot) {
-        const key = `${timeSlot.startTime}-${timeSlot.endTime}`
-        const waitlist = interestLists[selectedSession.id]?.[key] || []
+        const waitlist = interestLists[timeSlotId] || []
         if (waitlist.length > 0) {
           setWaitlistModalData({
             sessionId: selectedSession.id,
