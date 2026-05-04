@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAdminInterestList, useNotifyOne, useNotifyInterestList, type AdminWaitlistGroup } from '@/hooks/useBookingsData'
+import { useAdminInterestList, useNotifyOne, useNotifyInterestList, useDeleteInterestEntry, type AdminWaitlistGroup } from '@/hooks/useBookingsData'
 
 interface Props {
   onBack?: () => void
@@ -34,9 +34,11 @@ function SlotCard({ group }: { group: AdminWaitlistGroup }) {
   const [localEntries, setLocalEntries] = useState(group.entries)
   const [notifyingId, setNotifyingId] = useState<string | null>(null)
   const [notifyingAll, setNotifyingAll] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const notifyOneMutation = useNotifyOne()
   const notifyAllMutation = useNotifyInterestList()
+  const deleteEntryMutation = useDeleteInterestEntry()
 
   const unnotified = localEntries.filter((e) => !e.notifiedAt)
 
@@ -67,6 +69,19 @@ function SlotCard({ group }: { group: AdminWaitlistGroup }) {
       alert('Failed to send notifications')
     } finally {
       setNotifyingAll(false)
+    }
+  }
+
+  const handleDelete = async (entryId: string) => {
+    if (!confirm('Remove this client from the waitlist?')) return
+    setDeletingId(entryId)
+    try {
+      await deleteEntryMutation.mutateAsync(entryId)
+      setLocalEntries((prev) => prev.filter((e) => e.id !== entryId))
+    } catch {
+      alert('Failed to remove entry')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -145,27 +160,48 @@ function SlotCard({ group }: { group: AdminWaitlistGroup }) {
                   <p className="text-xs text-gray-500 truncate">{entry.client.email}</p>
                 </div>
 
-                {entry.notifiedAt ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium shrink-0">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Notified
-                  </span>
-                ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  {entry.notifiedAt ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Notified
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleNotifyOne(entry.id)}
+                      disabled={notifyingId === entry.id || notifyingAll || deletingId === entry.id}
+                      className="px-3 py-1.5 rounded-lg border border-[#8B1538] text-[#8B1538] text-xs font-semibold hover:bg-[#8B1538] hover:text-white disabled:opacity-50 transition-colors"
+                    >
+                      {notifyingId === entry.id ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                      ) : 'Notify'}
+                    </button>
+                  )}
+
+                  {/* Delete button */}
                   <button
-                    onClick={() => handleNotifyOne(entry.id)}
-                    disabled={notifyingId === entry.id || notifyingAll}
-                    className="px-3 py-1.5 rounded-lg border border-[#8B1538] text-[#8B1538] text-xs font-semibold hover:bg-[#8B1538] hover:text-white disabled:opacity-50 transition-colors shrink-0"
+                    onClick={() => handleDelete(entry.id)}
+                    disabled={deletingId === entry.id || notifyingId === entry.id || notifyingAll}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                    title="Remove from waitlist"
                   >
-                    {notifyingId === entry.id ? (
-                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    {deletingId === entry.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                       </svg>
-                    ) : 'Notify'}
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    )}
                   </button>
-                )}
+                </div>
               </div>
             ))}
           </div>

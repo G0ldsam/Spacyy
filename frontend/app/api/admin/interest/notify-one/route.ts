@@ -30,6 +30,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Check for conflicting bookings — don't notify if client already has overlapping booking
+  const startTime = new Date(entry.date)
+  const [sh, sm] = entry.timeSlot.startTime.split(':').map(Number)
+  startTime.setHours(sh, sm, 0, 0)
+  const endTime = new Date(entry.date)
+  const [eh, em] = entry.timeSlot.endTime.split(':').map(Number)
+  endTime.setHours(eh, em, 0, 0)
+
+  const conflictingBooking = await prisma.booking.findFirst({
+    where: {
+      clientId: entry.client.id,
+      status: { not: 'CANCELLED' },
+      OR: [
+        { startTime: { lt: endTime }, endTime: { gt: startTime } }, // Overlap check
+      ],
+    },
+  })
+
+  if (conflictingBooking) {
+    return NextResponse.json(
+      { error: 'Client has a conflicting booking at this time' },
+      { status: 409 }
+    )
+  }
+
   const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
   const dateStr = entry.date.toISOString().split('T')[0]
   const bookingUrl = `https://${entry.organization.slug}.${mainDomain}/book/${entry.session.id}/${dateStr}`

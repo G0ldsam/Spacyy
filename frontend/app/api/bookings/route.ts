@@ -217,6 +217,36 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Auto-remove client from waitlist if they just booked this slot
+    if (!isReserved && validated.clientId && validated.sessionId) {
+      const bookingDate = new Date(validated.startTime)
+      bookingDate.setHours(0, 0, 0, 0)
+      const nextDay = new Date(bookingDate)
+      nextDay.setDate(nextDay.getDate() + 1)
+
+      // Find matching timeSlot by comparing start/end times
+      const timeSlots = await prisma.timeSlot.findMany({
+        where: { sessionId: validated.sessionId },
+        select: { id: true, startTime: true, endTime: true },
+      })
+      const startTimeStr = new Date(validated.startTime).toISOString().split('T')[1].slice(0, 5)
+      const endTimeStr = new Date(validated.endTime).toISOString().split('T')[1].slice(0, 5)
+      const matchingSlot = timeSlots.find(
+        (ts) => ts.startTime === startTimeStr && ts.endTime === endTimeStr
+      )
+
+      if (matchingSlot) {
+        await prisma.interestEntry.deleteMany({
+          where: {
+            clientId: validated.clientId,
+            sessionId: validated.sessionId,
+            timeSlotId: matchingSlot.id,
+            date: { gte: bookingDate, lt: nextDay },
+          },
+        }).catch(console.error) // Fire-and-forget
+      }
+    }
+
     if (!isReserved) {
       if (usePendingSlot) {
         await prisma.client.update({

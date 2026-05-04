@@ -61,9 +61,33 @@ export async function POST(req: NextRequest) {
     day: 'numeric',
   })
 
-  // Send emails + update notifiedAt
+  // Calculate slot start/end times for conflict check
+  const [sh, sm] = timeSlot.startTime.split(':').map(Number)
+  const [eh, em] = timeSlot.endTime.split(':').map(Number)
+  const slotStartTime = new Date(entryDate)
+  slotStartTime.setHours(sh, sm, 0, 0)
+  const slotEndTime = new Date(entryDate)
+  slotEndTime.setHours(eh, em, 0, 0)
+
+  // Send emails + update notifiedAt (skip clients with conflicts)
   const results = await Promise.allSettled(
     entries.map(async (entry) => {
+      // Check for conflicting bookings
+      const conflictingBooking = await prisma.booking.findFirst({
+        where: {
+          clientId: entry.client.id,
+          status: { not: 'CANCELLED' },
+          OR: [
+            { startTime: { lt: slotEndTime }, endTime: { gt: slotStartTime } },
+          ],
+        },
+      })
+
+      if (conflictingBooking) {
+        // Skip notification for this client
+        return Promise.reject(new Error('Conflict'))
+      }
+
       await sendSpotAvailableNotification({
         clientEmail: entry.client.email,
         clientName: entry.client.name,

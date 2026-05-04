@@ -4,14 +4,14 @@ import { verifyTenantAdmin } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/admin/interest — all upcoming waitlist entries for the org, grouped by slot
+// GET /api/admin/interest — all upcoming (not expired) waitlist entries for the org, grouped by slot
 export async function GET() {
   const result = await verifyTenantAdmin()
   if ('error' in result) return result.error
   const { tenant } = result
 
   const now = new Date()
-  now.setHours(0, 0, 0, 0)
+  now.setHours(0, 0, 0, 0) // Only show today and future dates
 
   const entries = await prisma.interestEntry.findMany({
     where: {

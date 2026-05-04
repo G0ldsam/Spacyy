@@ -337,7 +337,6 @@ export const useNotifyInterestList = () => {
 
 export const useNotifyOne = () => {
   const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: async (entryId: string) => {
       const res = await fetch('/api/admin/interest/notify-one', {
@@ -345,12 +344,26 @@ export const useNotifyOne = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entryId }),
       })
-      if (!res.ok) throw new Error('Failed to send notification')
+      if (!res.ok) throw new Error('Failed to notify')
       return res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interest'] })
       queryClient.invalidateQueries({ queryKey: ['admin-interest'] })
+    },
+  })
+}
+
+export const useDeleteInterestEntry = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      const res = await fetch(`/api/interest/${entryId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-interest'] })
+      queryClient.invalidateQueries({ queryKey: ['interest'] })
     },
   })
 }
