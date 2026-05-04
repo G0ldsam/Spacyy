@@ -102,12 +102,12 @@ export default function ClientsView({ onBack }: Props) {
         throw new Error(data.error || 'Failed to create client')
       }
 
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
       if (data.tempPassword) {
         setTempPassword(data.tempPassword)
       } else {
         setFormData({ name: '', email: '', phone: '', notes: '', createAccount: true })
         setShowCreateModal(false)
-        queryClient.invalidateQueries({ queryKey: ['clients'] })
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred')

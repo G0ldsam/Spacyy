@@ -23,6 +23,7 @@ import {
   useReopenOccurrence,
   useNotifyInterestList,
 } from '@/hooks/useBookingsData'
+import WaitlistNotifyModal from '@/components/WaitlistNotifyModal'
 
 interface TimeSlot {
   id: string
@@ -96,6 +97,17 @@ export default function BookingsView({ onBack }: Props) {
   const [selectedClientId, setSelectedClientId] = useState('')
   const [closingSlotId, setClosingSlotId] = useState<string | null>(null)
   const [closeReason, setCloseReason] = useState('')
+  const [waitlistModalOpen, setWaitlistModalOpen] = useState(false)
+  const [waitlistModalData, setWaitlistModalData] = useState<{
+    sessionId: string
+    sessionName: string
+    themeColor: string
+    timeSlotId: string
+    startTime: string
+    endTime: string
+    date: string
+    entries: InterestEntry[]
+  } | null>(null)
 
   const isAdmin = session?.user?.organizations?.some(
     (org) => org.role === 'OWNER' || org.role === 'ADMIN'
@@ -234,6 +246,25 @@ export default function BookingsView({ onBack }: Props) {
       await cancelBookingMutation.mutateAsync(bookingId)
       setShowModal(false)
       setSelectedBooking(null)
+
+      // Check if waitlist exists for this slot
+      if (selectedSession && selectedTimeSlot) {
+        const key = `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}`
+        const waitlist = interestLists[selectedSession.id]?.[key] || []
+        if (waitlist.length > 0) {
+          setWaitlistModalData({
+            sessionId: selectedSession.id,
+            sessionName: selectedSession.name,
+            themeColor: selectedSession.themeColor,
+            timeSlotId: selectedTimeSlot.id,
+            startTime: selectedTimeSlot.startTime,
+            endTime: selectedTimeSlot.endTime,
+            date: toLocalDateStr(selectedDate),
+            entries: waitlist,
+          })
+          setWaitlistModalOpen(true)
+        }
+      }
     } catch (error: any) {
       alert(error.message || 'Failed to cancel booking')
     }
@@ -281,6 +312,26 @@ export default function BookingsView({ onBack }: Props) {
         exceptionId: exc.id,
         date: toLocalDateStr(selectedDate),
       })
+
+      // Trigger waitlist modal after reopening
+      const timeSlot = selectedSession.timetable.find((ts) => ts.id === timeSlotId)
+      if (timeSlot) {
+        const key = `${timeSlot.startTime}-${timeSlot.endTime}`
+        const waitlist = interestLists[selectedSession.id]?.[key] || []
+        if (waitlist.length > 0) {
+          setWaitlistModalData({
+            sessionId: selectedSession.id,
+            sessionName: selectedSession.name,
+            themeColor: selectedSession.themeColor,
+            timeSlotId: timeSlot.id,
+            startTime: timeSlot.startTime,
+            endTime: timeSlot.endTime,
+            date: toLocalDateStr(selectedDate),
+            entries: waitlist,
+          })
+          setWaitlistModalOpen(true)
+        }
+      }
     } catch (error: any) {
       alert(error.message || 'Failed to reopen')
     }
@@ -734,6 +785,25 @@ export default function BookingsView({ onBack }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Waitlist Notify Modal */}
+      {waitlistModalOpen && waitlistModalData && (
+        <WaitlistNotifyModal
+          open={waitlistModalOpen}
+          onClose={() => {
+            setWaitlistModalOpen(false)
+            setWaitlistModalData(null)
+          }}
+          sessionName={waitlistModalData.sessionName}
+          themeColor={waitlistModalData.themeColor}
+          startTime={waitlistModalData.startTime}
+          endTime={waitlistModalData.endTime}
+          date={waitlistModalData.date}
+          sessionId={waitlistModalData.sessionId}
+          timeSlotId={waitlistModalData.timeSlotId}
+          entries={waitlistModalData.entries}
+        />
       )}
     </div>
   )

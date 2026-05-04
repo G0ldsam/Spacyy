@@ -130,15 +130,27 @@ export async function verifyTenantAdmin(): Promise<
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  const tenant = await getTenantContext()
-  
+  let tenant = await getTenantContext()
+
   if (!tenant) {
-    return { error: NextResponse.json({ error: 'No organization context' }, { status: 400 }) }
+    // Fall back to user's admin org (same as verifyTenantAccess)
+    const sessionOrg = session.user.organizations?.find(
+      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+    )
+    if (!sessionOrg) {
+      return { error: NextResponse.json({ error: 'No organization context' }, { status: 400 }) }
+    }
+    tenant = {
+      organizationId: sessionOrg.organization.id,
+      slug: sessionOrg.organization.slug,
+      name: sessionOrg.organization.name,
+      type: 'session',
+    }
   }
 
   // Verify user is admin of this organization
   const userOrg = session.user.organizations?.find(
-    (org) => org.organization.id === tenant.organizationId && 
+    (org) => org.organization.id === tenant.organizationId &&
              (org.role === 'OWNER' || org.role === 'ADMIN')
   )
 

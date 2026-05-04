@@ -315,7 +315,7 @@ export const useReopenOccurrence = () => {
 
 export const useNotifyInterestList = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (params: { sessionId: string; timeSlotId: string; date: string }) => {
       const res = await fetch('/api/interest/notify', {
@@ -330,6 +330,50 @@ export const useNotifyInterestList = () => {
       queryClient.invalidateQueries({
         queryKey: ['interest', variables.sessionId, variables.timeSlotId, variables.date],
       })
+      queryClient.invalidateQueries({ queryKey: ['admin-interest'] })
+    },
+  })
+}
+
+export const useNotifyOne = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      const res = await fetch('/api/admin/interest/notify-one', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryId }),
+      })
+      if (!res.ok) throw new Error('Failed to send notification')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interest'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-interest'] })
+    },
+  })
+}
+
+export interface AdminWaitlistGroup {
+  sessionId: string
+  sessionName: string
+  themeColor: string
+  timeSlotId: string
+  startTime: string
+  endTime: string
+  date: string
+  entries: { id: string; client: { name: string; email: string }; notifiedAt: string | null }[]
+  unnotifiedCount: number
+}
+
+export const useAdminInterestList = () => {
+  return useQuery<AdminWaitlistGroup[]>({
+    queryKey: ['admin-interest'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/interest')
+      if (!res.ok) throw new Error('Failed to fetch waitlist')
+      return res.json()
     },
   })
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 export default function SetupAccountPage() {
     const { t } = useLanguage()
     const router = useRouter()
+    const { update } = useSession()
     const [email, setEmail] = useState('')
     const [code, setCode] = useState('')
     const [newPassword, setNewPassword] = useState('')
@@ -82,7 +83,8 @@ export default function SetupAccountPage() {
                 throw new Error(data.error || t('setup_account.error_password'))
             }
 
-            // 3. User is securely set up and logged in, redirect them seamlessly to their space
+            // 3. Refresh JWT so mustChangePassword clears before navigation
+            await update()
             window.location.href = '/home'
         } catch (err: any) {
             setError(err.message || t('setup_account.error_generic'))

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { queryClient } from '@/lib/queryClient'
 
 export default function NewSessionPage() {
   const { t } = useLanguage()
@@ -42,8 +43,8 @@ export default function NewSessionPage() {
         throw new Error(data.error || 'Failed to create session')
       }
 
+      await queryClient.invalidateQueries({ queryKey: ['sessions'] })
       router.push('/sessions')
-      router.refresh()
     } catch (err: any) {
       setError(err.message || 'An error occurred')
     } finally {

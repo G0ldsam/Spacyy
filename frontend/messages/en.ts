@@ -63,6 +63,8 @@ const en = {
     expiring_desc: 'Renew to continue booking',
     tap_qr: 'Tap to view QR code',
     settings_label: 'Settings',
+    my_waitlist: 'My Waitlist',
+    my_waitlist_desc: 'Sessions you\'re waiting for',
   },
   dashboard: {
     title: 'Dashboard',
@@ -182,6 +184,19 @@ const en = {
     clear_all: 'Clear all',
     loading: 'Loading...',
     empty: 'No notifications yet',
+  },
+  my_waitlist: {
+    back: 'Back to Home',
+    title: 'My Waitlist',
+    subtitle: "Sessions you're waiting for — we'll notify you when a spot opens.",
+    empty_title: "You're not on any waitlist",
+    empty_desc: "When a session is full, you can join the waitlist. We'll let you know when a spot becomes available.",
+    browse: 'Browse Sessions',
+    waiting: 'Waiting',
+    notified: 'Spot Available',
+    notified_on: 'Notified on {date}',
+    remove: 'Leave waitlist',
+    info: "You'll receive an email and push notification when a spot opens up for any of these sessions.",
   },
   change_password: {
     title: 'Change Password',

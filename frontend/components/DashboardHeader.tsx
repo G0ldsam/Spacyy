@@ -51,6 +51,7 @@ export default function DashboardHeader({ userName, userEmail }: Props) {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         user={{ name: userName, email: userEmail }}
+        isAdmin={true}
       />
     </>
   )

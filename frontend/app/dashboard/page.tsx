@@ -9,8 +9,9 @@ import DashboardHomeView from '@/components/views/DashboardHomeView'
 import BookingsView from '@/components/views/BookingsView'
 import SessionsView from '@/components/views/SessionsView'
 import ClientsView from '@/components/views/ClientsView'
+import AdminWaitlistView from '@/components/views/AdminWaitlistView'
 
-type AdminView = 'home' | 'bookings' | 'sessions' | 'clients'
+type AdminView = 'home' | 'bookings' | 'sessions' | 'clients' | 'waitlist'
 
 export default function AdminShell() {
   const { data: session, status } = useSession()
@@ -59,6 +60,9 @@ export default function AdminShell() {
       </div>
       <div style={{ display: activeView === 'clients' ? 'block' : 'none' }}>
         {mountedViews.has('clients') && <ClientsView onBack={() => navigate('home')} />}
+      </div>
+      <div style={{ display: activeView === 'waitlist' ? 'block' : 'none' }}>
+        {mountedViews.has('waitlist') && <AdminWaitlistView onBack={() => navigate('home')} />}
       </div>
       <AdminBottomNav activeView={activeView} onNavigate={navigate} />
     </div>

@@ -155,6 +155,7 @@ export default function HomePage() {
               open={settingsOpen}
               onClose={() => setSettingsOpen(false)}
               user={{ name: session?.user?.name, email: session?.user?.email }}
+              isAdmin={isAdmin}
             />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('home.title')}</h1>
@@ -165,10 +166,10 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-            {/* My Sessions - Upcoming Bookings */}
-            <div className="lg:col-span-2">
+            {/* My Sessions + Waitlist */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
               <Link href="/my-sessions">
-                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
+                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg sm:text-xl">{t('home.my_sessions')}</CardTitle>
                   </CardHeader>
@@ -180,6 +181,27 @@ export default function HomePage() {
                       <p className="text-sm text-gray-700">
                         {myBookings.length === 1 ? t('home.session_one') : t('home.session_other')}
                       </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/my-waitlist">
+                <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{t('home.my_waitlist')}</p>
+                        <p className="text-xs text-gray-500">{t('home.my_waitlist_desc')}</p>
+                      </div>
+                      <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </CardContent>
                 </Card>
