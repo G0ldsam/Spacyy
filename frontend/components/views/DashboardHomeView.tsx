@@ -6,6 +6,7 @@ import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import DashboardHeader from '@/components/DashboardHeader'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDashboardStats } from '@/hooks/useBookingsData'
+import { PageSpinner } from '@/components/ui/spinner'
 
 type AdminView = 'home' | 'bookings' | 'sessions' | 'clients'
 
@@ -17,7 +18,9 @@ interface Props {
 
 export default function DashboardHomeView({ userName, userEmail, onNavigate }: Props) {
   const { t } = useLanguage()
-  const { data: stats } = useDashboardStats()
+  const { data: stats, isLoading } = useDashboardStats()
+
+  if (isLoading) return <PageSpinner />
 
   const activeBookingsCount = stats?.activeBookingsCount ?? 0
   const totalBookingsCount = stats?.totalBookingsCount ?? 0
