@@ -6,6 +6,7 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   [BookingStatus.CANCELLED]: 'Cancelled',
   [BookingStatus.COMPLETED]: 'Completed',
   [BookingStatus.NO_SHOW]: 'No Show',
+  [BookingStatus.RESERVED]: 'Reserved',
 }
 
 export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
@@ -14,4 +15,5 @@ export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
   [BookingStatus.CANCELLED]: 'red',
   [BookingStatus.COMPLETED]: 'blue',
   [BookingStatus.NO_SHOW]: 'gray',
+  [BookingStatus.RESERVED]: 'purple',
 }
