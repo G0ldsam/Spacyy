@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check for conflicts - count existing bookings for this time slot (exclude RESERVED slots)
+    // Check for conflicts - count existing bookings for this time slot (RESERVED counts toward capacity)
     const existingBookings = await prisma.booking.findMany({
       where: {
         sessionId: validated.sessionId || undefined,
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
         startTime: new Date(validated.startTime),
         endTime: new Date(validated.endTime),
         status: {
-          notIn: ['CANCELLED', 'RESERVED'],
+          not: 'CANCELLED',
         },
       },
     })
