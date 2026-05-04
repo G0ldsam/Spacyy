@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check for conflicts - count existing bookings for this time slot
+    // Check for conflicts - count existing bookings for this time slot (exclude RESERVED slots)
     const existingBookings = await prisma.booking.findMany({
       where: {
         sessionId: validated.sessionId || undefined,
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
         startTime: new Date(validated.startTime),
         endTime: new Date(validated.endTime),
         status: {
-          not: 'CANCELLED',
+          notIn: ['CANCELLED', 'RESERVED'],
         },
       },
     })
@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
 
       // Find matching timeSlot by comparing start/end times
       const timeSlots = await prisma.timeSlot.findMany({
-        where: { sessionId: validated.sessionId },
+        where: { serviceSessionId: validated.sessionId },
         select: { id: true, startTime: true, endTime: true },
       })
       const startTimeStr = new Date(validated.startTime).toISOString().split('T')[1].slice(0, 5)
