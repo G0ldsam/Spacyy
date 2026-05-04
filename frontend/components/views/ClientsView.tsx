@@ -307,7 +307,7 @@ export default function ClientsView({ onBack }: Props) {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">{t('clients.create_title')}</h2>
             <form onSubmit={handleCreateClient} className="space-y-4">
@@ -342,7 +342,7 @@ export default function ClientsView({ onBack }: Props) {
       )}
 
       {tempPassword && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{t('clients.created_title')}</h2>
             <div className="space-y-4">
@@ -362,7 +362,7 @@ export default function ClientsView({ onBack }: Props) {
       )}
 
       {editingClient && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">{t('clients.edit_title')}</h2>
             <form onSubmit={handleUpdateClient} className="space-y-4">
