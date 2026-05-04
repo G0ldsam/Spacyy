@@ -105,8 +105,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data: { status: newStatus },
     })
 
-    // Notify client when ADMIN cancels their booking
-    if (isAdmin && newStatus === 'CANCELLED') {
+    // Notify client when ADMIN cancels their booking (skip for reserved slots)
+    if (isAdmin && newStatus === 'CANCELLED' && existingBooking.client) {
       if (existingBooking.client.email) {
         notifyClientAdminCancellation({
           clientEmail: existingBooking.client.email,
@@ -126,7 +126,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // Notify org admins when a CLIENT (not admin) cancels or reschedules
-    if (!isAdmin && newStatus === 'CANCELLED') {
+    if (!isAdmin && newStatus === 'CANCELLED' && existingBooking.client) {
       const admins = await prisma.userOrganization.findMany({
         where: {
           organizationId: tenant.organizationId,

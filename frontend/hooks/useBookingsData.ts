@@ -224,7 +224,7 @@ export const useCreateBooking = () => {
   return useMutation({
     mutationFn: async (params: {
       sessionId: string
-      clientId: string
+      clientId?: string
       startTime: string
       endTime: string
     }) => {

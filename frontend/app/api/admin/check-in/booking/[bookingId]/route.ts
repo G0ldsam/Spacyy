@@ -62,7 +62,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: `${updated.client.name} checked in for ${updated.serviceSession?.name || 'session'}`,
+      message: `${updated.client?.name ?? 'Client'} checked in for ${updated.serviceSession?.name || 'session'}`,
     })
   } catch (error) {
     console.error('Error checking in client:', error)

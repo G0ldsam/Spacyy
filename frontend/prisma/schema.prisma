@@ -209,7 +209,7 @@ model Booking {
   organizationId String
   spaceId        String?
   sessionId      String?
-  clientId       String
+  clientId       String?
   userId         String?       // User who made the booking (if logged in)
   startTime      DateTime
   endTime        DateTime
@@ -223,7 +223,7 @@ model Booking {
   organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   space           Space?          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   serviceSession  ServiceSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client          Client?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user            User?           @relation("ClientBookings", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
@@ -240,6 +240,7 @@ enum BookingStatus {
   CANCELLED
   COMPLETED
   NO_SHOW
+  RESERVED
 }
 
 // Invitation

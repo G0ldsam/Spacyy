@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
 
   for (const booking of upcomingBookings) {
     const { client } = booking
+    if (!client) continue // reserved slot — no client
     if (client.sessionAllowance === null) continue // unlimited — skip
 
     // Count all future non-cancelled bookings for this client (including this one)

@@ -107,7 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         data: { status: 'CANCELLED' },
       })
 
-      if (booking.client.sessionAllowance !== null) {
+      if (booking.client && booking.client.sessionAllowance !== null) {
         const restoreOp =
           booking.client.pendingSlotsUsed > 0
             ? prisma.client.update({
@@ -128,6 +128,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const sessionName = timeSlot.serviceSession.name
   const orgName = org?.name ?? ''
   for (const booking of bookingsToCancel) {
+    if (!booking.client) continue // reserved slot — no client to notify
     if (booking.client.email) {
       notifyClientAdminCancellation({
         clientEmail: booking.client.email,

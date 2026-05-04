@@ -113,58 +113,61 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Get organization policy and client slot info
-    const [organization, client] = await Promise.all([
-      prisma.organization.findUnique({
-        where: { id: finalOrganizationId },
-        select: { allowPendingSlot: true },
-      }),
-      prisma.client.findUnique({
-        where: { id: validated.clientId },
-        select: { sessionAllowance: true },
-      }),
-    ])
+    const isReserved = !validated.clientId
+
+    // Get organization policy (always needed for org name in notifications)
+    const organization = await prisma.organization.findUnique({
+      where: { id: finalOrganizationId },
+      select: { allowPendingSlot: true },
+    })
 
     let usePendingSlot = false
 
-    // Check slot availability when client has a limited allowance
-    if (client && client.sessionAllowance !== null) {
-      const now = new Date()
-      const activeBookingsCount = await prisma.booking.count({
-        where: {
-          clientId: validated.clientId,
-          status: { not: 'CANCELLED' },
-          endTime: { gte: now },
-        },
+    if (!isReserved) {
+      const client = await prisma.client.findUnique({
+        where: { id: validated.clientId! },
+        select: { sessionAllowance: true },
       })
 
-      if (activeBookingsCount >= client.sessionAllowance) {
-        if (organization?.allowPendingSlot && activeBookingsCount < client.sessionAllowance + 1) {
-          usePendingSlot = true
-        } else {
-          return NextResponse.json(
-            { error: 'No available session slots. Please renew your membership.' },
-            { status: 403 }
-          )
+      // Check slot availability when client has a limited allowance
+      if (client && client.sessionAllowance !== null) {
+        const now = new Date()
+        const activeBookingsCount = await prisma.booking.count({
+          where: {
+            clientId: validated.clientId,
+            status: { not: 'CANCELLED' },
+            endTime: { gte: now },
+          },
+        })
+
+        if (activeBookingsCount >= client.sessionAllowance) {
+          if (organization?.allowPendingSlot && activeBookingsCount < client.sessionAllowance + 1) {
+            usePendingSlot = true
+          } else {
+            return NextResponse.json(
+              { error: 'No available session slots. Please renew your membership.' },
+              { status: 403 }
+            )
+          }
         }
       }
-    }
 
-    // Prevent same client booking the same session+time twice
-    const duplicate = await prisma.booking.findFirst({
-      where: {
-        clientId: validated.clientId,
-        sessionId: validated.sessionId || undefined,
-        startTime: new Date(validated.startTime),
-        endTime: new Date(validated.endTime),
-        status: { not: 'CANCELLED' },
-      },
-    })
-    if (duplicate) {
-      return NextResponse.json(
-        { error: 'You already have a booking for this session.' },
-        { status: 409 }
-      )
+      // Prevent same client booking the same session+time twice
+      const duplicate = await prisma.booking.findFirst({
+        where: {
+          clientId: validated.clientId,
+          sessionId: validated.sessionId || undefined,
+          startTime: new Date(validated.startTime),
+          endTime: new Date(validated.endTime),
+          status: { not: 'CANCELLED' },
+        },
+      })
+      if (duplicate) {
+        return NextResponse.json(
+          { error: 'You already have a booking for this session.' },
+          { status: 409 }
+        )
+      }
     }
 
     // Check for conflicts - count existing bookings for this time slot
@@ -199,10 +202,11 @@ export async function POST(req: NextRequest) {
         organizationId: finalOrganizationId,
         spaceId: validated.spaceId,
         sessionId: validated.sessionId,
-        clientId: validated.clientId,
+        clientId: validated.clientId ?? null,
         userId: session.user.id,
         startTime: new Date(validated.startTime),
         endTime: new Date(validated.endTime),
+        status: isReserved ? 'RESERVED' : 'CONFIRMED',
         notes: validated.notes,
       },
       include: {
@@ -213,69 +217,71 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    if (usePendingSlot) {
-      await prisma.client.update({
-        where: { id: validated.clientId },
-        data: { pendingSlotsUsed: { increment: 1 } },
+    if (!isReserved) {
+      if (usePendingSlot) {
+        await prisma.client.update({
+          where: { id: validated.clientId! },
+          data: { pendingSlotsUsed: { increment: 1 } },
+        })
+      }
+
+      // Notify admins + send client confirmation (fire-and-forget)
+      const sessionName = booking.serviceSession?.name ?? booking.space?.name ?? 'Session'
+      const orgName = booking.organization?.name ?? ''
+
+      const admins = await prisma.userOrganization.findMany({
+        where: { organizationId: finalOrganizationId, role: { in: ['OWNER', 'ADMIN'] } },
+        include: { user: { select: { id: true, email: true } } },
       })
-    }
+      const adminEmails = admins.map((a) => a.user.email).filter(Boolean) as string[]
+      const adminUserIds = admins.map((a) => a.user.id)
 
-    // Notify admins + send client confirmation (fire-and-forget)
-    const sessionName = booking.serviceSession?.name ?? booking.space?.name ?? 'Session'
-    const orgName = booking.organization?.name ?? ''
-
-    const admins = await prisma.userOrganization.findMany({
-      where: { organizationId: finalOrganizationId, role: { in: ['OWNER', 'ADMIN'] } },
-      include: { user: { select: { id: true, email: true } } },
-    })
-    const adminEmails = admins.map((a) => a.user.email).filter(Boolean) as string[]
-    const adminUserIds = admins.map((a) => a.user.id)
-
-    notifyAdminNewBooking({
-      adminEmails,
-      orgName,
-      clientName: booking.client.name,
-      sessionName,
-      startTime: booking.startTime,
-    }).catch(console.error)
-
-    createNotifications(adminUserIds, {
-      title: 'New booking',
-      body: `${booking.client.name} booked ${sessionName} on ${booking.startTime.toLocaleDateString()}`,
-      url: '/dashboard',
-    }).catch(console.error)
-
-    if (usePendingSlot) {
-      sendPendingSlotWarning({
-        clientEmail: booking.client.email,
-        clientName: booking.client.name,
-        orgName,
-        sessionName,
-        startTime: booking.startTime,
-      }).catch(console.error)
-
-      notifyAdminPendingSlotUsed({
+      notifyAdminNewBooking({
         adminEmails,
         orgName,
-        clientName: booking.client.name,
+        clientName: booking.client!.name,
         sessionName,
         startTime: booking.startTime,
       }).catch(console.error)
 
       createNotifications(adminUserIds, {
-        title: 'Pending slot used',
-        body: `${booking.client.name} booked ${sessionName} with no remaining allowance — 1 session owed on next renewal`,
+        title: 'New booking',
+        body: `${booking.client!.name} booked ${sessionName} on ${booking.startTime.toLocaleDateString()}`,
         url: '/dashboard',
       }).catch(console.error)
-    } else {
-      sendBookingConfirmation({
-        clientEmail: booking.client.email,
-        clientName: booking.client.name,
-        orgName,
-        sessionName,
-        startTime: booking.startTime,
-        endTime: booking.endTime,
-      }).catch(console.error)
+
+      if (usePendingSlot) {
+        sendPendingSlotWarning({
+          clientEmail: booking.client!.email,
+          clientName: booking.client!.name,
+          orgName,
+          sessionName,
+          startTime: booking.startTime,
+        }).catch(console.error)
+
+        notifyAdminPendingSlotUsed({
+          adminEmails,
+          orgName,
+          clientName: booking.client!.name,
+          sessionName,
+          startTime: booking.startTime,
+        }).catch(console.error)
+
+        createNotifications(adminUserIds, {
+          title: 'Pending slot used',
+          body: `${booking.client!.name} booked ${sessionName} with no remaining allowance — 1 session owed on next renewal`,
+          url: '/dashboard',
+        }).catch(console.error)
+      } else {
+        sendBookingConfirmation({
+          clientEmail: booking.client!.email,
+          clientName: booking.client!.name,
+          orgName,
+          sessionName,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+        }).catch(console.error)
+      }
     }
 
     return NextResponse.json(booking, { status: 201 })

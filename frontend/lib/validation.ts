@@ -26,7 +26,7 @@ export const clientSchema = z.object({
 export const bookingSchema = z.object({
   spaceId: z.string().min(1).optional(),
   sessionId: z.string().min(1).optional(),
-  clientId: z.string().min(1),
+  clientId: z.string().min(1).optional().nullable(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   notes: z.string().optional(),
