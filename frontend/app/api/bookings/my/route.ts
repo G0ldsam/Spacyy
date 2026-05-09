@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
       where: {
         clientId: client.id,
         status: { not: 'CANCELLED' },
+        endTime: { gte: new Date() },
       },
       include: {
         serviceSession: {

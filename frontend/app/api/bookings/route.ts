@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
-import { checkBookingConflict } from '@/shared/lib/booking'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 import { notifyAdminNewBooking, sendBookingConfirmation, sendPendingSlotWarning, notifyAdminPendingSlotUsed } from '@/lib/email'
 import { createNotifications } from '@/lib/notify'
@@ -80,7 +79,8 @@ export async function POST(req: NextRequest) {
 
     // Prevent clients from booking sessions that have already started (admins can still assign)
     const isAdmin = session.user.organizations?.some(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+      (org) => org.organization.id === tenant.organizationId &&
+               (org.role === 'OWNER' || org.role === 'ADMIN')
     )
     if (!isAdmin && new Date(validated.startTime) <= new Date()) {
       return NextResponse.json({ error: 'This session has already started' }, { status: 400 })
@@ -207,6 +207,7 @@ export async function POST(req: NextRequest) {
         startTime: new Date(validated.startTime),
         endTime: new Date(validated.endTime),
         status: isReserved ? 'RESERVED' : 'CONFIRMED',
+        usedPendingSlot: usePendingSlot,
         notes: validated.notes,
       },
       include: {

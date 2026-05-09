@@ -183,6 +183,10 @@ export default function TimetablePage() {
               <CardTitle className="text-lg">{t('timetable.add_slot')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                Times are stored in UTC. Clients see them converted to their local timezone in the app.
+                Example: enter <strong>13:00</strong> for a session that runs at 16:00 in UTC+3.
+              </p>
               {/* Time inputs */}
               <div className="grid grid-cols-2 gap-4">
                 <div>

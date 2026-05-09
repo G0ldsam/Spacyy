@@ -64,7 +64,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       include: {
         organization: { select: { bookingChangeHours: true, name: true } },
-        client: { select: { id: true, name: true, email: true, userId: true } },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            userId: true,
+            sessionAllowance: true,
+            pendingSlotsUsed: true,
+          },
+        },
         serviceSession: { select: { name: true } },
       },
     })
@@ -104,6 +113,31 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       data: { status: newStatus },
     })
+
+    // Slot accounting on cancellation
+    if (newStatus === 'CANCELLED' && existingBooking.clientId && existingBooking.client) {
+      const client = existingBooking.client
+      if (client.sessionAllowance !== null) {
+        const now = new Date()
+        const isPreSession = existingBooking.startTime > now
+
+        if (isPreSession && existingBooking.usedPendingSlot && client.pendingSlotsUsed > 0) {
+          // Pre-session cancel of a pending-slot booking: clear the debt
+          await prisma.client.update({
+            where: { id: existingBooking.clientId },
+            data: { pendingSlotsUsed: { decrement: 1 } },
+          })
+        } else if (!isPreSession && !existingBooking.usedPendingSlot && client.sessionAllowance > 0) {
+          // Post-session cancel of a regular booking: slot is permanently consumed
+          await prisma.client.update({
+            where: { id: existingBooking.clientId },
+            data: { sessionAllowance: { decrement: 1 } },
+          })
+        }
+        // Pre-session regular: count drops naturally (no action)
+        // Post-session pending: debt remains, no allowance change
+      }
+    }
 
     // Notify client when ADMIN cancels their booking (skip for reserved slots)
     if (isAdmin && newStatus === 'CANCELLED' && existingBooking.client) {

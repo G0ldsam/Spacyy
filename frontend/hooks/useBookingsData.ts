@@ -121,6 +121,18 @@ export const useDashboardStats = () => {
   })
 }
 
+export const useCurrentOrg = () => {
+  return useQuery<{ id: string; slug: string }>({
+    queryKey: ['current-org'],
+    queryFn: async () => {
+      const res = await fetch('/api/organization/current')
+      if (!res.ok) throw new Error('Failed to fetch current org')
+      return res.json()
+    },
+    staleTime: Infinity,
+  })
+}
+
 export const useSessions = () => {
   return useQuery({
     queryKey: ['sessions'],

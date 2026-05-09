@@ -112,6 +112,21 @@ export default function BookSessionPage() {
     if (status === 'authenticated') fetchData()
   }, [status, router, fetchData])
 
+  // Clear stale changingBookingId if the booking no longer exists or is already past/cancelled
+  useEffect(() => {
+    const changingBookingId = sessionStorage.getItem('changingBookingId')
+    if (!changingBookingId) return
+    fetch(`/api/bookings/${changingBookingId}`)
+      .then(async (res) => {
+        if (!res.ok) { sessionStorage.removeItem('changingBookingId'); return }
+        const b = await res.json()
+        if (b.status === 'CANCELLED' || new Date(b.startTime) <= new Date()) {
+          sessionStorage.removeItem('changingBookingId')
+        }
+      })
+      .catch(() => sessionStorage.removeItem('changingBookingId'))
+  }, [])
+
   const getRemainingSlots = (timeSlot: TimeSlot) => {
     const key = `${timeSlot.startTime}-${timeSlot.endTime}`
     const activeBookings = (bookings[key] || []).filter((b) => b.status !== 'CANCELLED')
@@ -136,6 +151,8 @@ export default function BookSessionPage() {
     if (!bookingSlot || !session?.user?.id || isBooking) return
 
     setIsBooking(true)
+    let oldBookingCancelled = false
+
     try {
       const [startHour, startMin] = bookingSlot.startTime.split(':').map(Number)
       const [endHour, endMin] = bookingSlot.endTime.split(':').map(Number)
@@ -150,6 +167,18 @@ export default function BookSessionPage() {
 
       const changingBookingId = sessionStorage.getItem('changingBookingId')
 
+      // Cancel old booking FIRST so the freed slot counts toward the new booking allowance check
+      if (changingBookingId) {
+        const cancelRes = await fetch(`/api/bookings/${changingBookingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'CANCELLED', isReschedule: true }),
+        })
+        if (!cancelRes.ok) throw new Error('Failed to cancel existing booking. Please try again.')
+        sessionStorage.removeItem('changingBookingId')
+        oldBookingCancelled = true
+      }
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,20 +191,12 @@ export default function BookSessionPage() {
       })
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to create booking')
-      }
-
-      if (changingBookingId) {
-        try {
-          await fetch(`/api/bookings/${changingBookingId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'CANCELLED', isReschedule: true }),
-          })
-          sessionStorage.removeItem('changingBookingId')
-        } catch {
-          // continue — new booking was created
-        }
+        const base = data.error || 'Failed to create booking'
+        throw new Error(
+          oldBookingCancelled
+            ? `${base} — your previous session was already cancelled. Please book a new session.`
+            : base
+        )
       }
 
       setShowConfirmModal(false)
@@ -267,8 +288,8 @@ export default function BookSessionPage() {
                     const isLoadingInterest = interestLoading[timeSlot.id]
 
                     const [slotHour, slotMin] = timeSlot.startTime.split(':').map(Number)
-                    const slotStart = new Date(date)
-                    slotStart.setHours(slotHour, slotMin, 0, 0)
+                    const slotStart = new Date(`${date}T00:00:00Z`)
+                    slotStart.setUTCHours(slotHour, slotMin, 0, 0)
                     const isPast = slotStart <= new Date()
 
                     if (isPast) return null

@@ -108,16 +108,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       })
 
       if (booking.client && booking.client.sessionAllowance !== null) {
-        const restoreOp =
-          booking.client.pendingSlotsUsed > 0
-            ? prisma.client.update({
-                where: { id: booking.client.id },
-                data: { pendingSlotsUsed: { decrement: 1 } },
-              })
-            : prisma.client.update({
-                where: { id: booking.client.id },
-                data: { sessionAllowance: { increment: 1 } },
-              })
+        const restoreOp = booking.usedPendingSlot && booking.client.pendingSlotsUsed > 0
+          ? prisma.client.update({
+              where: { id: booking.client.id },
+              data: { pendingSlotsUsed: { decrement: 1 } },
+            })
+          : prisma.client.update({
+              where: { id: booking.client.id },
+              data: { sessionAllowance: { increment: 1 } },
+            })
         await prisma.$transaction([cancelOp, restoreOp])
       } else {
         await cancelOp

@@ -214,8 +214,9 @@ model Booking {
   startTime      DateTime
   endTime        DateTime
   status         BookingStatus @default(CONFIRMED)
-  checkedIn      Boolean       @default(false) // Check-in status for the session
-  checkedInAt    DateTime?     // Timestamp when checked in
+  usedPendingSlot Boolean      @default(false) // True when booking was created using a pending (over-allowance) slot
+  checkedIn      Boolean       @default(false)
+  checkedInAt    DateTime?
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt

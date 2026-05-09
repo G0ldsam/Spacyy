@@ -22,6 +22,9 @@ interface Booking {
   status: string
 }
 
+const toLocalDateStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 export default function MySessionsPage() {
   const { t } = useLanguage()
   const { data: session, status } = useSession()
@@ -45,7 +48,7 @@ export default function MySessionsPage() {
     // Group bookings by date
     const grouped: Record<string, Booking[]> = {}
     myBookings.forEach((booking) => {
-      const dateKey = new Date(booking.startTime).toISOString().split('T')[0]
+      const dateKey = toLocalDateStr(new Date(booking.startTime))
       if (!grouped[dateKey]) {
         grouped[dateKey] = []
       }
@@ -144,7 +147,7 @@ export default function MySessionsPage() {
   }
 
   const getSelectedDateBookings = () => {
-    const dateKey = selectedDate.toISOString().split('T')[0]
+    const dateKey = toLocalDateStr(selectedDate)
     return bookingsByDate[dateKey] || []
   }
 
@@ -221,7 +224,7 @@ export default function MySessionsPage() {
                     {weekDays.map((date, index) => {
                       const dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]
                       const dayNumber = date.getDate()
-                      const dateKey = date.toISOString().split('T')[0]
+                      const dateKey = toLocalDateStr(date)
                       const hasBookings = bookingsByDate[dateKey] && bookingsByDate[dateKey].length > 0
                       
                       return (

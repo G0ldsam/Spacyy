@@ -22,6 +22,7 @@ import {
   useCloseOccurrence,
   useReopenOccurrence,
   useNotifyInterestList,
+  useCurrentOrg,
 } from '@/hooks/useBookingsData'
 import WaitlistNotifyModal from '@/components/WaitlistNotifyModal'
 
@@ -109,9 +110,13 @@ export default function BookingsView({ onBack }: Props) {
     entries: InterestEntry[]
   } | null>(null)
 
-  const isAdmin = session?.user?.organizations?.some(
-    (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-  )
+  const { data: currentOrg } = useCurrentOrg()
+  const isAdmin = currentOrg
+    ? session?.user?.organizations?.some(
+        (org) => org.organization.id === currentOrg.id &&
+                 (org.role === 'OWNER' || org.role === 'ADMIN')
+      )
+    : false
 
   const { data: sessions = [], isLoading: sessionsLoading } = useSessions()
   const { data: clients = [] } = useClients()
@@ -279,6 +284,20 @@ export default function BookingsView({ onBack }: Props) {
     }
     try {
       await Promise.all(active.map((b) => cancelBookingMutation.mutateAsync(b.id)))
+      const waitlist = interestLists[selectedTimeSlot.id] || []
+      if (waitlist.length > 0) {
+        setWaitlistModalData({
+          sessionId: selectedSession.id,
+          sessionName: selectedSession.name,
+          themeColor: selectedSession.themeColor,
+          timeSlotId: selectedTimeSlot.id,
+          startTime: selectedTimeSlot.startTime,
+          endTime: selectedTimeSlot.endTime,
+          date: toLocalDateStr(selectedDate),
+          entries: waitlist,
+        })
+        setWaitlistModalOpen(true)
+      }
       setSelectedTimeSlot(null)
     } catch (error: any) {
       alert(error.message || 'Failed to empty slot')

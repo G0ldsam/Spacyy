@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { useAdminInterestList } from '@/hooks/useBookingsData'
 
 type AdminView = 'home' | 'bookings' | 'sessions' | 'clients' | 'waitlist'
 
@@ -42,7 +43,7 @@ const tabs: { view: AdminView; label: string; icon: React.ReactNode }[] = [
     label: 'Waitlist',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
     ),
   },
@@ -58,21 +59,32 @@ const tabs: { view: AdminView; label: string; icon: React.ReactNode }[] = [
 ]
 
 export default function AdminBottomNav({ activeView, onNavigate }: Props) {
+  const { data: waitlistGroups = [] } = useAdminInterestList()
+  const unnotifiedCount = waitlistGroups.reduce((sum, g) => sum + g.unnotifiedCount, 0)
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-inset-bottom">
       <div className="flex justify-around items-center h-16 px-2">
         {tabs.map((tab) => {
           const isActive = activeView === tab.view
+          const showBadge = tab.view === 'waitlist' && unnotifiedCount > 0
           return (
             <button
               key={tab.view}
               onClick={() => onNavigate(tab.view)}
               className={cn(
-                'flex flex-col items-center justify-center flex-1 h-full min-w-0 px-2 transition-colors duration-200',
+                'flex flex-col items-center justify-center flex-1 h-full min-w-0 px-2 transition-colors duration-200 relative',
                 isActive ? 'text-[#8B1538]' : 'text-gray-500 hover:text-gray-700'
               )}
             >
-              {tab.icon}
+              <div className="relative">
+                {tab.icon}
+                {showBadge && (
+                  <span className="absolute -top-1 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                    {unnotifiedCount > 9 ? '9+' : unnotifiedCount}
+                  </span>
+                )}
+              </div>
               <span className="text-xs font-medium mt-1 truncate">{tab.label}</span>
             </button>
           )

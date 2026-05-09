@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
@@ -31,7 +29,7 @@ export async function POST(
     const [client, org] = await Promise.all([
       prisma.client.findFirst({
         where: { id: params.id, organizationId: tenant.organizationId },
-        select: { id: true, name: true, email: true, userId: true, sessionAllowance: true },
+        select: { id: true, name: true, email: true, userId: true, sessionAllowance: true, pendingSlotsUsed: true },
       }),
       prisma.organization.findUnique({
         where: { id: tenant.organizationId },
@@ -57,22 +55,12 @@ export async function POST(
       },
     })
 
-    // Calculate new allowance
-    let newAllowance: number | null
-    if (client.sessionAllowance === null) {
-      // If currently unlimited, keep it unlimited (can't add to unlimited)
-      newAllowance = null
-    } else {
-      // If all sessions are used, reset to 0 and add new sessions
-      // Otherwise, add to existing allowance
-      if (activeBookingsCount >= client.sessionAllowance) {
-        // All sessions used - reset to 0 and add new sessions
-        newAllowance = validated.sessionsToAdd
-      } else {
-        // Some sessions remaining - add to existing allowance
-        newAllowance = client.sessionAllowance + validated.sessionsToAdd
-      }
-    }
+    // Calculate new allowance: keep active bookings + grant N new slots
+    // pendingSlotsUsed debt is cleared by resetting the field below
+    const newAllowance: number | null =
+      client.sessionAllowance === null
+        ? null
+        : activeBookingsCount + validated.sessionsToAdd
 
     const updated = await prisma.client.update({
       where: { id: params.id },
