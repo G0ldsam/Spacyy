@@ -30,6 +30,16 @@ export async function GET(req: NextRequest) {
           userId: true,
           sessionAllowance: true,
           createdAt: true,
+          _count: {
+            select: {
+              bookings: {
+                where: {
+                  status: { not: 'CANCELLED' },
+                  endTime: { gte: new Date() },
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -43,7 +53,9 @@ export async function GET(req: NextRequest) {
     ])
 
     const adminUserIds = new Set(adminOrgs.map((o) => o.userId))
-    const clients = allClients.filter((c) => !c.userId || !adminUserIds.has(c.userId))
+    const clients = allClients
+      .filter((c) => !c.userId || !adminUserIds.has(c.userId))
+      .map(({ _count, ...c }) => ({ ...c, activeBookingsCount: _count.bookings }))
 
     return NextResponse.json(clients)
   } catch (error) {

@@ -615,7 +615,7 @@ export default function BookingsView({ onBack }: Props) {
                                                 <span className="text-xs text-gray-600 block mt-0.5">{booking.client?.email}</span>
                                                 {booking.checkedIn && booking.checkedInAt && (
                                                   <span className="text-xs text-green-700 block mt-0.5">
-                                                    {t('booking_slot.checked_in_at', { time: new Date(booking.checkedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) })}
+                                                    {t('booking_slot.checked_in_at', { time: new Date(booking.checkedInAt).toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }) })}
                                                   </span>
                                                 )}
                                               </>

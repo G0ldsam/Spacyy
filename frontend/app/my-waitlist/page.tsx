@@ -227,6 +227,7 @@ export default function MyWaitlistPage() {
                               <p className="text-xs text-gray-400 mt-2">
                                 {t('my_waitlist.notified_on', {
                                   date: new Date(entry.notifiedAt).toLocaleDateString('en-US', {
+                                    timeZone: 'UTC',
                                     month: 'short',
                                     day: 'numeric',
                                     hour: '2-digit',

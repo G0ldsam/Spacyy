@@ -25,8 +25,8 @@ export async function PATCH(
     const updateSchema = z.object({
       name: z.string().min(1).optional(),
       email: z.string().email().optional(),
-      phone: z.string().optional(),
-      notes: z.string().optional(),
+      phone: z.string().nullable().optional(),
+      notes: z.string().nullable().optional(),
       sessionAllowance: z.number().int().positive().nullable().optional(),
     })
 

@@ -302,9 +302,11 @@ export default function MySessionsPage() {
                                 </h3>
                                 <p className="text-xs sm:text-sm text-gray-700 mt-1 break-words">
                                   {new Date(booking.startTime).toLocaleTimeString('en-US', {
+                                    timeZone: 'UTC',
                                     hour: '2-digit',
                                     minute: '2-digit',
                                   })} - {new Date(booking.endTime).toLocaleTimeString('en-US', {
+                                    timeZone: 'UTC',
                                     hour: '2-digit',
                                     minute: '2-digit',
                                   })}

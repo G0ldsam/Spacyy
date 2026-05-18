@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Html5Qrcode } from 'html5-qrcode'
-import { format } from 'date-fns'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface CheckInInfo {
@@ -33,6 +32,7 @@ export default function CheckInPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -163,6 +163,22 @@ export default function CheckInPage() {
     }
   }
 
+  const handleScanFromGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setError('')
+    setCheckInInfo(null)
+    try {
+      const scanner = new Html5Qrcode('qr-file-reader-checkin')
+      const result = await scanner.scanFile(file, false)
+      scanner.clear()
+      await handleQRCodeScanned(result)
+    } catch {
+      setError(t('check_in.error_invalid_qr'))
+    }
+  }
+
   const stopScanning = () => {
     if (scannerRef.current) {
       scannerRef.current.stop().then(() => {
@@ -277,9 +293,29 @@ export default function CheckInPage() {
               <CardContent>
                 <div className="space-y-4">
                   {!scanning ? (
-                    <Button onClick={startScanning} className="w-full">
-                      {t('check_in.start')}
-                    </Button>
+                    <div className="flex gap-3">
+                      <Button onClick={startScanning} className="flex-1">
+                        {t('check_in.start')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Scan from photo library"
+                        className="px-4"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleScanFromGallery}
+                      />
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <div id="qr-reader-checkin" className="w-full max-w-full overflow-hidden"></div>
@@ -324,14 +360,14 @@ export default function CheckInPage() {
                       <div>
                         <p className="text-xs sm:text-sm text-gray-600">{t('check_in.time')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900">
-                          {format(new Date(checkInInfo.startTime), 'HH:mm')} -{' '}
-                          {format(new Date(checkInInfo.endTime), 'HH:mm')}
+                          {new Date(checkInInfo.startTime).toISOString().slice(11, 16)} -{' '}
+                          {new Date(checkInInfo.endTime).toISOString().slice(11, 16)}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-600">{t('check_in.date')}</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-900 break-words">
-                          {format(new Date(checkInInfo.startTime), 'EEEE, MMMM d, yyyy')}
+                          {new Date(checkInInfo.startTime).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
                       {checkInInfo.status === 'CHECKED_IN' && (
@@ -357,6 +393,7 @@ export default function CheckInPage() {
           </div>
         </div>
       </div>
+      <div id="qr-file-reader-checkin" className="hidden" />
     </div>
   )
 }

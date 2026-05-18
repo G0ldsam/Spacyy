@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
             usePendingSlot = true
           } else {
             return NextResponse.json(
-              { error: 'No available session slots. Please renew your membership.' },
+              { error: 'Δεν υπάρχουν διαθέσιμες θέσεις. Παρακαλώ ανανεώστε τη συνδρομή σας.' },
               { status: 403 }
             )
           }

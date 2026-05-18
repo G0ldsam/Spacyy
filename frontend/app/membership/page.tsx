@@ -249,6 +249,7 @@ export default function MembershipPage() {
                             <p className="text-xs text-yellow-100/90">
                               {t('membership.expiring_desc', {
                                 date: expirationWarning.lastBookingDate?.toLocaleDateString('en-US', {
+                                  timeZone: 'UTC',
                                   weekday: 'short',
                                   month: 'short',
                                   day: 'numeric',

@@ -21,6 +21,7 @@ export async function sendEmail(to: string | string[], subject: string, html: st
 
 function formatDateTime(date: Date) {
   return date.toLocaleString('en-US', {
+    timeZone: 'UTC',
     weekday: 'long',
     year: 'numeric',
     month: 'long',

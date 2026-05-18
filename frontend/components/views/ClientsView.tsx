@@ -413,6 +413,19 @@ export default function ClientsView({ onBack }: Props) {
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-sessionAllowance" className="text-sm font-medium text-gray-900">{t('clients.allowance_label')}</label>
+                {editingClient.sessionAllowance !== null && editingClient.activeBookingsCount !== undefined && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-2 rounded-full ${editingClient.activeBookingsCount >= editingClient.sessionAllowance ? 'bg-red-500' : 'bg-green-500'}`}
+                        style={{ width: `${Math.min(100, (editingClient.activeBookingsCount / editingClient.sessionAllowance) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-gray-700 whitespace-nowrap">
+                      {editingClient.activeBookingsCount} / {editingClient.sessionAllowance}
+                    </span>
+                  </div>
+                )}
                 <Input id="edit-sessionAllowance" type="number" min="1" placeholder={t('clients.allowance_placeholder')} value={editFormData.sessionAllowance} onChange={(e) => setEditFormData({ ...editFormData, sessionAllowance: e.target.value })} />
                 <p className="text-xs text-gray-600">{t('clients.allowance_hint')}</p>
               </div>

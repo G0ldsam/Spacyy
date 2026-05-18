@@ -7,6 +7,7 @@ import { NavigationSpinner } from '@/components/ui/navigation-spinner'
 import { PushSubscriptionProvider } from '@/contexts/PushSubscriptionContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { queryClient } from '@/lib/queryClient'
+import { ClientQRButton } from '@/components/ClientQRButton'
 
 function DataPrefetcher() {
   const { data: session } = useSession()
@@ -29,6 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <DataPrefetcher />
           <PushSubscriptionProvider>
             <NavigationSpinner />
+            <ClientQRButton />
             {children}
           </PushSubscriptionProvider>
         </SessionProvider>

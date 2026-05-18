@@ -106,8 +106,8 @@ export default function SessionDetailPage() {
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      timeZone: 'UTC',
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -116,8 +116,8 @@ export default function SessionDetailPage() {
   }
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      timeZone: 'UTC',
       hour: '2-digit',
       minute: '2-digit',
     })

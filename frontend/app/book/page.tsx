@@ -431,6 +431,7 @@ export default function BookPage() {
                           </h3>
                           <p className="text-xs sm:text-sm text-gray-700 mt-1 break-words">
                             {new Date(booking.startTime).toLocaleDateString('en-US', {
+                              timeZone: 'UTC',
                               weekday: 'long',
                               year: 'numeric',
                               month: 'long',
@@ -439,9 +440,11 @@ export default function BookPage() {
                           </p>
                           <p className="text-xs sm:text-sm text-gray-700 break-words">
                             {new Date(booking.startTime).toLocaleTimeString('en-US', {
+                              timeZone: 'UTC',
                               hour: '2-digit',
                               minute: '2-digit',
                             })} - {new Date(booking.endTime).toLocaleTimeString('en-US', {
+                              timeZone: 'UTC',
                               hour: '2-digit',
                               minute: '2-digit',
                             })}

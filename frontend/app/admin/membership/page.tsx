@@ -33,6 +33,7 @@ export default function MembershipManagementPage() {
   const [success, setSuccess] = useState('')
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const scanAreaRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -159,6 +160,22 @@ export default function MembershipManagementPage() {
 
       setError(errorMessage)
       setScanning(false)
+    }
+  }
+
+  const handleScanFromGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setError('')
+    setScannedClient(null)
+    try {
+      const scanner = new Html5Qrcode('qr-file-reader-membership')
+      const result = await scanner.scanFile(file, false)
+      scanner.clear()
+      await handleQRCodeScanned(result)
+    } catch {
+      setError(t('membership_mgmt.error_invalid_qr'))
     }
   }
 
@@ -291,9 +308,29 @@ export default function MembershipManagementPage() {
               <CardContent>
                 <div className="space-y-4">
                   {!scanning ? (
-                    <Button onClick={startScanning} className="w-full">
-                      {t('membership_mgmt.start')}
-                    </Button>
+                    <div className="flex gap-3">
+                      <Button onClick={startScanning} className="flex-1">
+                        {t('membership_mgmt.start')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Scan from photo library"
+                        className="px-4"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleScanFromGallery}
+                      />
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <div id="qr-reader" className="w-full max-w-full overflow-hidden" ref={scanAreaRef}></div>
@@ -406,6 +443,7 @@ export default function MembershipManagementPage() {
           </div>
         </div>
       </div>
+      <div id="qr-file-reader-membership" className="hidden" />
     </div>
   )
 }

@@ -15,7 +15,12 @@
       "Bash(npx tsc *)",
       "Bash(npx vitest *)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(xargs grep -l \"form\\\\|Form\")",
+      "Bash(Get-ChildItem -Recurse -Directory)",
+      "Bash(findstr \"date-fns\")"
     ]
   }
 }

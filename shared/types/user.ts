@@ -31,6 +31,8 @@ export interface Client {
   name: string
   phone: string | null
   notes: string | null
+  sessionAllowance: number | null
+  activeBookingsCount?: number
   createdAt: Date
   updatedAt: Date
 }
