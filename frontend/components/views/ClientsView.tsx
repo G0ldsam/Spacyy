@@ -34,19 +34,18 @@ export default function ClientsView({ onBack }: Props) {
   const { data: session, status } = useSession()
   const queryClient = useQueryClient()
   const { data: clients = [], isLoading } = useClients()
-  const [fetchError, setFetchError] = useState('')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    notes: '',
-    createAccount: true,
-  })
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState('')
-  const [tempPassword, setTempPassword] = useState<string | null>(null)
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+  const [fetchError] = useState('')
+
+  // Invite QR modal
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [generatingInvite, setGeneratingInvite] = useState(false)
+  const [inviteQrUrl, setInviteQrUrl] = useState('')
+  const [inviteLink, setInviteLink] = useState('')
+  const [inviteExpiresAt, setInviteExpiresAt] = useState<Date | null>(null)
+  const [inviteError, setInviteError] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  // Edit modal
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -56,6 +55,7 @@ export default function ClientsView({ onBack }: Props) {
     sessionAllowance: '',
   })
   const [updating, setUpdating] = useState(false)
+  const [editError, setEditError] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -73,60 +73,67 @@ export default function ClientsView({ onBack }: Props) {
     }
   }, [status, router, session])
 
-  useEffect(() => {
-    if (tempPassword && formData.email && typeof window !== 'undefined') {
-      const loginUrl = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(tempPassword)}&autoLogin=true`
-      QRCode.toDataURL(loginUrl, { width: 256, margin: 2 })
-        .then(url => setQrCodeUrl(url))
-        .catch(err => console.error('Error generating QR code:', err))
-    } else {
-      setQrCodeUrl('')
-    }
-  }, [tempPassword, formData.email])
-
-  const handleCreateClient = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setCreating(true)
+  const handleGenerateInvite = async () => {
+    setInviteError('')
+    setGeneratingInvite(true)
+    setInviteQrUrl('')
+    setInviteLink('')
+    setInviteExpiresAt(null)
+    setLinkCopied(false)
 
     try {
-      const response = await fetch('/api/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+      const res = await fetch('/api/invitations', { method: 'POST' })
+      const data = await res.json()
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create client')
+      if (!res.ok) {
+        throw new Error(data.error || t('clients.invite_error'))
       }
 
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
-      if (data.tempPassword) {
-        setTempPassword(data.tempPassword)
-      } else {
-        setFormData({ name: '', email: '', phone: '', notes: '', createAccount: true })
-        setShowCreateModal(false)
-      }
+      const registerUrl = `${window.location.origin}/register?token=${data.token}`
+      const qrDataUrl = await QRCode.toDataURL(registerUrl, { width: 256, margin: 2 })
+
+      setInviteLink(registerUrl)
+      setInviteQrUrl(qrDataUrl)
+      setInviteExpiresAt(new Date(data.expiresAt))
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setInviteError(err.message || t('clients.invite_error'))
     } finally {
-      setCreating(false)
+      setGeneratingInvite(false)
     }
   }
 
-  const handleClosePasswordModal = () => {
-    setTempPassword(null)
-    setQrCodeUrl('')
-    setFormData({ name: '', email: '', phone: '', notes: '', createAccount: true })
-    setShowCreateModal(false)
+  const handleOpenInviteModal = () => {
+    setShowInviteModal(true)
+    setInviteQrUrl('')
+    setInviteLink('')
+    setInviteExpiresAt(null)
+    setInviteError('')
+    setLinkCopied(false)
+  }
+
+  const handleCloseInviteModal = () => {
+    setShowInviteModal(false)
+    setInviteQrUrl('')
+    setInviteLink('')
+    setInviteExpiresAt(null)
+    setInviteError('')
+    setLinkCopied(false)
     queryClient.invalidateQueries({ queryKey: ['clients'] })
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      // Fallback for browsers without clipboard API
+    }
   }
 
   const handleUpdateClient = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setEditError('')
     setUpdating(true)
 
     try {
@@ -165,7 +172,7 @@ export default function ClientsView({ onBack }: Props) {
       setEditFormData({ name: '', email: '', phone: '', notes: '', sessionAllowance: '' })
       queryClient.invalidateQueries({ queryKey: ['clients'] })
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setEditError(err.message || 'An error occurred')
     } finally {
       setUpdating(false)
     }
@@ -175,7 +182,7 @@ export default function ClientsView({ onBack }: Props) {
     if (!editingClient) return
     if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) return
 
-    setError('')
+    setEditError('')
     setUpdating(true)
 
     try {
@@ -190,7 +197,7 @@ export default function ClientsView({ onBack }: Props) {
       setEditFormData({ name: '', email: '', phone: '', notes: '', sessionAllowance: '' })
       queryClient.invalidateQueries({ queryKey: ['clients'] })
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setEditError(err.message || 'An error occurred')
     } finally {
       setUpdating(false)
     }
@@ -224,7 +231,7 @@ export default function ClientsView({ onBack }: Props) {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('clients.title')}</h1>
               <p className="text-gray-800 mt-2 text-sm sm:text-base">{t('clients.subtitle')}</p>
             </div>
-            <Button onClick={() => setShowCreateModal(true)}>{t('clients.create')}</Button>
+            <Button onClick={handleOpenInviteModal}>{t('clients.invite_btn')}</Button>
           </div>
 
           {fetchError && (
@@ -306,67 +313,75 @@ export default function ClientsView({ onBack }: Props) {
         </div>
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">{t('clients.create_title')}</h2>
-            <form onSubmit={handleCreateClient} className="space-y-4">
-              {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 border border-red-200">{error}</div>}
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium text-gray-900">{t('clients.name_label')}</label>
-                <Input id="name" type="text" placeholder={t('clients.name_placeholder')} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-gray-900">{t('clients.email_label')}</label>
-                <Input id="email" type="email" placeholder={t('clients.email_placeholder')} value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="phone" className="text-sm font-medium text-gray-900">{t('clients.phone_label')}</label>
-                <Input id="phone" type="tel" placeholder={t('clients.phone_placeholder')} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="notes" className="text-sm font-medium text-gray-900">{t('clients.notes_label')}</label>
-                <textarea id="notes" rows={3} placeholder={t('clients.notes_placeholder')} value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="flex w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-base sm:text-sm text-gray-900 ring-offset-white placeholder:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B1538] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="createAccount" checked={formData.createAccount} onChange={(e) => setFormData({ ...formData, createAccount: e.target.checked })} className="h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300 rounded" />
-                <label htmlFor="createAccount" className="text-sm text-gray-700">{t('clients.create_account_label')}</label>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowCreateModal(false); setError(''); setFormData({ name: '', email: '', phone: '', notes: '', createAccount: true }) }}>{t('clients.cancel')}</Button>
-                <Button type="submit" className="flex-1" disabled={creating}>{creating ? t('clients.submitting_create') : t('clients.submit_create')}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {tempPassword && (
+      {/* Invite QR modal */}
+      {showInviteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{t('clients.created_title')}</h2>
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">{t('clients.created_desc', { email: formData.email })}</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t('clients.invite_modal_title')}</h2>
+            <p className="text-sm text-gray-600 mb-4">{t('clients.invite_modal_desc')}</p>
+
+            {inviteError && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 border border-red-200 mb-4">
+                {inviteError}
               </div>
-              {qrCodeUrl && (
-                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+            )}
+
+            {!inviteQrUrl && (
+              <Button
+                className="w-full"
+                onClick={handleGenerateInvite}
+                disabled={generatingInvite}
+              >
+                {generatingInvite ? t('clients.invite_generating') : t('clients.invite_generate_btn')}
+              </Button>
+            )}
+
+            {inviteQrUrl && (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrCodeUrl} alt="Login QR Code" width={224} height={224} />
+                  <img src={inviteQrUrl} alt="Registration QR Code" width={224} height={224} />
                 </div>
-              )}
-              <Button className="w-full" onClick={handleClosePasswordModal}>{t('clients.done')}</Button>
-            </div>
+
+                {inviteExpiresAt && (
+                  <p className="text-xs text-center text-gray-500">
+                    {t('clients.invite_expires', {
+                      date: inviteExpiresAt.toLocaleDateString(),
+                    })}
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={inviteLink}
+                    className="flex-1 text-xs px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 truncate"
+                  />
+                  <Button variant="outline" size="sm" onClick={handleCopyLink} className="flex-shrink-0">
+                    {linkCopied ? t('clients.invite_copied') : t('clients.invite_copy')}
+                  </Button>
+                </div>
+
+                <Button variant="outline" className="w-full" onClick={handleGenerateInvite} disabled={generatingInvite}>
+                  {t('clients.invite_generate_new')}
+                </Button>
+              </div>
+            )}
+
+            <Button variant="ghost" className="w-full mt-3 text-gray-600" onClick={handleCloseInviteModal}>
+              {t('clients.invite_close')}
+            </Button>
           </div>
         </div>
       )}
 
+      {/* Edit client modal */}
       {editingClient && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">{t('clients.edit_title')}</h2>
             <form onSubmit={handleUpdateClient} className="space-y-4">
-              {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 border border-red-200">{error}</div>}
+              {editError && <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 border border-red-200">{editError}</div>}
               <div className="space-y-2">
                 <label htmlFor="edit-name" className="text-sm font-medium text-gray-900">{t('clients.name_label')}</label>
                 <Input id="edit-name" type="text" placeholder={t('clients.name_placeholder')} value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} required />
@@ -390,7 +405,7 @@ export default function ClientsView({ onBack }: Props) {
               </div>
               <div className="flex flex-col gap-3 pt-4">
                 <div className="flex gap-3">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => { setEditingClient(null); setError(''); setEditFormData({ name: '', email: '', phone: '', notes: '', sessionAllowance: '' }) }}>{t('clients.cancel')}</Button>
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => { setEditingClient(null); setEditError(''); setEditFormData({ name: '', email: '', phone: '', notes: '', sessionAllowance: '' }) }}>{t('clients.cancel')}</Button>
                   <Button type="submit" className="flex-1" disabled={updating}>{updating ? t('clients.submitting_edit') : t('clients.submit_edit')}</Button>
                 </div>
                 <Button type="button" variant="ghost" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleDeleteClient} disabled={updating}>{t('clients.delete')}</Button>

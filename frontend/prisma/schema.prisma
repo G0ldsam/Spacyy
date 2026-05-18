@@ -248,7 +248,7 @@ enum BookingStatus {
 model Invitation {
   id             String           @id @default(cuid())
   organizationId String
-  email          String
+  email          String?          // Optional — client provides their own email on self-registration
   role           UserRole         @default(CLIENT)
   token          String           @unique
   expiresAt      DateTime
@@ -257,7 +257,6 @@ model Invitation {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([organizationId, email, token])
   @@index([token])
   @@index([organizationId])
   @@index([expiresAt])
