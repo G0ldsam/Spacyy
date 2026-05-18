@@ -20,7 +20,10 @@
       "Bash(Select-Object -First 20)",
       "Bash(xargs grep -l \"form\\\\|Form\")",
       "Bash(Get-ChildItem -Recurse -Directory)",
-      "Bash(findstr \"date-fns\")"
+      "Bash(findstr \"date-fns\")",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"fitness wellness booking SaaS mobile PWA install modal\" --design-system -f markdown)",
+      "Bash(Get-ChildItem -Path . -Recurse -Directory)",
+      "Bash(Format-List FullName)"
     ]
   }
 }

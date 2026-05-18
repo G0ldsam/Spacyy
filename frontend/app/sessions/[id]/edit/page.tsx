@@ -40,7 +40,7 @@ export default function EditSessionPage() {
     } finally {
       setLoading(false)
     }
-  }, [sessionId])
+  }, [sessionId, t])
 
   useEffect(() => {
     fetchSession()

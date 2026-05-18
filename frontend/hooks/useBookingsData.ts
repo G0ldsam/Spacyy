@@ -43,6 +43,7 @@ interface Client {
   notes: string | null
   userId: string | null
   sessionAllowance: number | null
+  activeBookingsCount: number
   createdAt: string
 }
 

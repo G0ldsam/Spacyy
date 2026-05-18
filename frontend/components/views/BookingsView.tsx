@@ -165,7 +165,10 @@ export default function BookingsView({ onBack }: Props) {
 
   const { data: exceptions = {} } = useExceptions(selectedSession?.id || '', dateStr)
 
-  const daySlots = selectedSession?.timetable.filter((sl) => sl.dayOfWeek === selectedDate.getDay()) || []
+  const daySlots = useMemo(
+    () => selectedSession?.timetable.filter((sl) => sl.dayOfWeek === selectedDate.getDay()) ?? [],
+    [selectedSession, selectedDate]
+  )
   const interestQueries = useMultipleInterestLists(selectedSession?.id || '', daySlots, dateStr)
   const interestLists = useMemo(() => {
     const lists: Record<string, InterestEntry[]> = {}
