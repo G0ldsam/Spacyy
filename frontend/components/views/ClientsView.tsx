@@ -351,15 +351,28 @@ export default function ClientsView({ onBack }: Props) {
                   </p>
                 )}
 
-                <div className="flex gap-2">
+                <div className="relative">
                   <input
                     readOnly
                     value={inviteLink}
-                    className="flex-1 text-xs px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 truncate"
+                    className="w-full text-xs px-3 py-2 pr-9 border border-gray-300 rounded-md bg-gray-50 text-gray-700 truncate"
                   />
-                  <Button variant="outline" size="sm" onClick={handleCopyLink} className="flex-shrink-0">
-                    {linkCopied ? t('clients.invite_copied') : t('clients.invite_copy')}
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    title={linkCopied ? t('clients.invite_copied') : t('clients.invite_copy')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    {linkCopied ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
 
                 <Button variant="outline" className="w-full" onClick={handleGenerateInvite} disabled={generatingInvite}>

@@ -62,37 +62,33 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await hash(validated.password, 10)
 
-    await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
+    // Batch form — compatible with Supabase PgBouncer transaction mode
+    // Client is nested inside user.create so no user ID needed upfront
+    await prisma.$transaction([
+      prisma.user.create({
         data: {
           email: validated.email,
           name: validated.name,
           password: hashedPassword,
           mustChangePassword: false,
           organizations: {
+            create: { organizationId, role: 'CLIENT' },
+          },
+          clients: {
             create: {
               organizationId,
-              role: 'CLIENT',
+              email: validated.email,
+              name: validated.name,
+              phone: validated.phone,
             },
           },
         },
-      })
-
-      await tx.client.create({
-        data: {
-          organizationId,
-          userId: user.id,
-          email: validated.email,
-          name: validated.name,
-          phone: validated.phone,
-        },
-      })
-
-      await tx.invitation.update({
+      }),
+      prisma.invitation.update({
         where: { token: validated.token },
         data: { acceptedAt: new Date() },
-      })
-    })
+      }),
+    ])
 
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error: any) {
