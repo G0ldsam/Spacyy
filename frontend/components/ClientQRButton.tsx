@@ -44,7 +44,7 @@ export function ClientQRButton() {
       <button
         onClick={handleOpen}
         aria-label="Show membership QR code"
-        className="fixed top-4 right-4 z-50 bg-white rounded-full shadow-lg p-2.5 border border-gray-200 hover:shadow-xl active:scale-95 transition-all"
+        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

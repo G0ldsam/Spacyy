@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import NotificationBell from '@/components/NotificationBell'
 import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import SettingsSidebar from '@/components/SettingsSidebar'
+import { ClientQRButton } from '@/components/ClientQRButton'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
@@ -140,6 +141,7 @@ export default function HomePage() {
           <div className="mb-6 sm:mb-8 relative">
             <div className="absolute top-0 right-0 flex items-center gap-2">
               <NotificationBell />
+              <ClientQRButton />
               <button
                 onClick={() => setSettingsOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
