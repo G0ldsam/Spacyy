@@ -11,6 +11,7 @@ import NotificationBell from '@/components/NotificationBell'
 import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import SettingsSidebar from '@/components/SettingsSidebar'
 import { ClientQRButton } from '@/components/ClientQRButton'
+import { PWAInstallBanner } from '@/components/PWAInstallBanner'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
@@ -128,6 +129,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AutoPushSubscribe />
+      <PWAInstallBanner />
       {isAdmin && (
         <div className="bg-[#8B1538] text-white text-center text-sm py-2 px-4">
           {t('home.preview_banner')}{' '}

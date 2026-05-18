@@ -484,6 +484,13 @@ const en = {
     client_view: 'Client View',
     settings: 'Settings',
   },
+  install_banner: {
+    title: 'Get the Spacyy app',
+    desc: 'Add to your home screen for faster access',
+    install: 'Install',
+    dismiss: 'Not now',
+    howto: 'How to install',
+  },
 }
 
 export default en

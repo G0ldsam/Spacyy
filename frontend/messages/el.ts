@@ -486,6 +486,13 @@ const el: Messages = {
     client_view: 'Προβολή Πελάτη',
     settings: 'Ρυθμίσεις',
   },
+  install_banner: {
+    title: 'Αποκτήστε την εφαρμογή Spacyy',
+    desc: 'Προσθέστε στην αρχική οθόνη για γρηγορότερη πρόσβαση',
+    install: 'Εγκατάσταση',
+    dismiss: 'Όχι τώρα',
+    howto: 'Πώς να εγκαταστήσετε',
+  },
 }
 
 export default el
