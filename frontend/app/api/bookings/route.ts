@@ -3,17 +3,17 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
-import { verifyTenantAccess } from '@/lib/api-helpers'
+import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
 import { notifyAdminNewBooking, sendBookingConfirmation, sendPendingSlotWarning, notifyAdminPendingSlotUsed } from '@/lib/email'
 import { createNotifications } from '@/lib/notify'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-// GET /api/bookings - List bookings
+// GET /api/bookings - List bookings (admin/owner only)
 export async function GET(req: NextRequest) {
   try {
-    const result = await verifyTenantAccess()
+    const result = await verifyTenantAdmin()
     if ('error' in result) return result.error
     const { tenant } = result
 

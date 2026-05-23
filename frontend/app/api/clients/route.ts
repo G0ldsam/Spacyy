@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { clientSchema } from '@/lib/validation'
 import { hash } from 'bcryptjs'
-import { randomBytes } from 'crypto'
-import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
+import { randomBytes } from 'node:crypto'
+import { verifyTenantAdmin } from '@/lib/api-helpers'
 import { sendWelcomeEmail } from '@/lib/email'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-// GET /api/clients - List clients
+// GET /api/clients - List clients (admin/owner only)
 export async function GET(req: NextRequest) {
   try {
-    const result = await verifyTenantAccess()
+    const result = await verifyTenantAdmin()
     if ('error' in result) return result.error
     const { tenant } = result
 

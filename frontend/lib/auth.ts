@@ -86,15 +86,30 @@ export const authOptions: NextAuthOptions = {
           token.organizations = (user as any).organizations || []
         }
         
-        // If session is being updated, refresh the mustChangePassword flag from database
+        // Refresh user data from DB when session is explicitly updated
         if (trigger === 'update') {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { mustChangePassword: true },
-          })
+          const [dbUser, dbOrgs] = await Promise.all([
+            prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { mustChangePassword: true },
+            }),
+            prisma.userOrganization.findMany({
+              where: { userId: token.id as string },
+              include: { organization: true },
+            }),
+          ])
           if (dbUser) {
             token.mustChangePassword = dbUser.mustChangePassword
           }
+          token.organizations = dbOrgs.map((uo) => ({
+            id: uo.organizationId,
+            role: uo.role,
+            organization: {
+              id: uo.organization.id,
+              name: uo.organization.name,
+              slug: uo.organization.slug,
+            },
+          }))
         }
         
         return token

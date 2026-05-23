@@ -119,13 +119,14 @@ export async function verifyTenantAccess(): Promise<
 }
 
 /**
- * Verify user is an admin/owner of the tenant organization
+ * Verify user is an admin/owner of the tenant organization.
+ * Role is always verified from the database — never trusted from the JWT alone.
  */
 export async function verifyTenantAdmin(): Promise<
   { tenant: TenantContext } | { error: NextResponse }
 > {
   const session = await getServerSession(authOptions)
-  
+
   if (!session?.user) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
@@ -133,26 +134,35 @@ export async function verifyTenantAdmin(): Promise<
   let tenant = await getTenantContext()
 
   if (!tenant) {
-    // Fall back to user's admin org (same as verifyTenantAccess)
-    const sessionOrg = session.user.organizations?.find(
-      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
-    )
-    if (!sessionOrg) {
-      return { error: NextResponse.json({ error: 'No organization context' }, { status: 400 }) }
+    // No hostname-derived tenant: find user's admin org directly from DB
+    const adminOrgRow = await prisma.userOrganization.findFirst({
+      where: {
+        userId: session.user.id,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+      include: { organization: true },
+    })
+    if (!adminOrgRow) {
+      return { error: NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 }) }
     }
-    tenant = {
-      organizationId: sessionOrg.organization.id,
-      slug: sessionOrg.organization.slug,
-      name: sessionOrg.organization.name,
-      type: 'session',
+    return {
+      tenant: {
+        organizationId: adminOrgRow.organization.id,
+        slug: adminOrgRow.organization.slug,
+        name: adminOrgRow.organization.name,
+        type: 'session',
+      },
     }
   }
 
-  // Verify user is admin of this organization
-  const userOrg = session.user.organizations?.find(
-    (org) => org.organization.id === tenant.organizationId &&
-             (org.role === 'OWNER' || org.role === 'ADMIN')
-  )
+  // Always verify role from DB — JWT role can be stale after a role change
+  const userOrg = await prisma.userOrganization.findFirst({
+    where: {
+      userId: session.user.id,
+      organizationId: tenant.organizationId,
+      role: { in: ['OWNER', 'ADMIN'] },
+    },
+  })
 
   if (!userOrg) {
     return { error: NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 }) }

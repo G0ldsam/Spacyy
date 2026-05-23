@@ -13,9 +13,14 @@ function DataPrefetcher() {
 
   useEffect(() => {
     if (!session) return
+    const isAdmin = session.user?.organizations?.some(
+      (org) => org.role === 'OWNER' || org.role === 'ADMIN'
+    )
     queryClient.prefetchQuery({ queryKey: ['sessions'], queryFn: () => fetch('/api/sessions').then(r => r.json()) })
-    queryClient.prefetchQuery({ queryKey: ['clients'], queryFn: () => fetch('/api/clients').then(r => r.json()) })
-    queryClient.prefetchQuery({ queryKey: ['dashboard-stats'], queryFn: () => fetch('/api/dashboard/stats').then(r => r.json()) })
+    if (isAdmin) {
+      queryClient.prefetchQuery({ queryKey: ['clients'], queryFn: () => fetch('/api/clients').then(r => r.json()) })
+      queryClient.prefetchQuery({ queryKey: ['dashboard-stats'], queryFn: () => fetch('/api/dashboard/stats').then(r => r.json()) })
+    }
   }, [session])
 
   return null
