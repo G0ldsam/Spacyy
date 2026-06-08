@@ -46,8 +46,17 @@ export default async function RebookPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
-  const tenant = await getTenantContext()
-  if (!tenant) redirect('/home')
+  let tenant = await getTenantContext()
+  if (!tenant) {
+    const sessionOrg = session.user.organizations?.[0]
+    if (!sessionOrg) redirect('/home')
+    tenant = {
+      organizationId: sessionOrg.organization.id,
+      slug: sessionOrg.organization.slug,
+      name: sessionOrg.organization.name,
+      type: 'session',
+    }
+  }
 
   const now = new Date()
   const yr = now.getUTCFullYear()
