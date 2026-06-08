@@ -103,7 +103,7 @@ export const authOptions: NextAuthOptions = {
           }
           token.organizations = dbOrgs.map((uo) => ({
             id: uo.organizationId,
-            role: uo.role,
+            role: uo.role as UserRole,
             organization: {
               id: uo.organization.id,
               name: uo.organization.name,

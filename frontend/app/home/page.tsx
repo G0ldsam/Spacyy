@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
+import { useQuery } from '@tanstack/react-query'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -27,59 +28,42 @@ export default function HomePage() {
   const router = useRouter()
   const { t } = useLanguage()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [myBookings, setMyBookings] = useState<Booking[]>([])
-  const [sessionAllowance, setSessionAllowance] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [expirationWarning, setExpirationWarning] = useState<{
-    show: boolean
-    lastBookingDate: Date | null
-  }>({ show: false, lastBookingDate: null })
-
-  // Single parallel fetch — eliminates the sequential waterfall
-  const loadData = useCallback(async () => {
-    try {
-      const [clientRes, bookingsRes] = await Promise.all([
-        fetch('/api/clients/me'),
-        fetch('/api/bookings/my'),
-      ])
-
-      const [clientData, bookingsData] = await Promise.all([
-        clientRes.ok ? clientRes.json() : null,
-        bookingsRes.ok ? bookingsRes.json() : [],
-      ])
-
-      const allowance: number | null = clientData?.sessionAllowance ?? null
-      setSessionAllowance(allowance)
-
-      const now = new Date()
-      const active: Booking[] = bookingsData.filter((b: Booking) => {
-        if (b.status === 'CANCELLED') return false
-        return new Date(b.endTime) >= now
-      })
-      setMyBookings(active)
-
-      if (allowance !== null && active.length >= allowance && active.length > 0) {
-        const lastEnd = new Date(
-          [...active].sort((a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime())[0].endTime
-        )
-        const oneDayOut = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-        setExpirationWarning({ show: lastEnd <= oneDayOut, lastBookingDate: lastEnd <= oneDayOut ? lastEnd : null })
-      } else {
-        setExpirationWarning({ show: false, lastBookingDate: null })
-      }
-    } catch (error) {
-      console.error('Error loading home data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
-    if (status === 'unauthenticated') { router.push('/login'); return }
-    if (status === 'authenticated') loadData()
-  }, [status, router, loadData])
+    if (status === 'unauthenticated') router.push('/login')
+  }, [status, router])
 
-  if (status === 'loading' || loading) return <PageSpinner />
+  const { data: clientData, isLoading: clientLoading } = useQuery({
+    queryKey: ['client-me'],
+    queryFn: () => fetch('/api/clients/me').then(r => r.ok ? r.json() : null),
+    enabled: status === 'authenticated',
+  })
+
+  const { data: allBookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
+    queryKey: ['bookings-my'],
+    queryFn: () => fetch('/api/bookings/my').then(r => r.json()),
+    enabled: status === 'authenticated',
+  })
+
+  const sessionAllowance: number | null = clientData?.sessionAllowance ?? null
+
+  const myBookings = useMemo(() => {
+    const now = new Date()
+    return allBookings.filter(b => b.status !== 'CANCELLED' && new Date(b.endTime) >= now)
+  }, [allBookings])
+
+  const expirationWarning = useMemo(() => {
+    if (sessionAllowance !== null && myBookings.length >= sessionAllowance && myBookings.length > 0) {
+      const lastEnd = new Date(
+        [...myBookings].sort((a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime())[0].endTime
+      )
+      const oneDayOut = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      if (lastEnd <= oneDayOut) return { show: true, lastBookingDate: lastEnd }
+    }
+    return { show: false, lastBookingDate: null }
+  }, [sessionAllowance, myBookings])
+
+  if (status !== 'authenticated' || clientLoading || bookingsLoading) return <PageSpinner />
 
   const isAdmin = session?.user?.organizations?.some(o => o.role === 'OWNER' || o.role === 'ADMIN') ?? false
   const slotsRemaining = sessionAllowance === null ? null : sessionAllowance - myBookings.length
@@ -128,14 +112,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Rebook banner — only when client has slots but no bookings yet */}
           {showRebookBanner && (
             <Link href="/rebook" className="block mb-6">
               <div className="rounded-2xl bg-gradient-to-r from-[#8B1538] to-[#a01a42] p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all">
                 <div>
                   <p className="font-bold text-sm leading-tight">Book your sessions for this month</p>
                   <p className="text-xs opacity-75 mt-0.5">
-                    {sessionAllowance} session{sessionAllowance === 1 ? '' : 's'} available
+                    {slotsRemaining} session{slotsRemaining === 1 ? '' : 's'} available
                   </p>
                 </div>
                 <div className="shrink-0 bg-white/20 rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1 whitespace-nowrap">
@@ -198,14 +181,9 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-gray-700">{t('home.book_desc')}</p>
-                  <Link href="/rebook">
+                  <Link href="/rebook" className="block mt-4">
                     <Button className="w-full bg-[#8B1538] hover:bg-[#7a1230]">
                       Book sessions
-                    </Button>
-                  </Link>
-                  <Link href="/book">
-                    <Button variant="outline" className="w-full">
-                      {t('home.browse')}
                     </Button>
                   </Link>
                 </CardContent>

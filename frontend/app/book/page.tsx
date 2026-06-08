@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
+import { useQuery } from '@tanstack/react-query'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -41,160 +42,97 @@ interface Booking {
 const toLocalDateStr = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+function slotCapacityClass(isFull: boolean): string {
+  return isFull ? 'text-red-600' : 'text-green-600'
+}
+
+function calDayClass(isPast: boolean, selected: boolean, today: boolean): string {
+  if (isPast) return 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
+  if (selected) return 'bg-[#8B1538] text-white'
+  if (today) return 'bg-gray-200 text-gray-900'
+  return 'hover:bg-gray-100 text-gray-700 border border-gray-200'
+}
+
 export default function BookPage() {
   const { t } = useLanguage()
   const { data: session, status } = useSession()
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [myBookings, setMyBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(true)
-  const [availableSessions, setAvailableSessions] = useState<Session[]>([])
-  // sessionId → "HH:mm-HH:mm" → booked count
-  const [slotBookedCounts, setSlotBookedCounts] = useState<Record<string, Record<string, number>>>({})
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchSessions()
-      fetchMyBookings()
-    }
+    if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  const fetchSessions = async () => {
-    try {
-      const response = await fetch('/api/sessions')
-      if (!response.ok) throw new Error('Failed to fetch sessions')
-      const data = await response.json()
-      setSessions(data)
-    } catch (error) {
-      console.error('Error fetching sessions:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery<Session[]>({
+    queryKey: ['sessions'],
+    queryFn: () => fetch('/api/sessions').then(r => r.json()),
+    enabled: status === 'authenticated',
+  })
 
-  const fetchMyBookings = async () => {
-    try {
-      const response = await fetch('/api/bookings/my')
-      if (response.ok) {
-        const data = await response.json()
-        const now = new Date()
-        const active = data.filter((b: Booking) => {
-          if (b.status === 'CANCELLED') return false
-          return new Date(b.endTime) >= now
-        })
-        setMyBookings(active)
-      }
-    } catch (error) {
-      console.error('Error fetching bookings:', error)
-    }
-  }
+  const { data: allBookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
+    queryKey: ['bookings-my'],
+    queryFn: () => fetch('/api/bookings/my').then(r => r.json()),
+    enabled: status === 'authenticated',
+  })
 
-  const fetchSlotAvailability = useCallback(async (sessionsToFetch: Session[], date: Date) => {
-    const dateStr = toLocalDateStr(date)
-    const results = await Promise.all(
-      sessionsToFetch.map(async (s) => {
-        try {
-          const res = await fetch(`/api/bookings/availability?sessionId=${s.id}&date=${dateStr}`)
-          if (!res.ok) return { id: s.id, countMap: {} }
-          const bookings: { startTime: string; endTime: string }[] = await res.json()
-          const countMap: Record<string, number> = {}
-          bookings.forEach((b) => {
-            const key = `${b.startTime}-${b.endTime}`
-            countMap[key] = (countMap[key] || 0) + 1
-          })
-          return { id: s.id, countMap }
-        } catch {
-          return { id: s.id, countMap: {} }
-        }
-      })
-    )
-    const merged: Record<string, Record<string, number>> = {}
-    results.forEach(({ id, countMap }) => { merged[id] = countMap })
-    setSlotBookedCounts(merged)
-  }, [])
+  const myBookings = useMemo(() => {
+    const now = new Date()
+    return allBookings.filter(b => b.status !== 'CANCELLED' && new Date(b.endTime) >= now)
+  }, [allBookings])
 
-  const filterSessionsByDate = useCallback(() => {
+  const availableSessions = useMemo(() => {
     const dayOfWeek = selectedDate.getDay()
-    
-    const filtered = sessions.filter((session) => {
-      return session.timetable.some((slot) => slot.dayOfWeek === dayOfWeek)
-    })
+    return sessions
+      .filter(s => s.timetable.some(slot => slot.dayOfWeek === dayOfWeek))
+      .map(s => ({ ...s, timetable: s.timetable.filter(slot => slot.dayOfWeek === dayOfWeek) }))
+  }, [sessions, selectedDate])
 
-    const mapped = filtered.map((session) => ({
-      ...session,
-      timetable: session.timetable.filter((slot) => slot.dayOfWeek === dayOfWeek),
-    }))
-
-    setAvailableSessions(mapped)
-  }, [selectedDate, sessions])
-
-  useEffect(() => {
-    // Reset to today if selected date is in the past
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const selected = new Date(selectedDate)
-    selected.setHours(0, 0, 0, 0)
-    if (selected < today) {
-      setSelectedDate(new Date())
-      return
-    }
-    if (sessions.length > 0) {
-      filterSessionsByDate()
-    }
-  }, [selectedDate, sessions, filterSessionsByDate])
-
-  useEffect(() => {
-    if (availableSessions.length > 0) {
-      fetchSlotAvailability(availableSessions, selectedDate)
-    }
-  }, [availableSessions, selectedDate, fetchSlotAvailability])
+  const { data: slotBookedCounts = {} } = useQuery<Record<string, Record<string, number>>>({
+    queryKey: ['slot-availability', availableSessions.map(s => s.id).join(','), toLocalDateStr(selectedDate)],
+    queryFn: async () => {
+      const dateStr = toLocalDateStr(selectedDate)
+      const results = await Promise.all(
+        availableSessions.map(async (s) => {
+          try {
+            const res = await fetch(`/api/bookings/availability?sessionId=${s.id}&date=${dateStr}`)
+            if (!res.ok) return { id: s.id, countMap: {} as Record<string, number> }
+            const bookings: { startTime: string; endTime: string }[] = await res.json()
+            const countMap: Record<string, number> = {}
+            bookings.forEach((b) => {
+              const key = `${b.startTime}-${b.endTime}`
+              countMap[key] = (countMap[key] || 0) + 1
+            })
+            return { id: s.id, countMap }
+          } catch {
+            return { id: s.id, countMap: {} as Record<string, number> }
+          }
+        })
+      )
+      const merged: Record<string, Record<string, number>> = {}
+      results.forEach(({ id, countMap }) => { merged[id] = countMap })
+      return merged
+    },
+    enabled: availableSessions.length > 0 && status === 'authenticated',
+    staleTime: 2 * 60 * 1000,
+  })
 
   const getWeekDays = (date: Date) => {
     const week = []
     const startOfWeek = new Date(date)
-    const day = startOfWeek.getDay() // 0 = Sunday, 1 = Monday, etc.
-    // Calculate Monday of the week: if Sunday (0), go back 6 days; otherwise go back (day - 1) days
+    const day = startOfWeek.getDay()
     const diff = startOfWeek.getDate() - (day === 0 ? 6 : day - 1)
-    
     for (let i = 0; i < 7; i++) {
       const weekDay = new Date(startOfWeek)
       weekDay.setDate(diff + i)
       week.push(weekDay)
     }
-    
     return week
   }
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate)
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 7)
-    } else {
-      newDate.setDate(newDate.getDate() + 7)
-    }
+    newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
     setSelectedDate(newDate)
-  }
-
-  const selectDate = (date: Date) => {
-    // Prevent selecting past dates
-    if (isPastDate(date)) {
-      return
-    }
-    setSelectedDate(date)
-  }
-
-  const isToday = (date: Date) => {
-    const today = new Date()
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    )
   }
 
   const isPastDate = (date: Date) => {
@@ -205,29 +143,28 @@ export default function BookPage() {
     return compareDate < today
   }
 
-  const isSelected = (date: Date) => {
-    return (
-      date.getDate() === selectedDate.getDate() &&
-      date.getMonth() === selectedDate.getMonth() &&
-      date.getFullYear() === selectedDate.getFullYear()
-    )
+  const isToday = (date: Date) => {
+    const today = new Date()
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
+  const isSelected = (date: Date) =>
+    date.getDate() === selectedDate.getDate() &&
+    date.getMonth() === selectedDate.getMonth() &&
+    date.getFullYear() === selectedDate.getFullYear()
+
+  const selectDate = (date: Date) => {
+    if (!isPastDate(date)) setSelectedDate(date)
   }
 
-  if (status === 'loading' || loading) {
-    return (
-      <PageSpinner />
-    )
-  }
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
+  if (status !== 'authenticated' || sessionsLoading || bookingsLoading) return <PageSpinner />
+
+  const isAdmin = session?.user?.organizations?.some(o => o.role === 'OWNER' || o.role === 'ADMIN') ?? false
   const weekDays = getWeekDays(selectedDate)
   const weekStart = weekDays[0]
   const weekEnd = weekDays[6]
@@ -262,6 +199,23 @@ export default function BookPage() {
             </div>
           </div>
 
+          {!isAdmin && (
+            <Link href="/rebook" className="block mb-6">
+              <div className="rounded-2xl bg-gradient-to-r from-[#8B1538] to-[#a01a42] p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all">
+                <div>
+                  <p className="font-bold text-sm leading-tight">Have a session allowance?</p>
+                  <p className="text-xs opacity-75 mt-0.5">Book multiple sessions at once</p>
+                </div>
+                <div className="shrink-0 bg-white/20 rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1 whitespace-nowrap">
+                  Book all at once
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </Link>
+          )}
+
           <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3 mb-6 w-full">
             {/* Calendar - Week View */}
             <div className="lg:col-span-1 w-full min-w-0">
@@ -270,20 +224,10 @@ export default function BookPage() {
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-xs sm:text-sm md:text-base break-words flex-1 min-w-0">{weekRange}</CardTitle>
                     <div className="flex gap-1 sm:gap-2 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigateWeek('prev')}
-                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')} className="h-7 w-7 sm:h-8 sm:w-8 p-0">
                         ‹
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigateWeek('next')}
-                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek('next')} className="h-7 w-7 sm:h-8 sm:w-8 p-0">
                         ›
                       </Button>
                     </div>
@@ -293,26 +237,15 @@ export default function BookPage() {
                   <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 w-full">
                     {weekDays.map((date, index) => {
                       const dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]
-                      const dayNumber = date.getDate()
                       return (
                         <button
-                          key={index}
+                          key={toLocalDateStr(date)}
                           onClick={() => selectDate(date)}
                           disabled={isPastDate(date)}
-                          className={`
-                            flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0
-                            ${isPastDate(date)
-                              ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
-                              : isSelected(date) 
-                              ? 'bg-[#8B1538] text-white' 
-                              : isToday(date)
-                              ? 'bg-gray-200 text-gray-900'
-                              : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
-                            }
-                          `}
+                          className={`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0 ${calDayClass(isPastDate(date), isSelected(date), isToday(date))}`}
                         >
                           <span className="text-[9px] sm:text-[10px] md:text-xs mb-0.5 sm:mb-1 opacity-70">{dayName}</span>
-                          <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{dayNumber}</span>
+                          <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{date.getDate()}</span>
                         </button>
                       )
                     })}
@@ -389,7 +322,7 @@ export default function BookPage() {
                                       >
                                         {slot.startTime} - {slot.endTime}
                                         {remaining !== null && (
-                                          <span className={`font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>
+                                          <span className={`font-semibold ${slotCapacityClass(isFull)}`}>
                                             {remaining}/{sessionItem.slots}
                                           </span>
                                         )}
@@ -450,15 +383,7 @@ export default function BookPage() {
                             })}
                           </p>
                         </div>
-                        <span
-                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
-                            booking.status === 'CONFIRMED'
-                              ? 'bg-green-100 text-green-800'
-                              : booking.status === 'CANCELLED'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
+                        <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 bg-green-100 text-green-800">
                           {booking.status}
                         </span>
                       </div>

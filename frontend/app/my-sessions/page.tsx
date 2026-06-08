@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
+import { useQuery } from '@tanstack/react-query'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -25,90 +26,64 @@ interface Booking {
 const toLocalDateStr = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+function bookingStatusClass(s: string): string {
+  if (s === 'CONFIRMED') return 'bg-green-100 text-green-800'
+  if (s === 'CANCELLED') return 'bg-red-100 text-red-800'
+  return 'bg-gray-100 text-gray-800'
+}
+
 export default function MySessionsPage() {
   const { t } = useLanguage()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [myBookings, setMyBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(true)
-  const [bookingsByDate, setBookingsByDate] = useState<Record<string, Booking[]>>({})
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchMyBookings()
-    }
+    if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  useEffect(() => {
-    // Group bookings by date
+  const { data: allBookings = [], isLoading } = useQuery<Booking[]>({
+    queryKey: ['bookings-my'],
+    queryFn: () => fetch('/api/bookings/my').then(r => r.json()),
+    enabled: status === 'authenticated',
+  })
+
+  const myBookings = useMemo(() => {
+    const now = new Date()
+    return allBookings.filter(b => b.status !== 'CANCELLED' && new Date(b.endTime) >= now)
+  }, [allBookings])
+
+  const bookingsByDate = useMemo(() => {
     const grouped: Record<string, Booking[]> = {}
     myBookings.forEach((booking) => {
       const dateKey = toLocalDateStr(new Date(booking.startTime))
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = []
-      }
+      if (!grouped[dateKey]) grouped[dateKey] = []
       grouped[dateKey].push(booking)
     })
-    setBookingsByDate(grouped)
+    return grouped
   }, [myBookings])
-
-  const fetchMyBookings = async () => {
-    try {
-      const response = await fetch('/api/bookings/my')
-      if (response.ok) {
-        const data = await response.json()
-        const now = new Date()
-        // Filter out cancelled bookings and past bookings (where endTime is before now)
-        const activeBookings = data.filter((b: Booking) => {
-          if (b.status === 'CANCELLED') return false
-          const endTime = new Date(b.endTime)
-          return endTime >= now
-        })
-        setMyBookings(activeBookings)
-      }
-    } catch (error) {
-      console.error('Error fetching bookings:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getWeekDays = (date: Date) => {
     const week = []
     const startOfWeek = new Date(date)
-    const day = startOfWeek.getDay() // 0 = Sunday, 1 = Monday, etc.
-    // Calculate Monday of the week: if Sunday (0), go back 6 days; otherwise go back (day - 1) days
+    const day = startOfWeek.getDay()
     const diff = startOfWeek.getDate() - (day === 0 ? 6 : day - 1)
-    
     for (let i = 0; i < 7; i++) {
       const weekDay = new Date(startOfWeek)
       weekDay.setDate(diff + i)
       week.push(weekDay)
     }
-    
     return week
   }
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate)
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 7)
-    } else {
-      newDate.setDate(newDate.getDate() + 7)
-    }
+    newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
     setSelectedDate(newDate)
   }
 
   const selectDate = (date: Date) => {
-    // Prevent selecting past dates
-    if (isPastDate(date)) {
-      return
-    }
+    if (isPastDate(date)) return
     setSelectedDate(date)
   }
 
@@ -129,33 +104,24 @@ export default function MySessionsPage() {
     return compareDate < today
   }
 
-  const isSelected = (date: Date) => {
-    return (
-      date.getDate() === selectedDate.getDate() &&
-      date.getMonth() === selectedDate.getMonth() &&
-      date.getFullYear() === selectedDate.getFullYear()
-    )
+  const isSelected = (date: Date) =>
+    date.getDate() === selectedDate.getDate() &&
+    date.getMonth() === selectedDate.getMonth() &&
+    date.getFullYear() === selectedDate.getFullYear()
+
+  function calDayClass(date: Date): string {
+    if (isPastDate(date)) return 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
+    if (isSelected(date)) return 'bg-[#8B1538] text-white'
+    if (isToday(date)) return 'bg-gray-200 text-gray-900'
+    return 'hover:bg-gray-100 text-gray-700 border border-gray-200'
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
-  const getSelectedDateBookings = () => {
-    const dateKey = toLocalDateStr(selectedDate)
-    return bookingsByDate[dateKey] || []
-  }
+  const getSelectedDateBookings = () => bookingsByDate[toLocalDateStr(selectedDate)] || []
 
-  if (status === 'loading' || loading) {
-    return (
-      <PageSpinner />
-    )
-  }
+  if (status !== 'authenticated' || isLoading) return <PageSpinner />
 
   const weekDays = getWeekDays(selectedDate)
   const weekStart = weekDays[0]
@@ -243,31 +209,18 @@ export default function MySessionsPage() {
                       const dayNumber = date.getDate()
                       const dateKey = toLocalDateStr(date)
                       const hasBookings = bookingsByDate[dateKey] && bookingsByDate[dateKey].length > 0
-                      
+
                       return (
                         <button
-                          key={index}
+                          key={toLocalDateStr(date)}
                           onClick={() => selectDate(date)}
                           disabled={isPastDate(date)}
-                          className={`
-                            flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0
-                            ${isPastDate(date)
-                              ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
-                              : isSelected(date) 
-                              ? 'bg-[#8B1538] text-white' 
-                              : isToday(date)
-                              ? 'bg-gray-200 text-gray-900'
-                              : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
-                            }
-                          `}
+                          className={`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 lg:p-3 rounded-md text-[10px] sm:text-xs md:text-sm font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] lg:min-h-[80px] flex-shrink-0 ${calDayClass(date)}`}
                         >
                           <span className="text-[9px] sm:text-[10px] md:text-xs mb-0.5 sm:mb-1 opacity-70">{dayName}</span>
                           <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{dayNumber}</span>
                           {hasBookings && (
-                            <span className={`
-                              mt-0.5 sm:mt-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full
-                              ${isSelected(date) ? 'bg-white' : 'bg-[#8B1538]'}
-                            `} />
+                            <span className={`mt-0.5 sm:mt-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected(date) ? 'bg-white' : 'bg-[#8B1538]'}`} />
                           )}
                         </button>
                       )
@@ -330,13 +283,7 @@ export default function MySessionsPage() {
                                 </p>
                               </div>
                               <span
-                                className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
-                                  booking.status === 'CONFIRMED'
-                                    ? 'bg-green-100 text-green-800'
-                                    : booking.status === 'CANCELLED'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}
+                                className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${bookingStatusClass(booking.status)}`}
                               >
                                 {booking.status}
                               </span>

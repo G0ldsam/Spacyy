@@ -17,6 +17,8 @@ function DataPrefetcher() {
       (org) => org.role === 'OWNER' || org.role === 'ADMIN'
     )
     queryClient.prefetchQuery({ queryKey: ['sessions'], queryFn: () => fetch('/api/sessions').then(r => r.json()) })
+    queryClient.prefetchQuery({ queryKey: ['bookings-my'], queryFn: () => fetch('/api/bookings/my').then(r => r.json()) })
+    queryClient.prefetchQuery({ queryKey: ['client-me'], queryFn: () => fetch('/api/clients/me').then(r => r.ok ? r.json() : null) })
     if (isAdmin) {
       queryClient.prefetchQuery({ queryKey: ['clients'], queryFn: () => fetch('/api/clients').then(r => r.json()) })
       queryClient.prefetchQuery({ queryKey: ['dashboard-stats'], queryFn: () => fetch('/api/dashboard/stats').then(r => r.json()) })
