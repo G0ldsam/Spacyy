@@ -159,7 +159,7 @@ export default function MySessionsPage() {
           </div>
 
           {myBookings.length === 0 && (
-            <Link href="/rebook" className="block mb-6">
+            <Link href="/book" className="block mb-6">
               <div className="rounded-2xl bg-gradient-to-r from-[#8B1538] to-[#a01a42] p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all">
                 <div>
                   <p className="font-bold text-sm leading-tight">No upcoming sessions</p>

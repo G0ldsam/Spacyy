@@ -4,12 +4,13 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import type { Suggestion } from '@/app/rebook/page'
+import type { Suggestion } from '@/app/book/page'
 
 interface Props {
   suggestions: Suggestion[]
   slotsRemaining: number | null
   clientSessionAllowance: number | null
+  onBrowse: () => void
 }
 
 function fmtTime(iso: string) {
@@ -72,12 +73,10 @@ function buildDayGroups(suggestions: Suggestion[]): DayGroup[] {
     if (s.isPreSelected) sg.hasPreSelected = true
   }
 
-  // Sort items within each session group chronologically
   for (const sg of sessionMap.values()) {
     sg.items.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   }
 
-  // Group by day
   const dayMap = new Map<number, DayGroup>()
   for (const sg of sessionMap.values()) {
     if (!dayMap.has(sg.dow)) {
@@ -86,7 +85,6 @@ function buildDayGroups(suggestions: Suggestion[]): DayGroup[] {
     dayMap.get(sg.dow)?.sessions.push(sg)
   }
 
-  // Within each day: pre-selected sessions first, then by time
   for (const dg of dayMap.values()) {
     dg.sessions.sort((a, b) => {
       if (a.hasPreSelected && !b.hasPreSelected) return -1
@@ -95,7 +93,6 @@ function buildDayGroups(suggestions: Suggestion[]): DayGroup[] {
     })
   }
 
-  // Sort days Mon→Sun
   return Array.from(dayMap.values()).sort((a, b) => dowOrder(a.dow) - dowOrder(b.dow))
 }
 
@@ -198,7 +195,7 @@ function bookButtonLabel(booking: boolean, selCount: number): string {
   return `Book ${selCount} session${selCount === 1 ? '' : 's'}`
 }
 
-export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowance }: Readonly<Props>) {
+export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowance, onBrowse }: Readonly<Props>) {
   const router = useRouter()
 
   const [selected, setSelected] = useState<Set<string>>(
@@ -316,6 +313,20 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
               </p>
             </div>
           </div>
+
+          {/* Tab switcher */}
+          <div className="flex bg-gray-100 rounded-lg p-0.5 text-xs font-medium mb-3">
+            <button className="flex-1 py-1.5 rounded-md bg-white shadow-sm text-gray-900 transition-colors">
+              Recommended
+            </button>
+            <button
+              onClick={onBrowse}
+              className="flex-1 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Browse
+            </button>
+          </div>
+
           {slotsRemaining !== null && slotsRemaining > 0 && (
             <div className="w-full bg-gray-100 rounded-full h-1.5">
               <div
@@ -330,11 +341,9 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-6">
         {dayGroups.map(dayGroup => (
           <div key={dayGroup.dow}>
-            {/* Day header */}
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">
               {dayGroup.dayName}s
             </h2>
-
             <div className="space-y-2">
               {dayGroup.sessions.map(group => (
                 <SessionCard

@@ -113,7 +113,7 @@ export default function HomePage() {
           </div>
 
           {showRebookBanner && (
-            <Link href="/rebook" className="block mb-6">
+            <Link href="/book" className="block mb-6">
               <div className="rounded-2xl bg-gradient-to-r from-[#8B1538] to-[#a01a42] p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all">
                 <div>
                   <p className="font-bold text-sm leading-tight">Book your sessions for this month</p>
@@ -181,7 +181,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-gray-700">{t('home.book_desc')}</p>
-                  <Link href="/rebook" className={buttonVariants('default', 'md', 'mt-4 w-full')}>
+                  <Link href="/book" className={buttonVariants('default', 'md', 'mt-4 w-full')}>
                     Book sessions
                   </Link>
                 </CardContent>
