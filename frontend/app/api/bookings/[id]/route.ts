@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       where: { id: params.id },
       include: {
         serviceSession: { select: { id: true, name: true, description: true, themeColor: true } },
-        organization: { select: { bookingChangeHours: true } },
+        organization: { select: { bookingChangeHours: true, cancellationPolicy: true } },
       },
     })
     if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
@@ -63,7 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const existingBooking = await prisma.booking.findUnique({
       where: { id: params.id },
       include: {
-        organization: { select: { bookingChangeHours: true, name: true } },
+        organization: { select: { bookingChangeHours: true, name: true, cancellationPolicy: true } },
         client: {
           select: {
             id: true,
@@ -94,6 +94,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
+      // Enforce cancellation policy for clients
+      if (newStatus === 'CANCELLED') {
+        const policy = existingBooking.organization.cancellationPolicy
+        if (policy === 'RESCHEDULE_ONLY' && !isReschedule) {
+          return NextResponse.json(
+            { error: 'Cancellations are not allowed. Please reschedule to another date instead.' },
+            { status: 403 }
+          )
+        }
+      }
+
       // Enforce booking change policy for non-cancellation changes
       if (newStatus !== 'CANCELLED' && existingBooking.organization.bookingChangeHours !== null) {
         const hoursUntil =
@@ -117,7 +128,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Slot accounting on cancellation
     if (newStatus === 'CANCELLED' && existingBooking.clientId && existingBooking.client) {
       const client = existingBooking.client
-      if (client.sessionAllowance !== null) {
+      const cancellationPolicy = existingBooking.organization.cancellationPolicy
+      // FORFEIT_SLOT: client loses the slot — no accounting adjustments
+      if (client.sessionAllowance !== null && cancellationPolicy !== 'FORFEIT_SLOT') {
         const now = new Date()
         const isPreSession = existingBooking.startTime > now
 

@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 const policySchema = z.object({
   bookingChangeHours: z.number().int().min(0).nullable().optional(),
   allowPendingSlot: z.boolean().optional(),
+  cancellationPolicy: z.enum(['ALLOW_REFUND', 'RESCHEDULE_ONLY', 'FORFEIT_SLOT']).optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
       select: {
         bookingChangeHours: true,
         allowPendingSlot: true,
+        cancellationPolicy: true,
       },
     })
 
@@ -49,10 +51,12 @@ export async function PATCH(req: NextRequest) {
       data: {
         bookingChangeHours: validated.bookingChangeHours ?? undefined,
         allowPendingSlot: validated.allowPendingSlot ?? undefined,
+        cancellationPolicy: validated.cancellationPolicy ?? undefined,
       },
       select: {
         bookingChangeHours: true,
         allowPendingSlot: true,
+        cancellationPolicy: true,
       },
     })
 

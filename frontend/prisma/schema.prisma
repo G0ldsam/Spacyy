@@ -22,6 +22,7 @@ model Organization {
   phone                     String?
   bookingChangeHours        Int?     // Hours before booking start time that changes are allowed (null = no restriction)
   allowPendingSlot          Boolean  @default(false) // Allow clients to book when slots are exhausted (slot owed on next renewal)
+  cancellationPolicy        CancellationPolicy @default(ALLOW_REFUND) // What happens when a client cancels a booking
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
@@ -83,6 +84,12 @@ enum UserRole {
   OWNER    // Organization owner/customer
   ADMIN    // Organization admin
   CLIENT   // Regular client
+}
+
+enum CancellationPolicy {
+  ALLOW_REFUND    // Default: cancel returns the slot to the client's allowance
+  RESCHEDULE_ONLY // Client must reschedule; outright cancellation is blocked
+  FORFEIT_SLOT    // Cancel permanently forfeits the slot (no refund to allowance)
 }
 
 // Client (belongs to specific organization)

@@ -12,6 +12,7 @@ import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import SettingsSidebar from '@/components/SettingsSidebar'
 import { ClientQRButton } from '@/components/ClientQRButton'
 import { PWAInstallBanner } from '@/components/PWAInstallBanner'
+import { RebookModal } from '@/components/RebookModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Booking {
@@ -42,53 +43,45 @@ export default function HomePage() {
   const [myBookings, setMyBookings] = useState<Booking[]>([])
   const [sessionAllowance, setSessionAllowance] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showRebookModal, setShowRebookModal] = useState(false)
   const [expirationWarning, setExpirationWarning] = useState<{
     show: boolean
     lastBookingDate: Date | null
   }>({ show: false, lastBookingDate: null })
 
-  const fetchMyBookings = useCallback(async () => {
+  const fetchMyBookings = useCallback(async (): Promise<Booking[]> => {
     try {
       const response = await fetch('/api/bookings/my')
       if (response.ok) {
         const data = await response.json()
         const now = new Date()
-        // Filter out cancelled bookings and past bookings (where endTime is before now)
         const activeBookings = data.filter((b: Booking) => {
           if (b.status === 'CANCELLED') return false
-          const endTime = new Date(b.endTime)
-          return endTime >= now
+          return new Date(b.endTime) >= now
         })
         setMyBookings(activeBookings)
 
-        // Check for expiration warning
         if (sessionAllowance !== null && activeBookings.length >= sessionAllowance && activeBookings.length > 0) {
-          // Find the last booking (furthest in the future)
-          const sortedBookings = [...activeBookings].sort((a, b) => 
+          const sortedBookings = [...activeBookings].sort((a, b) =>
             new Date(b.endTime).getTime() - new Date(a.endTime).getTime()
           )
-          const lastBooking = sortedBookings[0]
-          const lastBookingEnd = new Date(lastBooking.endTime)
-          
-          // Check if last booking ends within 1 day
+          const lastBookingEnd = new Date(sortedBookings[0].endTime)
           const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-          if (lastBookingEnd <= oneDayFromNow) {
-            setExpirationWarning({
-              show: true,
-              lastBookingDate: lastBookingEnd,
-            })
-          } else {
-            setExpirationWarning({ show: false, lastBookingDate: null })
-          }
+          setExpirationWarning({
+            show: lastBookingEnd <= oneDayFromNow,
+            lastBookingDate: lastBookingEnd <= oneDayFromNow ? lastBookingEnd : null,
+          })
         } else {
           setExpirationWarning({ show: false, lastBookingDate: null })
         }
+        return activeBookings
       }
     } catch (error) {
       console.error('Error fetching bookings:', error)
     } finally {
       setLoading(false)
     }
+    return []
   }, [sessionAllowance])
 
   const fetchClientInfo = useCallback(async () => {
@@ -101,7 +94,11 @@ export default function HomePage() {
     } catch (error) {
       console.error('Error fetching client info:', error)
     } finally {
-      await fetchMyBookings()
+      const active = await fetchMyBookings()
+      // Show rebook modal if user has no bookings yet this month and hasn't dismissed it this session
+      if (active.length === 0 && !sessionStorage.getItem('rebook_dismissed')) {
+        setShowRebookModal(true)
+      }
     }
   }, [fetchMyBookings])
 
@@ -126,8 +123,22 @@ export default function HomePage() {
     (org) => org.role === 'OWNER' || org.role === 'ADMIN'
   )
 
+  function handleRebookClose() {
+    sessionStorage.setItem('rebook_dismissed', '1')
+    setShowRebookModal(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {showRebookModal && !isAdmin && (
+        <RebookModal
+          onClose={handleRebookClose}
+          onBooked={() => {
+            fetchClientInfo()
+            handleRebookClose()
+          }}
+        />
+      )}
       <AutoPushSubscribe />
       <PWAInstallBanner />
       {isAdmin && (
