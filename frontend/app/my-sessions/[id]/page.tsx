@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 type CancellationPolicy = 'ALLOW_REFUND' | 'RESCHEDULE_ONLY' | 'FORFEIT_SLOT'
@@ -146,8 +146,8 @@ export default function SessionDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-700 mb-4">{t('booking_detail.not_found')}</p>
-          <Link href="/my-sessions">
-            <Button>{t('booking_detail.back')}</Button>
+          <Link href="/my-sessions" className={buttonVariants()}>
+            {t('booking_detail.back')}
           </Link>
         </div>
       </div>

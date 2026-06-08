@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { SessionCard } from '@/components/sessions/SessionCard'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useSessions } from '@/hooks/useBookingsData'
@@ -68,10 +68,8 @@ export default function SessionsView({ onBack }: Props) {
                   {t('sessions.subtitle')}
                 </p>
               </div>
-              <Link href="/sessions/new">
-                <Button className="w-full sm:w-auto">
-                  {t('sessions.create')}
-                </Button>
+              <Link href="/sessions/new" className={buttonVariants('default', 'md', 'w-full sm:w-auto')}>
+                {t('sessions.create')}
               </Link>
             </div>
           </div>

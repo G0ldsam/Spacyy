@@ -7,7 +7,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import NotificationBell from '@/components/NotificationBell'
 import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import SettingsSidebar from '@/components/SettingsSidebar'
@@ -181,10 +181,8 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-gray-700">{t('home.book_desc')}</p>
-                  <Link href="/rebook" className="block mt-4">
-                    <Button className="w-full bg-[#8B1538] hover:bg-[#7a1230]">
-                      Book sessions
-                    </Button>
+                  <Link href="/rebook" className={buttonVariants('default', 'md', 'mt-4 w-full')}>
+                    Book sessions
                   </Link>
                 </CardContent>
               </Card>

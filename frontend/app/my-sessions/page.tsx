@@ -7,7 +7,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -249,8 +249,8 @@ export default function MySessionsPage() {
                       <p className="text-sm sm:text-base text-gray-700 mb-2 break-words px-2">
                         {t('my_sessions.no_sessions')}
                       </p>
-                      <Link href="/book">
-                        <Button variant="outline" className="text-xs sm:text-sm">{t('my_sessions.book_link')}</Button>
+                      <Link href="/book" className={buttonVariants('outline', 'sm', 'text-xs sm:text-sm')}>
+                        {t('my_sessions.book_link')}
                       </Link>
                     </div>
                   ) : (

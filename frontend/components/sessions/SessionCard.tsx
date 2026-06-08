@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 
 interface SessionCardProps {
   session: {
@@ -116,15 +116,11 @@ export function SessionCard({ session }: SessionCardProps) {
 
         </div>
         <div className="mt-3 sm:mt-4 flex gap-2">
-          <Link href={`/sessions/${session.id}/timetable`} className="flex-1 min-w-0">
-            <Button variant="outline" className="w-full text-xs sm:text-sm" size="sm">
-              Timetable
-            </Button>
+          <Link href={`/sessions/${session.id}/timetable`} className={buttonVariants('outline', 'sm', 'flex-1 min-w-0 w-full text-xs sm:text-sm')}>
+            Timetable
           </Link>
-          <Link href={`/sessions/${session.id}/edit`} className="flex-1 min-w-0">
-            <Button variant="outline" className="w-full text-xs sm:text-sm" size="sm">
-              Edit
-            </Button>
+          <Link href={`/sessions/${session.id}/edit`} className={buttonVariants('outline', 'sm', 'flex-1 min-w-0 w-full text-xs sm:text-sm')}>
+            Edit
           </Link>
         </div>
       </CardContent>
