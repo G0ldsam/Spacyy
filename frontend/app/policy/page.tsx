@@ -10,9 +10,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+type CancellationPolicy = 'ALLOW_REFUND' | 'RESCHEDULE_ONLY' | 'FORFEIT_SLOT'
+
 interface PolicySettings {
   bookingChangeHours: number | null
   allowPendingSlot: boolean
+  cancellationPolicy: CancellationPolicy
 }
 
 export default function PolicyPage() {
@@ -26,6 +29,7 @@ export default function PolicyPage() {
   const [settings, setSettings] = useState<PolicySettings>({
     bookingChangeHours: null,
     allowPendingSlot: false,
+    cancellationPolicy: 'ALLOW_REFUND',
   })
 
   useEffect(() => {
@@ -55,6 +59,7 @@ export default function PolicyPage() {
       setSettings({
         bookingChangeHours: data.bookingChangeHours,
         allowPendingSlot: data.allowPendingSlot || false,
+        cancellationPolicy: data.cancellationPolicy || 'ALLOW_REFUND',
       })
     } catch (error) {
       console.error('Error fetching settings:', error)
@@ -77,10 +82,11 @@ export default function PolicyPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          bookingChangeHours: settings.bookingChangeHours === null || settings.bookingChangeHours === 0 
-            ? null 
+          bookingChangeHours: settings.bookingChangeHours === null || settings.bookingChangeHours === 0
+            ? null
             : settings.bookingChangeHours,
           allowPendingSlot: settings.allowPendingSlot,
+          cancellationPolicy: settings.cancellationPolicy,
         }),
       })
 
@@ -171,6 +177,43 @@ export default function PolicyPage() {
                     <p className="text-xs text-gray-600">
                       {t('policy.hours_hint')}
                     </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-900">
+                      {t('policy.cancellation_label')}
+                    </p>
+                    <div className="space-y-2 pt-1">
+                      {(
+                        [
+                          { value: 'ALLOW_REFUND',    label: t('policy.cancellation_allow_refund_label'),    hint: t('policy.cancellation_allow_refund_hint') },
+                          { value: 'RESCHEDULE_ONLY', label: t('policy.cancellation_reschedule_only_label'), hint: t('policy.cancellation_reschedule_only_hint') },
+                          { value: 'FORFEIT_SLOT',    label: t('policy.cancellation_forfeit_label'),         hint: t('policy.cancellation_forfeit_hint') },
+                        ] as { value: CancellationPolicy; label: string; hint: string }[]
+                      ).map((opt) => (
+                        <label
+                          key={opt.value}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                            settings.cancellationPolicy === opt.value
+                              ? 'border-[#8B1538] bg-[#8B1538]/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="cancellationPolicy"
+                            value={opt.value}
+                            checked={settings.cancellationPolicy === opt.value}
+                            onChange={() => setSettings({ ...settings, cancellationPolicy: opt.value })}
+                            className="mt-0.5 h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{opt.label}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-2">

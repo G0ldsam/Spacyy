@@ -93,7 +93,7 @@ export async function POST(
         createNotification(updated.userId, {
           title: 'Membership renewed',
           body: `${validated.sessionsToAdd} session${validated.sessionsToAdd !== 1 ? 's' : ''} added to your ${orgName} membership`,
-          url: '/home',
+          url: '/rebook',
         }).catch(console.error)
       }
     }

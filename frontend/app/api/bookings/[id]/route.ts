@@ -129,26 +129,39 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (newStatus === 'CANCELLED' && existingBooking.clientId && existingBooking.client) {
       const client = existingBooking.client
       const cancellationPolicy = existingBooking.organization.cancellationPolicy
-      // FORFEIT_SLOT: client loses the slot — no accounting adjustments
-      if (client.sessionAllowance !== null && cancellationPolicy !== 'FORFEIT_SLOT') {
-        const now = new Date()
-        const isPreSession = existingBooking.startTime > now
 
-        if (isPreSession && existingBooking.usedPendingSlot && client.pendingSlotsUsed > 0) {
-          // Pre-session cancel of a pending-slot booking: clear the debt
-          await prisma.client.update({
-            where: { id: existingBooking.clientId },
-            data: { pendingSlotsUsed: { decrement: 1 } },
-          })
-        } else if (!isPreSession && !existingBooking.usedPendingSlot && client.sessionAllowance > 0) {
-          // Post-session cancel of a regular booking: slot is permanently consumed
-          await prisma.client.update({
-            where: { id: existingBooking.clientId },
-            data: { sessionAllowance: { decrement: 1 } },
-          })
+      if (client.sessionAllowance !== null) {
+        const isPreSession = existingBooking.startTime > new Date()
+
+        if (cancellationPolicy === 'FORFEIT_SLOT') {
+          if (isPreSession) {
+            // Pre-session forfeit: permanently consume the slot
+            await prisma.client.update({
+              where: { id: existingBooking.clientId },
+              data: { sessionAllowance: { decrement: 1 } },
+            })
+          } else if (!existingBooking.usedPendingSlot && client.sessionAllowance > 0) {
+            // Post-session forfeit: same as normal post-session consumption
+            await prisma.client.update({
+              where: { id: existingBooking.clientId },
+              data: { sessionAllowance: { decrement: 1 } },
+            })
+          }
+        } else {
+          // ALLOW_REFUND or RESCHEDULE_ONLY
+          if (isPreSession && existingBooking.usedPendingSlot && client.pendingSlotsUsed > 0) {
+            await prisma.client.update({
+              where: { id: existingBooking.clientId },
+              data: { pendingSlotsUsed: { decrement: 1 } },
+            })
+          } else if (!isPreSession && !existingBooking.usedPendingSlot && client.sessionAllowance > 0) {
+            await prisma.client.update({
+              where: { id: existingBooking.clientId },
+              data: { sessionAllowance: { decrement: 1 } },
+            })
+          }
+          // Pre-session regular (no pending slot): count drops naturally, no DB change needed
         }
-        // Pre-session regular: count drops naturally (no action)
-        // Post-session pending: debt remains, no allowance change
       }
     }
 

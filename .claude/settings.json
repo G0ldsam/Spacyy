@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Remove-Item \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\\\\components\\\\RebookModal.tsx\")"
+    ]
+  }
+}

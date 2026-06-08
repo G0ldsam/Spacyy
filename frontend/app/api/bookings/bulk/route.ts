@@ -8,6 +8,56 @@ import { createNotifications } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
 
+type BookingRequest = { sessionId: string; startTime: string; endTime: string }
+type ServiceSession = { id: string; name: string; slots: number }
+
+async function createBookingsInTransaction(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  requests: BookingRequest[],
+  sessionMap: Map<string, ServiceSession>,
+  clientId: string,
+  organizationId: string,
+  userId: string,
+) {
+  for (const r of requests) {
+    const svc = sessionMap.get(r.sessionId)
+    if (!svc) throw Object.assign(new Error(`Session not found: ${r.sessionId}`), { status: 400 })
+    const startTime = new Date(r.startTime)
+    const endTime = new Date(r.endTime)
+
+    const booked = await tx.booking.count({
+      where: { sessionId: r.sessionId, startTime, endTime, status: { not: 'CANCELLED' } },
+    })
+    if (booked >= svc.slots) {
+      throw Object.assign(new Error(`${svc.name}: no slots available for this time`), { status: 409 })
+    }
+
+    const duplicate = await tx.booking.findFirst({
+      where: { clientId, sessionId: r.sessionId, startTime, status: { not: 'CANCELLED' } },
+    })
+    if (duplicate) {
+      throw Object.assign(new Error(`${svc.name}: already booked`), { status: 409 })
+    }
+  }
+
+  return Promise.all(
+    requests.map((r) =>
+      tx.booking.create({
+        data: {
+          organizationId,
+          sessionId: r.sessionId,
+          clientId,
+          userId,
+          startTime: new Date(r.startTime),
+          endTime: new Date(r.endTime),
+          status: 'CONFIRMED',
+          usedPendingSlot: false,
+        },
+      })
+    )
+  )
+}
+
 const bulkSchema = z.object({
   bookings: z
     .array(
@@ -70,61 +120,30 @@ export async function POST(req: NextRequest) {
     })
     const sessionMap = new Map(serviceSessions.map((s) => [s.id, s]))
 
-    // Validate each requested booking
+    // Pre-validate: session existence and start times (fast checks, no race risk)
     for (const r of requests) {
       const svc = sessionMap.get(r.sessionId)
       if (!svc) {
         return NextResponse.json({ error: `Session not found: ${r.sessionId}` }, { status: 400 })
       }
-
-      const startTime = new Date(r.startTime)
-      if (startTime <= now) {
+      if (new Date(r.startTime) <= now) {
         return NextResponse.json({ error: `${svc.name}: session has already started` }, { status: 400 })
-      }
-
-      const endTime = new Date(r.endTime)
-      const booked = await prisma.booking.count({
-        where: {
-          sessionId: r.sessionId,
-          startTime,
-          endTime,
-          status: { not: 'CANCELLED' },
-        },
-      })
-      if (booked >= svc.slots) {
-        return NextResponse.json({ error: `${svc.name}: no slots available for this time` }, { status: 409 })
-      }
-
-      const duplicate = await prisma.booking.findFirst({
-        where: {
-          clientId: client.id,
-          sessionId: r.sessionId,
-          startTime,
-          status: { not: 'CANCELLED' },
-        },
-      })
-      if (duplicate) {
-        return NextResponse.json({ error: `${svc.name}: already booked` }, { status: 409 })
       }
     }
 
-    // Create all bookings in a single transaction
-    const created = await prisma.$transaction(
-      requests.map((r) =>
-        prisma.booking.create({
-          data: {
-            organizationId: tenant.organizationId,
-            sessionId: r.sessionId,
-            clientId: client.id,
-            userId: session.user.id,
-            startTime: new Date(r.startTime),
-            endTime: new Date(r.endTime),
-            status: 'CONFIRMED',
-            usedPendingSlot: false,
-          },
-        })
+    // Create all bookings in a single interactive transaction.
+    // Capacity and duplicate checks happen inside the transaction to prevent race conditions.
+    let created: Awaited<ReturnType<typeof prisma.booking.create>>[]
+    try {
+      created = await prisma.$transaction((tx) =>
+        createBookingsInTransaction(tx, requests, sessionMap, client.id, tenant.organizationId, session.user.id)
       )
-    )
+    } catch (txError: any) {
+      return NextResponse.json(
+        { error: txError.message || 'Failed to create bookings' },
+        { status: txError.status ?? 409 }
+      )
+    }
 
     // Notify admins (fire-and-forget)
     const admins = await prisma.userOrganization.findMany({

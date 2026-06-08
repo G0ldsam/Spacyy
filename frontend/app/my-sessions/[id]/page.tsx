@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+type CancellationPolicy = 'ALLOW_REFUND' | 'RESCHEDULE_ONLY' | 'FORFEIT_SLOT'
+
 interface Booking {
   id: string
   serviceSession: {
@@ -20,6 +22,10 @@ interface Booking {
   startTime: string
   endTime: string
   status: string
+  organization?: {
+    bookingChangeHours: number | null
+    cancellationPolicy: CancellationPolicy
+  }
 }
 
 export default function SessionDetailPage() {
@@ -35,6 +41,7 @@ export default function SessionDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [canChangeBooking, setCanChangeBooking] = useState(true)
   const [changeRestrictionMessage, setChangeRestrictionMessage] = useState<string | null>(null)
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('ALLOW_REFUND')
 
   const fetchBooking = useCallback(async () => {
     try {
@@ -43,12 +50,17 @@ export default function SessionDetailPage() {
       const data = await response.json()
       setBooking(data)
       
+      // Set cancellation policy from org
+      if (data.organization?.cancellationPolicy) {
+        setCancellationPolicy(data.organization.cancellationPolicy)
+      }
+
       // Check if booking can be changed based on policy
       if (data.organization?.bookingChangeHours !== null && data.organization?.bookingChangeHours !== undefined) {
         const now = new Date()
         const bookingStart = new Date(data.startTime)
         const hoursUntilBooking = (bookingStart.getTime() - now.getTime()) / (1000 * 60 * 60)
-        
+
         if (hoursUntilBooking < data.organization.bookingChangeHours) {
           setCanChangeBooking(false)
           setChangeRestrictionMessage(
@@ -194,17 +206,26 @@ export default function SessionDetailPage() {
                   onClick={handleChangeBooking}
                   disabled={!canChangeBooking || booking.status === 'CANCELLED'}
                 >
-                  {t('booking_detail.change_booking')}
+                  {cancellationPolicy === 'RESCHEDULE_ONLY'
+                    ? t('booking_detail.reschedule')
+                    : t('booking_detail.change_booking')}
                 </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => setShowCancelModal(true)}
-                  disabled={booking.status === 'CANCELLED'}
-                >
-                  {t('booking_detail.cancel_booking')}
-                </Button>
+                {cancellationPolicy !== 'RESCHEDULE_ONLY' && (
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={booking.status === 'CANCELLED'}
+                  >
+                    {t('booking_detail.cancel_booking')}
+                  </Button>
+                )}
               </div>
+              {cancellationPolicy === 'RESCHEDULE_ONLY' && booking.status !== 'CANCELLED' && (
+                <p className="text-sm text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-2">
+                  {t('booking_detail.reschedule_only_msg')}
+                </p>
+              )}
               {changeRestrictionMessage && (
                 <p className="text-sm text-red-600 mt-2">{changeRestrictionMessage}</p>
               )}
@@ -218,9 +239,16 @@ export default function SessionDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">{t('booking_detail.cancel_booking')}</h2>
-            <p className="text-gray-700 mb-6">
+            <p className="text-gray-700 mb-4">
               {t('booking_detail.cancel_confirm')}
             </p>
+            {cancellationPolicy === 'FORFEIT_SLOT' && (
+              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+                <p className="text-sm font-semibold text-red-700">
+                  {t('booking_detail.forfeit_warning')}
+                </p>
+              </div>
+            )}
             <div className="flex gap-3">
               <Button
                 variant="outline"
