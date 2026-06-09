@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { PageSpinner } from '@/components/ui/spinner'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { deriveTokens, tokensToCssVars, onColor, wcagLevel, DEFAULT_BRAND, isValidHex, type BrandColors } from '@/shared/lib/brandColors'
 
 const PRESETS: { name: string; colors: BrandColors }[] = [
@@ -32,10 +34,7 @@ function WcagBadge({ bg, fg = '#ffffff' }: { bg: string; fg?: string }) {
 function ColorSwatch({ label, hex, description }: { label: string; hex: string; description?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <div
-        className="w-8 h-8 rounded-md border border-black/10 flex-shrink-0 shadow-sm"
-        style={{ background: hex }}
-      />
+      <div className="w-8 h-8 rounded-md border border-black/10 flex-shrink-0 shadow-sm" style={{ background: hex }} />
       <div className="min-w-0">
         <p className="text-xs font-medium text-gray-700 truncate">{label}</p>
         {description && <p className="text-xs text-gray-400 truncate">{description}</p>}
@@ -46,16 +45,10 @@ function ColorSwatch({ label, hex, description }: { label: string; hex: string; 
 }
 
 function ColorPickerRow({
-  label,
-  value,
-  onChange,
-  description,
-}: {
-  label: string
-  value: string
-  onChange: (hex: string) => void
-  description: string
-}) {
+  label, value, onChange, description, invalidMsg,
+}: Readonly<{
+  label: string; value: string; onChange: (hex: string) => void; description: string; invalidMsg: string
+}>) {
   const [inputVal, setInputVal] = useState(value)
   const valid = isValidHex(inputVal)
 
@@ -69,15 +62,13 @@ function ColorPickerRow({
       </div>
       <p className="text-xs text-gray-500">{description}</p>
       <div className="flex items-center gap-3">
-        <div className="relative">
-          <input
-            type="color"
-            value={valid ? inputVal : value}
-            onChange={e => { setInputVal(e.target.value); onChange(e.target.value) }}
-            className="w-12 h-12 rounded-xl cursor-pointer border-2 border-white shadow-md p-0.5"
-            style={{ background: 'none' }}
-          />
-        </div>
+        <input
+          type="color"
+          value={valid ? inputVal : value}
+          onChange={e => { setInputVal(e.target.value); onChange(e.target.value) }}
+          className="w-12 h-12 rounded-xl cursor-pointer border-2 border-white shadow-md p-0.5"
+          style={{ background: 'none' }}
+        />
         <div className="flex-1">
           <input
             type="text"
@@ -93,7 +84,7 @@ function ColorPickerRow({
             } outline-none bg-white`}
           />
           {!valid && inputVal.length > 0 && (
-            <p className="text-xs text-red-500 mt-1">Must be #RRGGBB format</p>
+            <p className="text-xs text-red-500 mt-1">{invalidMsg}</p>
           )}
         </div>
       </div>
@@ -101,27 +92,20 @@ function ColorPickerRow({
   )
 }
 
-function LivePreview({ colors }: { colors: BrandColors }) {
+function LivePreview({ colors, t }: { colors: BrandColors; t: (key: string) => string }) {
   const tokens = deriveTokens(colors)
   const cssVars = tokensToCssVars(tokens)
 
   return (
     <div style={{ ['--preview' as string]: cssVars }} className="space-y-3">
-      {/* Hero section */}
-      <div
-        className="rounded-2xl p-6 relative overflow-hidden"
-        style={{ background: tokens.heroGradient }}
-      >
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{ background: tokens.ambientGradient }}
-        />
+      <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: tokens.heroGradient }}>
+        <div className="absolute inset-0 opacity-30" style={{ background: tokens.ambientGradient }} />
         <div className="relative z-10">
           <p className="text-xs font-medium mb-1 opacity-75" style={{ color: tokens.onPrimary }}>
-            YOGA FLOW · MON 9:00AM
+            {t('brand.preview_session_label')}
           </p>
           <h3 className="text-xl font-bold mb-3" style={{ color: tokens.onPrimary }}>
-            Morning Stretch Class
+            {t('brand.preview_session_title')}
           </h3>
           <button
             className="text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all"
@@ -132,68 +116,53 @@ function LivePreview({ colors }: { colors: BrandColors }) {
               border: `1px solid ${tokens.onPrimary === '#ffffff' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)'}`,
             }}
           >
-            Book Session
+            {t('brand.preview_book')}
           </button>
         </div>
       </div>
 
-      {/* Session cards */}
       <div className="grid grid-cols-2 gap-2">
         {['Pilates', 'Yoga Flow'].map((name, i) => (
           <div
             key={name}
             className="rounded-xl p-4 border relative overflow-hidden"
-            style={{
-              background: i === 0 ? tokens.primaryMuted : '#ffffff',
-              borderColor: i === 0 ? tokens.primary + '33' : '#e5e7eb',
-            }}
+            style={{ background: i === 0 ? tokens.primaryMuted : '#ffffff', borderColor: i === 0 ? tokens.primary + '33' : '#e5e7eb' }}
           >
-            <div
-              className="absolute inset-0 opacity-50"
-              style={{ background: i === 0 ? tokens.cardGlow : 'none' }}
-            />
-            <p className="text-xs font-bold relative" style={{ color: i === 0 ? tokens.primary : '#374151' }}>
-              {name}
-            </p>
+            <div className="absolute inset-0 opacity-50" style={{ background: i === 0 ? tokens.cardGlow : 'none' }} />
+            <p className="text-xs font-bold relative" style={{ color: i === 0 ? tokens.primary : '#374151' }}>{name}</p>
             <p className="text-xs relative" style={{ color: i === 0 ? tokens.primaryDark : '#6b7280' }}>
-              10 slots · 60 min
+              {t('brand.preview_session_slots')}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Button row */}
       <div className="flex gap-2">
         <button
           className="flex-1 text-sm font-semibold py-2.5 rounded-xl shadow-sm transition-all"
           style={{ background: tokens.buttonGradient, color: tokens.onPrimary }}
         >
-          Confirm
+          {t('brand.preview_confirm')}
         </button>
         <button
           className="flex-1 text-sm font-medium py-2.5 rounded-xl border transition-all"
-          style={{
-            borderColor: tokens.primary + '44',
-            color: tokens.primary,
-            background: tokens.primaryMuted,
-          }}
+          style={{ borderColor: tokens.primary + '44', color: tokens.primary, background: tokens.primaryMuted }}
         >
-          Cancel
+          {t('brand.preview_cancel')}
         </button>
       </div>
 
-      {/* Accent badge strip */}
       <div className="flex gap-2 flex-wrap">
-        {['Active', 'Booked', 'Available'].map((tag, i) => (
+        {(['preview_tag_active', 'preview_tag_booked', 'preview_tag_available'] as const).map((key, i) => (
           <span
-            key={tag}
+            key={key}
             className="text-xs font-medium px-3 py-1 rounded-full"
             style={{
               background: i === 0 ? tokens.accent : i === 1 ? tokens.accentLight : tokens.primaryMuted,
               color: i === 0 ? tokens.onAccent : i === 1 ? tokens.accent : tokens.primary,
             }}
           >
-            {tag}
+            {t(`brand.${key}`)}
           </span>
         ))}
       </div>
@@ -202,6 +171,7 @@ function LivePreview({ colors }: { colors: BrandColors }) {
 }
 
 export default function BrandStudioPage() {
+  const { t } = useLanguage()
   const [colors, setColors] = useState<BrandColors>(DEFAULT_BRAND)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -231,54 +201,39 @@ export default function BrandStudioPage() {
       const res = await fetch('/api/admin/brand', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brandPrimary: colors.primary,
-          brandSecondary: colors.secondary,
-          brandAccent: colors.accent,
-        }),
+        body: JSON.stringify({ brandPrimary: colors.primary, brandSecondary: colors.secondary, brandAccent: colors.accent }),
       })
       if (!res.ok) throw new Error('Save failed')
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {
-      setError('Failed to save. Try again.')
+      setError(t('brand.error_save'))
     } finally {
       setSaving(false)
     }
-  }, [colors])
-
-  const handleReset = useCallback(() => {
-    setColors(DEFAULT_BRAND)
-  }, [])
+  }, [colors, t])
 
   const tokens = deriveTokens(colors)
+  let saveLabel = t('brand.save')
+  if (saving) saveLabel = t('brand.saving')
+  else if (saved) saveLabel = t('brand.saved')
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    )
-  }
+  if (loading) return <PageSpinner />
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Brand Studio</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Customise your booking page colours. Changes apply instantly for your clients.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('brand.title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('brand.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Controls */}
           <div className="space-y-5">
-            {/* Presets */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-gray-700">Quick Presets</CardTitle>
+                <CardTitle className="text-sm font-semibold text-gray-700">{t('brand.presets')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2">
@@ -309,62 +264,39 @@ export default function BrandStudioPage() {
               </CardContent>
             </Card>
 
-            {/* Color Pickers */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-gray-700">Brand Colours</CardTitle>
+                <CardTitle className="text-sm font-semibold text-gray-700">{t('brand.colours')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <ColorPickerRow
-                  label="Primary"
-                  value={colors.primary}
-                  onChange={v => setColors(c => ({ ...c, primary: v }))}
-                  description="Buttons, CTAs, active states"
-                />
-                <ColorPickerRow
-                  label="Secondary"
-                  value={colors.secondary}
-                  onChange={v => setColors(c => ({ ...c, secondary: v }))}
-                  description="Hero gradient end, cards"
-                />
-                <ColorPickerRow
-                  label="Accent"
-                  value={colors.accent}
-                  onChange={v => setColors(c => ({ ...c, accent: v }))}
-                  description="Badges, highlights, tags"
-                />
+                <ColorPickerRow label={t('brand.primary')} value={colors.primary} onChange={v => setColors(c => ({ ...c, primary: v }))} description={t('brand.primary_desc')} invalidMsg={t('brand.invalid_hex')} />
+                <ColorPickerRow label={t('brand.secondary')} value={colors.secondary} onChange={v => setColors(c => ({ ...c, secondary: v }))} description={t('brand.secondary_desc')} invalidMsg={t('brand.invalid_hex')} />
+                <ColorPickerRow label={t('brand.accent')} value={colors.accent} onChange={v => setColors(c => ({ ...c, accent: v }))} description={t('brand.accent_desc')} invalidMsg={t('brand.invalid_hex')} />
               </CardContent>
             </Card>
 
-            {/* Derived swatches */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-gray-700">Auto-Generated Tokens</CardTitle>
+                <CardTitle className="text-sm font-semibold text-gray-700">{t('brand.derived_tokens')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
-                  <ColorSwatch label="Primary Light" hex={tokens.primaryLight} description="Hover backgrounds" />
-                  <ColorSwatch label="Primary Dark" hex={tokens.primaryDark} description="Pressed states" />
-                  <ColorSwatch label="Primary Muted" hex={tokens.primaryMuted} description="Card wash" />
-                  <ColorSwatch label="Accent Light" hex={tokens.accentLight} description="Soft tags" />
-                  <ColorSwatch label="On Primary" hex={tokens.onPrimary} description="Text on primary" />
-                  <ColorSwatch label="On Accent" hex={tokens.onAccent} description="Text on accent" />
+                  <ColorSwatch label={t('brand.token_primary_light')} hex={tokens.primaryLight} description={t('brand.token_primary_light_desc')} />
+                  <ColorSwatch label={t('brand.token_primary_dark')} hex={tokens.primaryDark} description={t('brand.token_primary_dark_desc')} />
+                  <ColorSwatch label={t('brand.token_primary_muted')} hex={tokens.primaryMuted} description={t('brand.token_primary_muted_desc')} />
+                  <ColorSwatch label={t('brand.token_accent_light')} hex={tokens.accentLight} description={t('brand.token_accent_light_desc')} />
+                  <ColorSwatch label={t('brand.token_on_primary')} hex={tokens.onPrimary} description={t('brand.token_on_primary_desc')} />
+                  <ColorSwatch label={t('brand.token_on_accent')} hex={tokens.onAccent} description={t('brand.token_on_accent_desc')} />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Save */}
             <div className="flex gap-3">
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1"
-                style={{ background: tokens.buttonGradient, color: tokens.onPrimary }}
-              >
-                {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Brand Colours'}
+              <Button onClick={handleSave} disabled={saving} className="flex-1" style={{ background: tokens.buttonGradient, color: tokens.onPrimary }}>
+                {saveLabel}
               </Button>
-              <Button variant="outline" onClick={handleReset} disabled={saving}>
-                Reset
+              <Button variant="outline" onClick={() => setColors(DEFAULT_BRAND)} disabled={saving}>
+                {t('brand.reset')}
               </Button>
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -375,34 +307,30 @@ export default function BrandStudioPage() {
             <Card className="sticky top-6">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-gray-700">Live Preview</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-gray-700">{t('brand.live_preview')}</CardTitle>
                   <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    Client view
+                    {t('brand.client_view')}
                   </span>
                 </div>
               </CardHeader>
               <CardContent>
-                <LivePreview colors={colors} />
+                <LivePreview colors={colors} t={t} />
               </CardContent>
             </Card>
 
-            {/* Gradient swatches */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-gray-700">Generated Gradients</CardTitle>
+                <CardTitle className="text-sm font-semibold text-gray-700">{t('brand.generated_gradients')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {[
-                  { label: 'Hero', gradient: tokens.heroGradient },
-                  { label: 'Button', gradient: tokens.buttonGradient },
-                  { label: 'Card Glow', gradient: tokens.cardGlow },
-                ].map(({ label, gradient }) => (
-                  <div key={label} className="flex items-center gap-3">
-                    <div
-                      className="w-full h-8 rounded-lg border border-black/5 shadow-sm"
-                      style={{ background: gradient }}
-                    />
-                    <span className="text-xs text-gray-500 w-16 flex-shrink-0">{label}</span>
+                  { key: 'gradient_hero', gradient: tokens.heroGradient },
+                  { key: 'gradient_button', gradient: tokens.buttonGradient },
+                  { key: 'gradient_card_glow', gradient: tokens.cardGlow },
+                ].map(({ key, gradient }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <div className="w-full h-8 rounded-lg border border-black/5 shadow-sm" style={{ background: gradient }} />
+                    <span className="text-xs text-gray-500 w-20 flex-shrink-0">{t(`brand.${key}`)}</span>
                   </div>
                 ))}
               </CardContent>

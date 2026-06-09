@@ -61,7 +61,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo2.png" alt="Spacyy" width={30} height={30} />
+            <Image src="/icon-512.png" alt="Spacyy" width={30} height={30} />
             <span className="text-lg font-bold text-[#8B1538] tracking-tight">Spacyy</span>
           </div>
           <div className="flex items-center gap-4 sm:gap-8">
@@ -99,7 +99,7 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
           <div className="flex justify-center mb-12">
             <div className="w-20 h-20 rounded-2xl bg-white/8 border border-white/10 flex items-center justify-center">
-              <Image src="/logo2.png" alt="Spacyy" width={48} height={48} />
+              <Image src="/icon-512.png" alt="Spacyy" width={48} height={48} />
             </div>
           </div>
 
@@ -212,7 +212,7 @@ export default function LandingPage() {
       <footer className="bg-[#2C0910] py-10">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo2.png" alt="Spacyy" width={24} height={24} className="opacity-80" />
+            <Image src="/icon-512.png" alt="Spacyy" width={24} height={24} className="opacity-80" />
             <span className="text-white/70 text-sm font-semibold">Spacyy</span>
           </div>
           <p className="text-white/30 text-xs">{t('landing.footer_copy')}</p>
