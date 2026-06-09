@@ -571,6 +571,95 @@ export async function sendPasswordResetEmail({
   await sendEmail(email, subject, html)
 }
 
+// Feature 10 — admin notification for bulk booking (rebook flow)
+export async function notifyAdminBulkBooking({
+  adminEmails,
+  orgName,
+  clientName,
+  count,
+  sessions,
+}: {
+  adminEmails: string[]
+  orgName: string
+  clientName: string
+  count: number
+  sessions: { name: string; startTime: Date }[]
+}) {
+  if (adminEmails.length === 0) return
+
+  const subject = `[${orgName}] ${clientName} booked ${count} session${count === 1 ? '' : 's'}`
+
+  const rows = sessions
+    .map(
+      (s) =>
+        `<tr><td style="padding:8px 12px;border:1px solid #e5e7eb">${s.name}</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${formatDateTime(s.startTime)}</td></tr>`
+    )
+    .join('')
+
+  const html = baseLayout(
+    orgName,
+    `
+    <h2 style="margin-top:0;color:#8B1538">Bulk Booking — ${count} Session${count === 1 ? '' : 's'}</h2>
+    <p><strong>${clientName}</strong> just booked ${count} session${count === 1 ? '' : 's'} via the monthly rebook flow:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <thead>
+        <tr style="background:#f9fafb">
+          <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:left;font-weight:600">Session</th>
+          <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:left;font-weight:600">Date &amp; Time</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    `
+  )
+
+  await sendEmail(adminEmails, subject, html)
+}
+
+// Feature 10b — confirmation email to client after bulk booking
+export async function sendBulkBookingConfirmation({
+  clientEmail,
+  clientName,
+  orgName,
+  count,
+  sessions,
+}: {
+  clientEmail: string
+  clientName: string
+  orgName: string
+  count: number
+  sessions: { name: string; startTime: Date; endTime: Date }[]
+}) {
+  const subject = `${count} session${count === 1 ? '' : 's'} booked — ${orgName}`
+
+  const rows = sessions
+    .map(
+      (s) =>
+        `<tr><td style="padding:8px 12px;border:1px solid #e5e7eb">${s.name}</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${formatDateTime(s.startTime)}</td></tr>`
+    )
+    .join('')
+
+  const html = baseLayout(
+    orgName,
+    `
+    <h2 style="margin-top:0;color:#8B1538">${count} Session${count === 1 ? '' : 's'} Confirmed!</h2>
+    <p>Hi <strong>${clientName}</strong>, your bookings for this month are confirmed:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <thead>
+        <tr style="background:#f9fafb">
+          <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:left;font-weight:600">Session</th>
+          <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:left;font-weight:600">Date &amp; Time</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="color:#6b7280;font-size:14px">To cancel or reschedule individual sessions, use the app.</p>
+    `
+  )
+
+  await sendEmail(clientEmail, subject, html)
+}
+
 // Feature 4 — notify interested clients that a spot opened up
 export async function sendSpotAvailableNotification({
   clientEmail,

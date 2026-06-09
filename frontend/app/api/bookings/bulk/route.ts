@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getTenantContext } from '@/lib/api-helpers'
 import { z } from 'zod'
 import { createNotifications } from '@/lib/notify'
+import { notifyAdminBulkBooking, sendBulkBookingConfirmation } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,41 @@ const bulkSchema = z.object({
     .max(20),
 })
 
+async function checkAllowance(
+  clientId: string,
+  sessionAllowance: number | null,
+  requestCount: number,
+  now: Date,
+): Promise<NextResponse | null> {
+  if (sessionAllowance === null) return null
+  const activeCount = await prisma.booking.count({
+    where: { clientId, status: { not: 'CANCELLED' }, endTime: { gte: now } },
+  })
+  const available = sessionAllowance - activeCount
+  if (requestCount > available) {
+    return NextResponse.json(
+      { error: `Only ${available} session${available === 1 ? '' : 's'} remaining. Select fewer sessions.`, available },
+      { status: 403 }
+    )
+  }
+  return null
+}
+
+function preValidateRequests(
+  requests: BookingRequest[],
+  sessionMap: Map<string, ServiceSession>,
+  now: Date,
+): NextResponse | null {
+  for (const r of requests) {
+    const svc = sessionMap.get(r.sessionId)
+    if (!svc) return NextResponse.json({ error: `Session not found: ${r.sessionId}` }, { status: 400 })
+    if (new Date(r.startTime) <= now) {
+      return NextResponse.json({ error: `${svc.name}: session has already started` }, { status: 400 })
+    }
+  }
+  return null
+}
+
 // POST /api/bookings/bulk - Create multiple bookings at once (for monthly rebook flow)
 export async function POST(req: NextRequest) {
   try {
@@ -85,34 +121,15 @@ export async function POST(req: NextRequest) {
 
     const client = await prisma.client.findFirst({
       where: { userId: session.user.id, organizationId: tenant.organizationId },
-      select: { id: true, sessionAllowance: true },
+      select: { id: true, sessionAllowance: true, name: true, email: true },
     })
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
     const now = new Date()
 
-    // Check slot availability against client's allowance
-    if (client.sessionAllowance !== null) {
-      const activeCount = await prisma.booking.count({
-        where: {
-          clientId: client.id,
-          status: { not: 'CANCELLED' },
-          endTime: { gte: now },
-        },
-      })
-      const available = client.sessionAllowance - activeCount
-      if (requests.length > available) {
-        return NextResponse.json(
-          {
-            error: `Only ${available} session${available !== 1 ? 's' : ''} remaining. Select fewer sessions.`,
-            available,
-          },
-          { status: 403 }
-        )
-      }
-    }
+    const allowanceError = await checkAllowance(client.id, client.sessionAllowance, requests.length, now)
+    if (allowanceError) return allowanceError
 
-    // Load service session metadata for all requested sessions
     const sessionIds = [...new Set(requests.map((r) => r.sessionId))]
     const serviceSessions = await prisma.serviceSession.findMany({
       where: { id: { in: sessionIds }, organizationId: tenant.organizationId, isActive: true },
@@ -120,18 +137,9 @@ export async function POST(req: NextRequest) {
     })
     const sessionMap = new Map(serviceSessions.map((s) => [s.id, s]))
 
-    // Pre-validate: session existence and start times (fast checks, no race risk)
-    for (const r of requests) {
-      const svc = sessionMap.get(r.sessionId)
-      if (!svc) {
-        return NextResponse.json({ error: `Session not found: ${r.sessionId}` }, { status: 400 })
-      }
-      if (new Date(r.startTime) <= now) {
-        return NextResponse.json({ error: `${svc.name}: session has already started` }, { status: 400 })
-      }
-    }
+    const validationError = preValidateRequests(requests, sessionMap, now)
+    if (validationError) return validationError
 
-    // Create all bookings in a single interactive transaction.
     // Capacity and duplicate checks happen inside the transaction to prevent race conditions.
     let created: Awaited<ReturnType<typeof prisma.booking.create>>[]
     try {
@@ -145,18 +153,33 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Notify admins (fire-and-forget)
-    const admins = await prisma.userOrganization.findMany({
-      where: { organizationId: tenant.organizationId, role: { in: ['OWNER', 'ADMIN'] } },
-      include: { user: { select: { id: true } } },
-    })
+    // Fire-and-forget: one summary email + one push notification (not per-booking)
+    const [org, admins] = await Promise.all([
+      prisma.organization.findUnique({ where: { id: tenant.organizationId }, select: { name: true } }),
+      prisma.userOrganization.findMany({
+        where: { organizationId: tenant.organizationId, role: { in: ['OWNER', 'ADMIN'] } },
+        include: { user: { select: { id: true, email: true } } },
+      }),
+    ])
+    const orgName = org?.name ?? ''
     const adminUserIds = admins.map((a) => a.user.id)
+    const adminEmails = admins.map((a) => a.user.email).filter(Boolean)
 
+    const sessionList = requests.map((r) => ({
+      name: sessionMap.get(r.sessionId)?.name ?? 'Session',
+      startTime: new Date(r.startTime),
+      endTime: new Date(r.endTime),
+    }))
+
+    notifyAdminBulkBooking({ adminEmails, orgName, clientName: client.name, count: created.length, sessions: sessionList }).catch(console.error)
     createNotifications(adminUserIds, {
       title: 'Bulk booking',
-      body: `${session.user.name || session.user.email} booked ${created.length} session${created.length !== 1 ? 's' : ''}`,
+      body: `${client.name} booked ${created.length} session${created.length === 1 ? '' : 's'}`,
       url: '/dashboard',
     }).catch(console.error)
+    if (client.email) {
+      sendBulkBookingConfirmation({ clientEmail: client.email, clientName: client.name, orgName, count: created.length, sessions: sessionList }).catch(console.error)
+    }
 
     return NextResponse.json({ created: created.length }, { status: 201 })
   } catch (error: any) {
