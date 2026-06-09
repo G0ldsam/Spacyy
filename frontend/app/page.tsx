@@ -1,5 +1,6 @@
 'use client'
 
+import type React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import ContactForm from '@/components/ContactForm'
@@ -54,8 +55,18 @@ export default function LandingPage() {
     'landing.contact_bullet_3',
   ]
 
+  const SPACYY_BRAND: React.CSSProperties = {
+    ['--brand-primary' as string]: '#8B1538',
+    ['--brand-primary-rgb' as string]: '139 21 56',
+    ['--brand-primary-dark' as string]: '#6B1030',
+    ['--brand-primary-dark-rgb' as string]: '107 16 48',
+    ['--brand-accent' as string]: '#C4184A',
+    ['--brand-accent-rgb' as string]: '196 24 74',
+    ['--brand-on-primary' as string]: '#ffffff',
+  }
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" style={SPACYY_BRAND}>
 
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">

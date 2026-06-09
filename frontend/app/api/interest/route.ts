@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 import { sendInterestListConfirmation, notifyAdminInterestEntry } from '@/lib/email'
@@ -16,7 +15,7 @@ export async function GET(req: NextRequest) {
   if ('error' in result) return result.error
   const { tenant } = result
 
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = req.nextUrl
@@ -79,7 +78,7 @@ export async function POST(req: NextRequest) {
   if ('error' in result) return result.error
   const { tenant } = result
 
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const client = await prisma.client.findFirst({

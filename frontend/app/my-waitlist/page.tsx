@@ -125,7 +125,7 @@ export default function MyWaitlistPage() {
   const dateKeys = Object.keys(grouped)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
           {/* Header */}

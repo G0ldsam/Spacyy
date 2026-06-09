@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type React from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -91,8 +92,18 @@ export default function RegisterPage() {
     }
   }
 
+  const SPACYY_BRAND: React.CSSProperties = {
+    ['--brand-primary' as string]: '#8B1538',
+    ['--brand-primary-rgb' as string]: '139 21 56',
+    ['--brand-primary-dark' as string]: '#6B1030',
+    ['--brand-primary-dark-rgb' as string]: '107 16 48',
+    ['--brand-accent' as string]: '#C4184A',
+    ['--brand-accent-rgb' as string]: '196 24 74',
+    ['--brand-on-primary' as string]: '#ffffff',
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 mobile-container">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 mobile-container" style={SPACYY_BRAND}>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl sm:text-3xl">{t('register.title')}</CardTitle>

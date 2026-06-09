@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
 import { verifyTenantAccess, verifyTenantAdmin } from '@/lib/api-helpers'
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
     if ('error' in result) return result.error
     const { tenant } = result
 
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -153,7 +152,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Prevent same client booking the same session+time twice
-      const duplicate = await prisma.booking.findFirst({
+      const duplicateCount = await prisma.booking.count({
         where: {
           clientId: validated.clientId,
           sessionId: validated.sessionId || undefined,
@@ -162,7 +161,7 @@ export async function POST(req: NextRequest) {
           status: { not: 'CANCELLED' },
         },
       })
-      if (duplicate) {
+      if (duplicateCount > 0) {
         return NextResponse.json(
           { error: 'You already have a booking for this session.' },
           { status: 409 }
@@ -171,7 +170,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for conflicts - count existing bookings for this time slot (RESERVED counts toward capacity)
-    const existingBookings = await prisma.booking.findMany({
+    const existingBookingsCount = await prisma.booking.count({
       where: {
         sessionId: validated.sessionId || undefined,
         spaceId: validated.spaceId || undefined,
@@ -189,7 +188,7 @@ export async function POST(req: NextRequest) {
         where: { id: validated.sessionId },
         select: { slots: true },
       })
-      if (serviceSession && existingBookings.length >= serviceSession.slots) {
+      if (serviceSession && existingBookingsCount >= serviceSession.slots) {
         return NextResponse.json(
           { error: 'No slots available for this time' },
           { status: 409 }

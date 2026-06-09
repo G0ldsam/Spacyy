@@ -21,7 +21,10 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in {**d.get\\('dependencies',{}\\),**d.get\\('devDependencies',{}\\)}.items\\(\\)]\")",
       "Bash(Remove-Item \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\\\\public\\\\logo.png\")",
       "Bash(cd /c/Users/vagos/OneDrive/Desktop/Projects/Spacyy/frontend && find . -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\" -o -name \"*.css\" \\\\\\) | head -50)",
-      "Read(//c/c/Users/vagos/OneDrive/Desktop/Projects/Spacyy/**)"
+      "Read(//c/c/Users/vagos/OneDrive/Desktop/Projects/Spacyy/**)",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"fitness booking session detail mobile PWA\" --design-system -p \"Spacyy\")",
+      "Bash(python \"cli/assets/scripts/search.py\" \"fitness booking session detail mobile\" --design-system -p \"Spacyy\")",
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\\\\app\" -Recurse -Name \"page.tsx\" | Where-Object { $_ -match \"forgot|reset|register|change\" })"
     ]
   }
 }

@@ -143,10 +143,10 @@ export default function SessionDetailPage() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-brand-surface flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-700 mb-4">{t('booking_detail.not_found')}</p>
-          <Link href="/my-sessions" className={buttonVariants()}>
+          <Link href="/my-sessions" className={buttonVariants('default', 'md')}>
             {t('booking_detail.back')}
           </Link>
         </div>
@@ -155,7 +155,7 @@ export default function SessionDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">
@@ -174,34 +174,31 @@ export default function SessionDetailPage() {
             </Link>
           </div>
 
-          <Card className="shadow-sm">
-            <CardHeader
-              className="pb-4"
-              style={{ backgroundColor: booking.serviceSession?.themeColor || 'var(--brand-primary)' }}
-            >
-              <div className="text-white">
-                <CardTitle className="text-2xl sm:text-3xl text-white mb-2">
-                  {booking.serviceSession?.name || 'Session'}
-                </CardTitle>
-                <p className="text-white/90 text-sm sm:text-base">
-                  {formatDate(booking.startTime)}
-                </p>
-                <p className="text-white/90 text-sm sm:text-base">
-                  {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
-                </p>
-              </div>
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="pb-5" style={{ background: 'var(--brand-hero-gradient)' }}>
+              <CardTitle className="text-2xl sm:text-3xl text-white mb-2 leading-tight">
+                {booking.serviceSession?.name || 'Session'}
+              </CardTitle>
+              <p className="text-white/80 text-sm sm:text-base">{formatDate(booking.startTime)}</p>
+              <p className="text-white/80 text-sm sm:text-base font-medium">
+                {formatTime(booking.startTime)} – {formatTime(booking.endTime)}
+              </p>
             </CardHeader>
+
             <CardContent className="pt-6">
               {booking.serviceSession?.description && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('booking_detail.description')}</h3>
-                  <p className="text-gray-700">{booking.serviceSession.description}</p>
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    {t('booking_detail.description')}
+                  </p>
+                  <p className="text-gray-700 text-sm leading-relaxed">{booking.serviceSession.description}</p>
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
+                  size="md"
                   className="flex-1"
                   onClick={handleChangeBooking}
                   disabled={!canChangeBooking || booking.status === 'CANCELLED'}
@@ -212,7 +209,8 @@ export default function SessionDetailPage() {
                 </Button>
                 {cancellationPolicy !== 'RESCHEDULE_ONLY' && (
                   <Button
-                    variant="destructive"
+                    variant="default"
+                    size="md"
                     className="flex-1"
                     onClick={() => setShowCancelModal(true)}
                     disabled={booking.status === 'CANCELLED'}
@@ -222,12 +220,14 @@ export default function SessionDetailPage() {
                 )}
               </div>
               {cancellationPolicy === 'RESCHEDULE_ONLY' && booking.status !== 'CANCELLED' && (
-                <p className="text-sm text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-2">
+                <p className="text-sm text-amber-600 mt-3 bg-amber-50 rounded-xl px-4 py-3">
                   {t('booking_detail.reschedule_only_msg')}
                 </p>
               )}
               {changeRestrictionMessage && (
-                <p className="text-sm text-red-600 mt-2">{changeRestrictionMessage}</p>
+                <p className="text-sm text-gray-500 mt-3 bg-gray-50 rounded-xl px-4 py-3">
+                  {changeRestrictionMessage}
+                </p>
               )}
             </CardContent>
           </Card>
@@ -243,8 +243,8 @@ export default function SessionDetailPage() {
               {t('booking_detail.cancel_confirm')}
             </p>
             {cancellationPolicy === 'FORFEIT_SLOT' && (
-              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
-                <p className="text-sm font-semibold text-red-700">
+              <div className="mb-4 rounded-xl bg-brand/8 border border-brand/20 px-4 py-3">
+                <p className="text-sm font-semibold text-brand">
                   {t('booking_detail.forfeit_warning')}
                 </p>
               </div>
@@ -259,12 +259,20 @@ export default function SessionDetailPage() {
                 {t('booking_detail.keep')}
               </Button>
               <Button
-                variant="destructive"
+                variant="default"
                 className="flex-1"
                 onClick={handleCancel}
                 disabled={cancelling}
               >
-                {cancelling ? t('booking_detail.cancelling') : t('booking_detail.yes_cancel')}
+                {cancelling ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    {t('booking_detail.cancelling')}
+                  </span>
+                ) : t('booking_detail.yes_cancel')}
               </Button>
             </div>
           </div>

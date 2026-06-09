@@ -16,6 +16,7 @@ const config: Config = {
           dark: 'rgb(var(--brand-primary-dark-rgb) / <alpha-value>)',
           muted: 'var(--brand-primary-muted)',
           light: 'var(--brand-primary-light)',
+          surface: 'var(--brand-surface)',
         },
       },
       spacing: {

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { queryClient } from '@/lib/queryClient'
+import { createSession } from '@/actions/sessions'
 
 export default function NewSessionPage() {
   const { t } = useLanguage()
@@ -26,21 +27,10 @@ export default function NewSessionPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          slots: parseInt(formData.slots),
-        }),
-      })
+      const result = await createSession({ ...formData, slots: Number.parseInt(formData.slots) })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create session')
+      if (result.error) {
+        throw new Error(result.error)
       }
 
       await queryClient.invalidateQueries({ queryKey: ['sessions'] })
@@ -53,7 +43,7 @@ export default function NewSessionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">

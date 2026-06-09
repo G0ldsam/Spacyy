@@ -7,6 +7,8 @@ import { PageSpinner } from '@/components/ui/spinner'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { createBooking, updateBookingStatus } from '@/actions/bookings'
+import { addInterest } from '@/actions/interest'
 
 interface TimeSlot {
   id: string
@@ -169,29 +171,20 @@ export default function BookSessionPage() {
 
       // Cancel old booking FIRST so the freed slot counts toward the new booking allowance check
       if (changingBookingId) {
-        const cancelRes = await fetch(`/api/bookings/${changingBookingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'CANCELLED', isReschedule: true }),
-        })
-        if (!cancelRes.ok) throw new Error('Failed to cancel existing booking. Please try again.')
+        const cancelResult = await updateBookingStatus(changingBookingId, 'CANCELLED', true)
+        if (cancelResult.error) throw new Error('Failed to cancel existing booking. Please try again.')
         sessionStorage.removeItem('changingBookingId')
         oldBookingCancelled = true
       }
 
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          clientId: clientData.id,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-        }),
+      const bookResult = await createBooking({
+        sessionId,
+        clientId: clientData.id,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
       })
-      if (!response.ok) {
-        const data = await response.json()
-        const base = data.error || 'Failed to create booking'
+      if (bookResult.error) {
+        const base = bookResult.error
         throw new Error(
           oldBookingCancelled
             ? `${base} — your previous session was already cancelled. Please book a new session.`
@@ -219,14 +212,9 @@ export default function BookSessionPage() {
         await fetch(`/api/interest/${existing.id}`, { method: 'DELETE' })
         setInterests((prev) => ({ ...prev, [timeSlot.id]: null }))
       } else {
-        const res = await fetch('/api/interest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, timeSlotId: timeSlot.id, date }),
-        })
-        if (res.ok) {
-          const entry = await res.json()
-          setInterests((prev) => ({ ...prev, [timeSlot.id]: entry }))
+        const result = await addInterest({ sessionId, timeSlotId: timeSlot.id, date })
+        if (!result.error) {
+          setInterests((prev) => ({ ...prev, [timeSlot.id]: result.data }))
         }
       }
     } catch {
@@ -247,7 +235,7 @@ export default function BookSessionPage() {
   if (status === 'loading' || loading) return <PageSpinner />
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">

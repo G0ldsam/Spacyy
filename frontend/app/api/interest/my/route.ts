@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 
@@ -12,7 +11,7 @@ export async function GET() {
   if ('error' in result) return result.error
   const { tenant } = result
 
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const client = await prisma.client.findFirst({

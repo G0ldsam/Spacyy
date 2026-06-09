@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAccess } from '@/lib/api-helpers'
 import { notifyAdminCancellation, notifyClientCancellation, notifyClientAdminCancellation } from '@/lib/email'
@@ -15,11 +14,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if ('error' in result) return result.error
     const { tenant } = result
 
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const client = await prisma.client.findFirst({
       where: { userId: session.user.id, organizationId: tenant.organizationId },
+      select: { id: true },
     })
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if ('error' in result) return result.error
     const { tenant } = result
 
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
@@ -62,7 +62,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const existingBooking = await prisma.booking.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        organizationId: true,
+        clientId: true,
+        startTime: true,
+        usedPendingSlot: true,
         organization: { select: { bookingChangeHours: true, name: true, cancellationPolicy: true, brandPrimary: true } },
         client: {
           select: {
@@ -88,6 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       // Clients can only update their own booking
       const client = await prisma.client.findFirst({
         where: { userId: session.user.id, organizationId: tenant.organizationId },
+        select: { id: true },
       })
       if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
       if (existingBooking.clientId !== client.id) {
@@ -134,14 +140,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const isPreSession = existingBooking.startTime > new Date()
 
         if (cancellationPolicy === 'FORFEIT_SLOT') {
-          if (isPreSession) {
-            // Pre-session forfeit: permanently consume the slot
-            await prisma.client.update({
-              where: { id: existingBooking.clientId },
-              data: { sessionAllowance: { decrement: 1 } },
-            })
-          } else if (!existingBooking.usedPendingSlot && client.sessionAllowance > 0) {
-            // Post-session forfeit: same as normal post-session consumption
+          if (isPreSession || (!existingBooking.usedPendingSlot && client.sessionAllowance > 0)) {
             await prisma.client.update({
               where: { id: existingBooking.clientId },
               data: { sessionAllowance: { decrement: 1 } },

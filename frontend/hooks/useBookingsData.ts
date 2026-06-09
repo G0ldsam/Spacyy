@@ -1,4 +1,5 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { createBooking, updateBookingStatus } from '@/actions/bookings'
 
 // ========================================
 // Types
@@ -119,6 +120,7 @@ export const useDashboardStats = () => {
       if (!res.ok) throw new Error('Failed to fetch dashboard stats')
       return res.json()
     },
+    staleTime: 30_000,
   })
 }
 
@@ -138,6 +140,7 @@ export const useSessions = () => {
   return useQuery({
     queryKey: ['sessions'],
     queryFn: fetchSessions,
+    staleTime: 5 * 60_000,
   })
 }
 
@@ -145,6 +148,7 @@ export const useClients = () => {
   return useQuery({
     queryKey: ['clients'],
     queryFn: fetchClients,
+    staleTime: 60_000,
   })
 }
 
@@ -153,6 +157,7 @@ export const useAvailability = (sessionId: string, date: string) => {
     queryKey: ['availability', sessionId, date],
     queryFn: () => fetchAvailability(sessionId, date),
     enabled: !!sessionId && !!date,
+    staleTime: 30_000,
   })
 }
 
@@ -174,6 +179,7 @@ export const useBookedDates = (start: string, end: string) => {
     queryKey: ['booked-dates', start, end],
     queryFn: () => fetchBookedDates(start, end),
     enabled: !!start && !!end,
+    staleTime: 5 * 60_000,
   })
 }
 
@@ -182,6 +188,7 @@ export const useExceptions = (sessionId: string, date: string) => {
     queryKey: ['exceptions', sessionId, date],
     queryFn: () => fetchExceptions(sessionId, date),
     enabled: !!sessionId && !!date,
+    staleTime: 5 * 60_000,
   })
 }
 
@@ -190,6 +197,7 @@ export const useInterestList = (sessionId: string, timeSlotId: string, date: str
     queryKey: ['interest', sessionId, timeSlotId, date],
     queryFn: () => fetchInterestList(sessionId, timeSlotId, date),
     enabled: !!sessionId && !!timeSlotId && !!date,
+    staleTime: 60_000,
   })
 }
 
@@ -234,7 +242,7 @@ export const useCheckIn = () => {
 
 export const useCreateBooking = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (params: {
       sessionId: string
@@ -242,41 +250,31 @@ export const useCreateBooking = () => {
       startTime: string
       endTime: string
     }) => {
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to create booking')
-      }
-      return res.json()
+      const result = await createBooking(params)
+      if (result.error) throw new Error(result.error)
+      return result.data
     },
     onSuccess: (_data, variables) => {
-      // Invalidate availability for this session
       queryClient.invalidateQueries({ queryKey: ['availability', variables.sessionId] })
       queryClient.invalidateQueries({ queryKey: ['booked-dates'] })
+      queryClient.invalidateQueries({ queryKey: ['bookings-my'] })
     },
   })
 }
 
 export const useCancelBooking = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (bookingId: string) => {
-      const res = await fetch(`/api/bookings/${bookingId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELLED' }),
-      })
-      if (!res.ok) throw new Error('Failed to cancel booking')
-      return res.json()
+      const result = await updateBookingStatus(bookingId, 'CANCELLED')
+      if (result.error) throw new Error(result.error)
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['availability'] })
       queryClient.invalidateQueries({ queryKey: ['booked-dates'] })
+      queryClient.invalidateQueries({ queryKey: ['bookings-my'] })
     },
   })
 }
@@ -402,5 +400,6 @@ export const useAdminInterestList = () => {
       if (!res.ok) throw new Error('Failed to fetch waitlist')
       return res.json()
     },
+    staleTime: 30_000,
   })
 }

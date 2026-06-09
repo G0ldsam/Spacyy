@@ -46,6 +46,7 @@ export default function MySessionsPage() {
     queryKey: ['bookings-my'],
     queryFn: () => fetch('/api/bookings/my').then(r => r.json()),
     enabled: status === 'authenticated',
+    staleTime: 60_000,
   })
 
   const myBookings = useMemo(() => {
@@ -130,7 +131,7 @@ export default function MySessionsPage() {
   const selectedDateBookings = getSelectedDateBookings()
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="min-h-screen bg-brand-surface overflow-x-hidden">
       <div className="mobile-container w-full">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8 w-full">
           <div className="mb-6 sm:mb-8 relative">

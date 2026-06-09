@@ -29,7 +29,7 @@ export default function DashboardHomeView({ userName, userEmail, onNavigate }: P
   const clientsCount = stats?.clientsCount ?? 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <AutoPushSubscribe />
       <div className="mobile-container">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">

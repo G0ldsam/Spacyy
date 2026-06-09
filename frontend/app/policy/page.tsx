@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { updatePolicy } from '@/actions/organization'
 
 type CancellationPolicy = 'ALLOW_REFUND' | 'RESCHEDULE_ONLY' | 'FORFEIT_SLOT'
 
@@ -76,24 +77,16 @@ export default function PolicyPage() {
     setSaving(true)
 
     try {
-      const response = await fetch('/api/organization/policy', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bookingChangeHours: settings.bookingChangeHours === null || settings.bookingChangeHours === 0
-            ? null
-            : settings.bookingChangeHours,
-          allowPendingSlot: settings.allowPendingSlot,
-          cancellationPolicy: settings.cancellationPolicy,
-        }),
+      const result = await updatePolicy({
+        bookingChangeHours: settings.bookingChangeHours === null || settings.bookingChangeHours === 0
+          ? null
+          : settings.bookingChangeHours,
+        allowPendingSlot: settings.allowPendingSlot,
+        cancellationPolicy: settings.cancellationPolicy,
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || t('policy.error_save'))
+      if (result.error) {
+        throw new Error(result.error)
       }
 
       setSuccess(t('policy.saved'))
@@ -110,7 +103,7 @@ export default function PolicyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">

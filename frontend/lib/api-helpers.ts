@@ -1,6 +1,5 @@
 import { headers } from 'next/headers'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
@@ -84,7 +83,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
 export async function verifyTenantAccess(): Promise<
   { tenant: TenantContext } | { error: NextResponse }
 > {
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
 
   if (!session?.user) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
@@ -125,7 +124,7 @@ export async function verifyTenantAccess(): Promise<
 export async function verifyTenantAdmin(): Promise<
   { tenant: TenantContext } | { error: NextResponse }
 > {
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
 
   if (!session?.user) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }

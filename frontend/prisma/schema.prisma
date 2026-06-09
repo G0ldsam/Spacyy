@@ -26,6 +26,7 @@ model Organization {
   brandPrimary              String?  // Hex color e.g. "#8B1538"
   brandSecondary            String?  // Hex color
   brandAccent               String?  // Hex color
+  brandSurface              String?  // Hex color for app background surface
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
@@ -243,6 +244,9 @@ model Booking {
   @@index([clientId])
   @@index([startTime, endTime])
   @@index([organizationId, startTime, endTime])
+  @@index([sessionId, startTime, endTime])
+  @@index([clientId, status, endTime])
+  @@index([clientId, sessionId, startTime])
 }
 
 enum BookingStatus {

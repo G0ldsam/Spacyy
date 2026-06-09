@@ -39,12 +39,13 @@ async function getBrandCssVars(): Promise<string> {
     if (!tenant) return tokensToCssVars(deriveTokens(DEFAULT_BRAND))
     const org = await prisma.organization.findUnique({
       where: { id: tenant.organizationId },
-      select: { brandPrimary: true, brandSecondary: true, brandAccent: true },
+      select: { brandPrimary: true, brandSecondary: true, brandAccent: true, brandSurface: true },
     })
     const tokens = deriveTokens({
       primary:   org?.brandPrimary   ?? DEFAULT_BRAND.primary,
       secondary: org?.brandSecondary ?? DEFAULT_BRAND.secondary,
       accent:    org?.brandAccent    ?? DEFAULT_BRAND.accent,
+      surface:   org?.brandSurface   ?? undefined,
     })
     return tokensToCssVars(tokens)
   } catch {

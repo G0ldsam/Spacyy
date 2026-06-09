@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState, useEffect } from 'react'
+import type React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -132,8 +133,19 @@ function ResetPasswordForm() {
   )
 }
 
+const SPACYY_BRAND: React.CSSProperties = {
+  ['--brand-primary' as string]: '#8B1538',
+  ['--brand-primary-rgb' as string]: '139 21 56',
+  ['--brand-primary-dark' as string]: '#6B1030',
+  ['--brand-primary-dark-rgb' as string]: '107 16 48',
+  ['--brand-accent' as string]: '#C4184A',
+  ['--brand-accent-rgb' as string]: '196 24 74',
+  ['--brand-on-primary' as string]: '#ffffff',
+}
+
 export default function ResetPasswordPage() {
   return (
+    <div style={SPACYY_BRAND}>
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
@@ -148,5 +160,6 @@ export default function ResetPasswordPage() {
     }>
       <ResetPasswordForm />
     </Suspense>
+    </div>
   )
 }

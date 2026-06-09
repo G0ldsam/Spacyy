@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { getTenantContext } from '@/lib/api-helpers'
 
@@ -25,7 +24,7 @@ function getNthDayOfWeekInMonth(year: number, month: number, dayOfWeek: number, 
 // Returns this month's equivalent dates for last month's booking pattern
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const tenant = await getTenantContext()

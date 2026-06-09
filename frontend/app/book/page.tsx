@@ -1,6 +1,6 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { getCachedSessions } from '@/lib/cache'
 import { getTenantContext } from '@/lib/api-helpers'
 import { redirect } from 'next/navigation'
 import { BookingHub } from '@/components/booking/BookingHub'
@@ -43,7 +43,7 @@ function getAllDaysOfWeekInMonth(year: number, month: number, dow: number): Date
 }
 
 export default async function BookPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
   if (!session) redirect('/login')
 
   let tenant = await getTenantContext()
@@ -72,10 +72,7 @@ export default async function BookPage() {
       where: { userId: session.user.id, organizationId: tenant.organizationId },
       select: { id: true, sessionAllowance: true },
     }),
-    prisma.serviceSession.findMany({
-      where: { organizationId: tenant.organizationId, isActive: true },
-      include: { timetable: { select: { id: true, dayOfWeek: true, startTime: true, endTime: true } } },
-    }),
+    getCachedSessions(tenant.organizationId),
   ])
 
   if (!client) redirect('/home')

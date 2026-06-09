@@ -14,20 +14,8 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          console.log('🔐 Starting authentication for:', credentials?.email)
-          
-          if (!credentials?.email || !credentials?.password) {
-            console.log('❌ Missing credentials')
-            return null
-          }
+          if (!credentials?.email || !credentials?.password) return null
 
-          // Check environment variables
-          if (!process.env.DATABASE_URL) {
-            console.error('❌ DATABASE_URL not found in environment')
-            throw new Error('Database configuration missing')
-          }
-
-          console.log('🔍 Looking up user in database...')
           const user = await prisma.user.findUnique({
             where: { email: credentials.email.toLowerCase().trim() },
             include: {
@@ -39,20 +27,11 @@ export const authOptions: NextAuthOptions = {
             },
           })
 
-          if (!user || !user.password) {
-            console.log('❌ User not found or no password set')
-            return null
-          }
+          if (!user?.password) return null
 
-          console.log('🔑 Verifying password...')
           const isValid = await compare(credentials.password, user.password)
+          if (!isValid) return null
 
-          if (!isValid) {
-            console.log('❌ Invalid password')
-            return null
-          }
-
-          console.log('✅ Authentication successful for:', user.email)
           return {
             id: user.id,
             email: user.email,

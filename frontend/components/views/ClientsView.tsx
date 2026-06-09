@@ -12,6 +12,7 @@ import QRCode from 'qrcode'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useClients } from '@/hooks/useBookingsData'
 import { useQueryClient } from '@tanstack/react-query'
+import { updateClient, deleteClient } from '@/actions/clients'
 
 interface Client {
   id: string
@@ -140,7 +141,7 @@ export default function ClientsView({ onBack }: Props) {
     try {
       if (!editingClient) return
 
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         name: editFormData.name,
         email: editFormData.email,
         phone: editFormData.phone || null,
@@ -150,24 +151,15 @@ export default function ClientsView({ onBack }: Props) {
       if (editFormData.sessionAllowance === '') {
         updateData.sessionAllowance = null
       } else if (editFormData.sessionAllowance) {
-        const allowance = parseInt(editFormData.sessionAllowance)
-        if (isNaN(allowance) || allowance < 1) {
+        const allowance = Number.parseInt(editFormData.sessionAllowance)
+        if (Number.isNaN(allowance) || allowance < 1) {
           throw new Error('Session allowance must be a positive number')
         }
         updateData.sessionAllowance = allowance
       }
 
-      const response = await fetch(`/api/clients/${editingClient.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update client')
-      }
+      const result = await updateClient(editingClient.id, updateData)
+      if (result.error) throw new Error(result.error)
 
       setEditingClient(null)
       setEditFormData({ name: '', email: '', phone: '', notes: '', sessionAllowance: '' })
@@ -187,12 +179,8 @@ export default function ClientsView({ onBack }: Props) {
     setUpdating(true)
 
     try {
-      const response = await fetch(`/api/clients/${editingClient.id}`, { method: 'DELETE' })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to delete client')
-      }
+      const result = await deleteClient(editingClient.id)
+      if (result.error) throw new Error(result.error)
 
       setEditingClient(null)
       setEditFormData({ name: '', email: '', phone: '', notes: '', sessionAllowance: '' })
@@ -209,7 +197,7 @@ export default function ClientsView({ onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

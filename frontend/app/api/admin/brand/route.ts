@@ -13,7 +13,7 @@ export async function GET() {
 
   const org = await prisma.organization.findUnique({
     where: { id: tenant.organizationId },
-    select: { brandPrimary: true, brandSecondary: true, brandAccent: true },
+    select: { brandPrimary: true, brandSecondary: true, brandAccent: true, brandSurface: true },
   })
 
   return NextResponse.json(org)
@@ -25,9 +25,9 @@ export async function PATCH(req: NextRequest) {
   const { tenant } = result
 
   const body = await req.json()
-  const { brandPrimary, brandSecondary, brandAccent } = body
+  const { brandPrimary, brandSecondary, brandAccent, brandSurface } = body
 
-  for (const [key, val] of Object.entries({ brandPrimary, brandSecondary, brandAccent })) {
+  for (const [key, val] of Object.entries({ brandPrimary, brandSecondary, brandAccent, brandSurface })) {
     if (val !== null && val !== undefined && !isValidHex(val as string)) {
       return NextResponse.json({ error: `Invalid hex for ${key}` }, { status: 400 })
     }
@@ -39,8 +39,9 @@ export async function PATCH(req: NextRequest) {
       ...(brandPrimary !== undefined && { brandPrimary }),
       ...(brandSecondary !== undefined && { brandSecondary }),
       ...(brandAccent !== undefined && { brandAccent }),
+      ...(brandSurface !== undefined && { brandSurface }),
     },
-    select: { brandPrimary: true, brandSecondary: true, brandAccent: true },
+    select: { brandPrimary: true, brandSecondary: true, brandAccent: true, brandSurface: true },
   })
 
   revalidatePath('/', 'layout')

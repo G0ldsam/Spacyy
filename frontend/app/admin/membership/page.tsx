@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Html5Qrcode } from 'html5-qrcode'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { renewMembership } from '@/actions/clients'
 
 interface ScannedClient {
   id: string
@@ -229,22 +230,13 @@ export default function MembershipManagementPage() {
         throw new Error('Please enter a positive number of sessions to add')
       }
 
-      const response = await fetch(`/api/admin/clients/${scannedClient.id}/renew`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionsToAdd: sessionsToAddNum,
-        }),
-      })
+      const result = await renewMembership(scannedClient.id, sessionsToAddNum)
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || t('membership_mgmt.error_renew'))
+      if (result.error) {
+        throw new Error(result.error)
       }
 
-      const updated = await response.json()
+      const updated = result.data
       setScannedClient({
         ...scannedClient,
         sessionAllowance: updated.sessionAllowance,
@@ -276,7 +268,7 @@ export default function MembershipManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mobile-container">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
           <div className="mb-6 sm:mb-8">

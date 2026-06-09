@@ -39,10 +39,11 @@ export default function HomePage() {
     enabled: status === 'authenticated',
   })
 
-  const { data: allBookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
+  const { data: allBookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery<Booking[]>({
     queryKey: ['bookings-my'],
     queryFn: () => fetch('/api/bookings/my').then(r => r.json()),
     enabled: status === 'authenticated',
+    staleTime: 60_000,
   })
 
   const sessionAllowance: number | null = clientData?.sessionAllowance ?? null
@@ -70,7 +71,7 @@ export default function HomePage() {
   const showRebookBanner = !isAdmin && slotsRemaining !== null && slotsRemaining > 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-surface">
       <AutoPushSubscribe />
       <PWAInstallBanner />
       {isAdmin && (
@@ -141,7 +142,16 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <p className="text-3xl sm:text-4xl font-bold text-brand mb-1">{myBookings.length}</p>
+                      {bookingsFetching ? (
+                        <div className="flex justify-center mb-1">
+                          <svg className="animate-spin h-9 w-9 text-brand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.568 3 7.293l3-2.647z" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <p className="text-3xl sm:text-4xl font-bold text-brand mb-1">{myBookings.length}</p>
+                      )}
                       <p className="text-sm text-gray-700">
                         {myBookings.length === 1 ? t('home.session_one') : t('home.session_other')}
                       </p>
@@ -219,7 +229,14 @@ export default function HomePage() {
                     <div className="border-t border-white/20 pt-4">
                       <p className="text-xs opacity-80 mb-2">{t('home.sessions_label')}</p>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold">{myBookings.length}</p>
+                        {bookingsFetching ? (
+                          <svg className="animate-spin h-7 w-7 text-white opacity-80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.568 3 7.293l3-2.647z" />
+                          </svg>
+                        ) : (
+                          <p className="text-3xl font-bold">{myBookings.length}</p>
+                        )}
                         <p className="text-sm opacity-70">
                           {sessionAllowance === null ? '/ ∞' : `/ ${sessionAllowance}`}
                         </p>

@@ -2,9 +2,11 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import type { Suggestion } from '@/app/book/page'
+import { bulkCreateBookings } from '@/actions/bookings'
 
 interface Props {
   suggestions: Suggestion[]
@@ -197,6 +199,7 @@ function bookButtonLabel(booking: boolean, selCount: number): string {
 
 export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowance, onBrowse }: Readonly<Props>) {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(suggestions.filter(s => s.isPreSelected && s.isAvailable).map(s => s.id))
@@ -252,19 +255,15 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
     setError('')
     const toBook = suggestions.filter(s => selected.has(s.id))
     try {
-      const res = await fetch('/api/bookings/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookings: toBook.map(s => ({ sessionId: s.sessionId, startTime: s.startTime, endTime: s.endTime })),
-        }),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        throw new Error(d.error || 'Failed to book')
-      }
+      const result = await bulkCreateBookings(
+        toBook.map(s => ({ sessionId: s.sessionId, startTime: s.startTime, endTime: s.endTime }))
+      )
+      if (result.error) throw new Error(result.error)
+      queryClient.invalidateQueries({ queryKey: ['bookings-my'] })
+      queryClient.invalidateQueries({ queryKey: ['availability'] })
+      queryClient.invalidateQueries({ queryKey: ['booked-dates'] })
       setDone(true)
-      setTimeout(() => router.push('/my-sessions'), 1600)
+      setTimeout(() => router.push('/home'), 1600)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -274,7 +273,7 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-brand-surface flex items-center justify-center px-4">
         <div className="text-center animate-fade-in">
           <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
             <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,7 +288,7 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-brand-surface pb-32">
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4">
@@ -382,7 +381,15 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
               onClick={handleBook}
               disabled={selCount === 0 || booking}
             >
-              {bookButtonLabel(booking, selCount)}
+              {booking ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Booking…
+                </span>
+              ) : bookButtonLabel(false, selCount)}
             </Button>
             {selCount === 0 && (
               <p className="text-xs text-center text-gray-400">Tap sessions above to select them</p>

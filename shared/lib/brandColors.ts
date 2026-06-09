@@ -2,6 +2,7 @@ export interface BrandColors {
   primary: string
   secondary: string
   accent: string
+  surface?: string
 }
 
 export interface DerivedTokens {
@@ -27,6 +28,8 @@ export interface DerivedTokens {
   ambientGradient: string
   cardGlow: string
   buttonGradient: string
+  // Surface
+  surfaceBg: string
 }
 
 export const DEFAULT_BRAND: BrandColors = {
@@ -129,6 +132,7 @@ export function deriveTokens(brand: BrandColors): DerivedTokens {
     ambientGradient:`radial-gradient(ellipse at 20% 80%, ${brand.primary}14 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, ${brand.secondary}0f 0%, transparent 55%)`,
     cardGlow:       `radial-gradient(ellipse at top, ${brand.primary}1f 0%, transparent 65%)`,
     buttonGradient: `linear-gradient(135deg, ${brand.primary} 0%, ${buttonEnd} 100%)`,
+    surfaceBg:      brand.surface ?? hslToHex(ph, Math.min(ps * 0.07, 7), 97.5),
   }
 }
 
@@ -160,5 +164,6 @@ export function tokensToCssVars(tokens: DerivedTokens): string {
     --brand-ambient-gradient: ${tokens.ambientGradient};
     --brand-card-glow: ${tokens.cardGlow};
     --brand-button-gradient: ${tokens.buttonGradient};
+    --brand-surface: ${tokens.surfaceBg};
   `.trim()
 }

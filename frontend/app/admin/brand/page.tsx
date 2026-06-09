@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PageSpinner } from '@/components/ui/spinner'
@@ -92,12 +93,16 @@ function ColorPickerRow({
   )
 }
 
-function LivePreview({ colors, t }: { colors: BrandColors; t: (key: string) => string }) {
-  const tokens = deriveTokens(colors)
+function LivePreview({ colors, surface, t }: Readonly<{ colors: BrandColors; surface: string; t: (key: string) => string }>) {
+  const tokens = deriveTokens({ ...colors, surface })
   const cssVars = tokensToCssVars(tokens)
 
   return (
     <div style={{ ['--preview' as string]: cssVars }} className="space-y-3">
+      <div className="rounded-xl px-3 py-2 text-xs text-gray-500 border border-dashed border-gray-200 flex items-center gap-2" style={{ background: tokens.surfaceBg }}>
+        <div className="w-3 h-3 rounded-sm border border-gray-300 flex-shrink-0" style={{ background: tokens.surfaceBg }} />
+        Background: {tokens.surfaceBg}
+      </div>
       <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: tokens.heroGradient }}>
         <div className="absolute inset-0 opacity-30" style={{ background: tokens.ambientGradient }} />
         <div className="relative z-10">
@@ -170,9 +175,12 @@ function LivePreview({ colors, t }: { colors: BrandColors; t: (key: string) => s
   )
 }
 
+const DEFAULT_SURFACE = '#f9f8f9'
+
 export default function BrandStudioPage() {
   const { t } = useLanguage()
   const [colors, setColors] = useState<BrandColors>(DEFAULT_BRAND)
+  const [surface, setSurface] = useState<string>(DEFAULT_SURFACE)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -189,6 +197,7 @@ export default function BrandStudioPage() {
             accent:    data.brandAccent    ?? DEFAULT_BRAND.accent,
           })
         }
+        if (data.brandSurface) setSurface(data.brandSurface)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -201,7 +210,7 @@ export default function BrandStudioPage() {
       const res = await fetch('/api/admin/brand', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brandPrimary: colors.primary, brandSecondary: colors.secondary, brandAccent: colors.accent }),
+        body: JSON.stringify({ brandPrimary: colors.primary, brandSecondary: colors.secondary, brandAccent: colors.accent, brandSurface: surface }),
       })
       if (!res.ok) throw new Error('Save failed')
       setSaved(true)
@@ -221,9 +230,15 @@ export default function BrandStudioPage() {
   if (loading) return <PageSpinner />
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-brand-surface p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
+          <Link href="/dashboard" className="inline-flex items-center text-gray-500 hover:text-gray-800 transition-colors text-sm mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            {t('brand.back')}
+          </Link>
           <h1 className="text-2xl font-bold text-gray-900">{t('brand.title')}</h1>
           <p className="text-gray-500 text-sm mt-1">{t('brand.subtitle')}</p>
         </div>
@@ -272,6 +287,7 @@ export default function BrandStudioPage() {
                 <ColorPickerRow label={t('brand.primary')} value={colors.primary} onChange={v => setColors(c => ({ ...c, primary: v }))} description={t('brand.primary_desc')} invalidMsg={t('brand.invalid_hex')} />
                 <ColorPickerRow label={t('brand.secondary')} value={colors.secondary} onChange={v => setColors(c => ({ ...c, secondary: v }))} description={t('brand.secondary_desc')} invalidMsg={t('brand.invalid_hex')} />
                 <ColorPickerRow label={t('brand.accent')} value={colors.accent} onChange={v => setColors(c => ({ ...c, accent: v }))} description={t('brand.accent_desc')} invalidMsg={t('brand.invalid_hex')} />
+                <ColorPickerRow label={t('brand.surface')} value={surface} onChange={setSurface} description={t('brand.surface_desc')} invalidMsg={t('brand.invalid_hex')} />
               </CardContent>
             </Card>
 
@@ -295,7 +311,7 @@ export default function BrandStudioPage() {
               <Button onClick={handleSave} disabled={saving} className="flex-1" style={{ background: tokens.buttonGradient, color: tokens.onPrimary }}>
                 {saveLabel}
               </Button>
-              <Button variant="outline" onClick={() => setColors(DEFAULT_BRAND)} disabled={saving}>
+              <Button variant="outline" onClick={() => { setColors(DEFAULT_BRAND); setSurface(DEFAULT_SURFACE) }} disabled={saving}>
                 {t('brand.reset')}
               </Button>
             </div>
@@ -314,7 +330,7 @@ export default function BrandStudioPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <LivePreview colors={colors} t={t} />
+                <LivePreview colors={colors} surface={surface} t={t} />
               </CardContent>
             </Card>
 

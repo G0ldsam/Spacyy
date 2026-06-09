@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { serviceSessionSchema } from '@/lib/validation'
 import { verifyTenantAccess, verifyTenantAdmin, getTenantContext } from '@/lib/api-helpers'
@@ -11,7 +10,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/sessions - List sessions
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
