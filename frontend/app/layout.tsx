@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
-    apple: '/icon-192.png',
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
   },
   appleWebApp: {
     capable: true,
@@ -32,9 +32,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="en">
       <head>

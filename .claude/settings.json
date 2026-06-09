@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Remove-Item \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\\\\components\\\\RebookModal.tsx\")"
+      "Bash(Remove-Item \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\\\\components\\\\RebookModal.tsx\")",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"fitness wellness booking SaaS platform minimal\" --design-system -p \"Spacyy\")",
+      "Bash(python \"cli/assets/scripts/search.py\" \"fitness wellness booking SaaS minimal icon\" --domain prompt)",
+      "Bash(python \"cli/assets/scripts/search.py\" \"fitness wellness booking SaaS minimal\" --design-system -p \"Spacyy\")",
+      "Bash(python \"cli/assets/scripts/search.py\" \"wellness booking SaaS\" --domain icons)",
+      "Bash(python \"cli/assets/scripts/search.py\" \"fitness SaaS athletic minimal\" --domain style)",
+      "Bash(python \"cli/assets/scripts/search.py\" \"health wellness booking\" --domain color)",
+      "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp ok'\\)\")",
+      "Bash(python -c \"from PIL import Image; print\\('pillow ok'\\)\")",
+      "Bash(python \"c:\\\\Users\\\\vagos\\\\OneDrive\\\\Desktop\\\\Projects\\\\Spacyy\\\\frontend\\\\scripts\\\\generate-icons.py\")",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import numpy; print\\('numpy', numpy.__version__\\)\")",
+      "Bash(python \"cli/assets/scripts/search.py\" \"SaaS admin dashboard brand customization settings\" --design-system -p \"Spacyy Brand Studio\")",
+      "Bash(python \"cli/assets/scripts/search.py\" \"color picker customization theming\" --domain style)",
+      "Bash(python \"cli/assets/scripts/search.py\" \"SaaS admin settings\" --domain product)"
     ]
   }
 }
