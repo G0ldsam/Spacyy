@@ -113,6 +113,17 @@ export default function DashboardClient({
                 </CardContent>
               </Card>
             </a>
+
+            <a href="/admin/brand">
+              <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg sm:text-xl">{t('dashboard.brand_studio')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-700">{t('dashboard.brand_studio_desc')}</p>
+                </CardContent>
+              </Card>
+            </a>
           </div>
         </div>
       </div>

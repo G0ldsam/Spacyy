@@ -84,6 +84,8 @@ const el: Messages = {
     membership_desc: 'Ανανέωση συνδρομών και διαχείριση επιτρεπόμενων συνεδριών',
     checkin: 'Check-In',
     checkin_desc: 'Σαρώστε QR codes για check-in πελατών σε συνεδρίες',
+    brand_studio: 'Brand Studio',
+    brand_studio_desc: 'Προσαρμόστε τα χρώματα και τις κλίσεις της σελίδας κρατήσεών σας',
   },
   settings: {
     title: 'Ρυθμίσεις',

@@ -23,6 +23,9 @@ model Organization {
   bookingChangeHours        Int?     // Hours before booking start time that changes are allowed (null = no restriction)
   allowPendingSlot          Boolean  @default(false) // Allow clients to book when slots are exhausted (slot owed on next renewal)
   cancellationPolicy        CancellationPolicy @default(ALLOW_REFUND) // What happens when a client cancels a booking
+  brandPrimary              String?  // Hex color e.g. "#8B1538"
+  brandSecondary            String?  // Hex color
+  brandAccent               String?  // Hex color
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 

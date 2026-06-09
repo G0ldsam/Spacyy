@@ -82,6 +82,8 @@ const en = {
     membership_desc: 'Renew memberships and manage session allowances',
     checkin: 'Check-In',
     checkin_desc: 'Scan QR codes to check in clients for sessions',
+    brand_studio: 'Brand Studio',
+    brand_studio_desc: 'Customise your booking page colours and gradients',
   },
   settings: {
     title: 'Settings',
