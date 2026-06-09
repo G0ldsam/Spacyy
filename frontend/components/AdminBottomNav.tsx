@@ -6,8 +6,8 @@ import { useAdminInterestList } from '@/hooks/useBookingsData'
 type AdminView = 'home' | 'bookings' | 'sessions' | 'clients' | 'waitlist'
 
 interface Props {
-  activeView: AdminView
-  onNavigate: (view: AdminView) => void
+  readonly activeView: AdminView
+  readonly onNavigate: (view: AdminView) => void
 }
 
 const tabs: { view: AdminView; label: string; icon: React.ReactNode }[] = [
@@ -74,7 +74,7 @@ export default function AdminBottomNav({ activeView, onNavigate }: Props) {
               onClick={() => onNavigate(tab.view)}
               className={cn(
                 'flex flex-col items-center justify-center flex-1 h-full min-w-0 px-2 transition-colors duration-200 relative',
-                isActive ? 'text-[#8B1538]' : 'text-gray-500 hover:text-gray-700'
+                isActive ? 'text-brand' : 'text-gray-500 hover:text-gray-700'
               )}
             >
               <div className="relative">

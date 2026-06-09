@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
 
     // Fire-and-forget: one summary email + one push notification (not per-booking)
     const [org, admins] = await Promise.all([
-      prisma.organization.findUnique({ where: { id: tenant.organizationId }, select: { name: true } }),
+      prisma.organization.findUnique({ where: { id: tenant.organizationId }, select: { name: true, brandPrimary: true } }),
       prisma.userOrganization.findMany({
         where: { organizationId: tenant.organizationId, role: { in: ['OWNER', 'ADMIN'] } },
         include: { user: { select: { id: true, email: true } } },
@@ -171,14 +171,14 @@ export async function POST(req: NextRequest) {
       endTime: new Date(r.endTime),
     }))
 
-    notifyAdminBulkBooking({ adminEmails, orgName, clientName: client.name, count: created.length, sessions: sessionList }).catch(console.error)
+    notifyAdminBulkBooking({ adminEmails, orgName, clientName: client.name, count: created.length, sessions: sessionList, brandColor: org?.brandPrimary ?? undefined }).catch(console.error)
     createNotifications(adminUserIds, {
       title: 'Bulk booking',
       body: `${client.name} booked ${created.length} session${created.length === 1 ? '' : 's'}`,
       url: '/dashboard',
     }).catch(console.error)
     if (client.email) {
-      sendBulkBookingConfirmation({ clientEmail: client.email, clientName: client.name, orgName, count: created.length, sessions: sessionList }).catch(console.error)
+      sendBulkBookingConfirmation({ clientEmail: client.email, clientName: client.name, orgName, count: created.length, sessions: sessionList, brandColor: org?.brandPrimary ?? undefined }).catch(console.error)
     }
 
     return NextResponse.json({ created: created.length }, { status: 201 })

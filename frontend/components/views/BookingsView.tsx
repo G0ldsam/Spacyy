@@ -439,12 +439,12 @@ export default function BookingsView({ onBack }: Props) {
                         key={i}
                         onClick={() => setSelectedDate(date)}
                         className={`flex-1 flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 rounded-md text-[10px] sm:text-xs font-medium transition-colors min-h-[55px] sm:min-h-[65px] md:min-h-[75px] ${
-                          isDateSelected(date) ? 'bg-[#8B1538] text-white' : isToday(date) ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
+                          isDateSelected(date) ? 'bg-brand text-white' : isToday(date) ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 text-gray-700 border border-gray-200'
                         }`}
                       >
                         <span className="text-[9px] sm:text-[10px] mb-0.5 opacity-70">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</span>
                         <span className="text-xs sm:text-base font-semibold">{date.getDate()}</span>
-                        <span className={`mt-0.5 w-1.5 h-1.5 rounded-full ${hasBookings(date) ? isDateSelected(date) ? 'bg-white' : 'bg-[#8B1538]' : 'invisible'}`} />
+                        <span className={`mt-0.5 w-1.5 h-1.5 rounded-full ${hasBookings(date) ? isDateSelected(date) ? 'bg-white' : 'bg-brand' : 'invisible'}`} />
                       </button>
                     ))}
                   </div>
@@ -476,7 +476,7 @@ export default function BookingsView({ onBack }: Props) {
                     <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
                       {availabilityLoading || detailLoading ? (
                         <div className="flex items-center justify-center py-10">
-                          <div className="w-6 h-6 border-2 border-[#8B1538] border-t-transparent rounded-full animate-spin" />
+                          <div className="w-6 h-6 border-2 border-brand/30 rounded-full animate-spin" style={{ borderTopColor: 'var(--brand-primary)' }} />
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -498,7 +498,7 @@ export default function BookingsView({ onBack }: Props) {
                                     className={[
                                       'relative p-3 sm:p-4 rounded-lg border-2 transition-colors w-full',
                                       isClosed ? 'border-red-200 bg-red-50 cursor-default' :
-                                      isExpanded ? 'border-[#8B1538] bg-[#8B1538]/5 cursor-pointer' :
+                                      isExpanded ? 'border-brand bg-brand/5 cursor-pointer' :
                                       remaining > 0 ? 'border-green-200 bg-green-50 cursor-pointer hover:shadow-md' :
                                       'border-red-200 bg-red-50 cursor-pointer hover:shadow-md',
                                     ].join(' ')}
@@ -664,7 +664,7 @@ export default function BookingsView({ onBack }: Props) {
                                                 <button
                                                   onClick={() => handleNotifyAll(timeSlot)}
                                                   disabled={notifyingSlotId === timeSlot.id}
-                                                  className="text-xs font-semibold text-[#8B1538] hover:text-[#6d1029] disabled:opacity-50"
+                                                  className="text-xs font-semibold text-brand hover:text-brand-dark disabled:opacity-50"
                                                 >
                                                   {notifyingSlotId === timeSlot.id ? 'Sending…' : `Notify all (${remaining} spot${remaining !== 1 ? 's' : ''} open)`}
                                                 </button>
@@ -707,7 +707,7 @@ export default function BookingsView({ onBack }: Props) {
                         <div className="space-y-3 sm:space-y-4 relative">
                           {availabilityLoading && (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                              <div className="w-6 h-6 border-2 border-[#8B1538] border-t-transparent rounded-full animate-spin" />
+                              <div className="w-6 h-6 border-2 border-brand/30 rounded-full animate-spin" style={{ borderTopColor: 'var(--brand-primary)' }} />
                             </div>
                           )}
                           {availableSessions.map((sess) => (
@@ -789,7 +789,7 @@ export default function BookingsView({ onBack }: Props) {
                     <select
                       value={selectedClientId}
                       onChange={(e) => setSelectedClientId(e.target.value)}
-                      className="w-full h-12 rounded-md border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B1538]"
+                      className="w-full h-12 rounded-md border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                     >
                       <option value="">Choose a client…</option>
                       <option value="__reserved__">— Reserved —</option>

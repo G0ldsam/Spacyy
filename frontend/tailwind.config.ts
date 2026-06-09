@@ -11,9 +11,11 @@ const config: Config = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
-        wine: {
-          DEFAULT: '#8B1538',
-          dark: '#722F37',
+        brand: {
+          DEFAULT: 'rgb(var(--brand-primary-rgb) / <alpha-value>)',
+          dark: 'rgb(var(--brand-primary-dark-rgb) / <alpha-value>)',
+          muted: 'var(--brand-primary-muted)',
+          light: 'var(--brand-primary-light)',
         },
       },
       spacing: {

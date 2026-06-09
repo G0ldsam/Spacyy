@@ -42,7 +42,7 @@ function slotCapacityClass(isFull: boolean): string {
 
 function calDayClass(isPast: boolean, selected: boolean, today: boolean): string {
   if (isPast) return 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
-  if (selected) return 'bg-[#8B1538] text-white'
+  if (selected) return 'bg-brand text-white'
   if (today) return 'bg-gray-200 text-gray-900'
   return 'hover:bg-gray-100 text-gray-700 border border-gray-200'
 }
@@ -331,7 +331,7 @@ export function BrowseBookView({ onRecommended }: Props) {
                   <div
                     key={booking.id}
                     className="border border-gray-200 rounded-lg p-3 sm:p-4 w-full"
-                    style={{ borderLeftColor: booking.serviceSession?.themeColor || '#8B1538', borderLeftWidth: '4px' }}
+                    style={{ borderLeftColor: booking.serviceSession?.themeColor || 'var(--brand-primary)', borderLeftWidth: '4px' }}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">

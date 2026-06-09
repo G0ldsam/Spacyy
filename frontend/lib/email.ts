@@ -31,10 +31,10 @@ function formatDateTime(date: Date) {
   })
 }
 
-function baseLayout(orgName: string, content: string) {
+function baseLayout(orgName: string, content: string, brandColor = '#8B1538') {
   return `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111827">
-      <div style="background:#8B1538;padding:20px 24px;border-radius:8px 8px 0 0">
+      <div style="background:${brandColor};padding:20px 24px;border-radius:8px 8px 0 0">
         <h1 style="margin:0;color:#fff;font-size:20px">${orgName}</h1>
       </div>
       <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">
@@ -54,21 +54,24 @@ export async function notifyAdminNewBooking({
   clientName,
   sessionName,
   startTime,
+  brandColor,
 }: {
   adminEmails: string[]
   orgName: string
   clientName: string
   sessionName: string
   startTime: Date
+  brandColor?: string
 }) {
   if (adminEmails.length === 0) return
+  const bc = brandColor ?? '#8B1538'
 
   const subject = `[${orgName}] New booking by ${clientName}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">New Booking</h2>
+    <h2 style="margin-top:0;color:${bc}">New Booking</h2>
     <p><strong>${clientName}</strong> just booked a session:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -80,7 +83,8 @@ export async function notifyAdminNewBooking({
         <td style="padding:10px 12px;border:1px solid #e5e7eb">${formatDateTime(startTime)}</td>
       </tr>
     </table>
-    `
+    `,
+    bc
   )
 
   await sendEmail(adminEmails, subject, html)
@@ -94,6 +98,7 @@ export async function sendBookingConfirmation({
   sessionName,
   startTime,
   endTime,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
@@ -101,13 +106,15 @@ export async function sendBookingConfirmation({
   sessionName: string
   startTime: Date
   endTime: Date
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Booking confirmed — ${sessionName}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Booking Confirmed!</h2>
+    <h2 style="margin-top:0;color:${bc}">Booking Confirmed!</h2>
     <p>Hi <strong>${clientName}</strong>, your booking is confirmed:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -124,7 +131,8 @@ export async function sendBookingConfirmation({
       </tr>
     </table>
     <p style="color:#6b7280;font-size:14px">If you need to cancel or reschedule, please do so through the app.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -138,6 +146,7 @@ export async function notifyAdminCancellation({
   sessionName,
   startTime,
   isReschedule,
+  brandColor,
 }: {
   adminEmails: string[]
   orgName: string
@@ -145,8 +154,10 @@ export async function notifyAdminCancellation({
   sessionName: string
   startTime: Date
   isReschedule: boolean
+  brandColor?: string
 }) {
   if (adminEmails.length === 0) return
+  const bc = brandColor ?? '#8B1538'
 
   const action = isReschedule ? 'rescheduled' : 'cancelled'
   const subject = `[${orgName}] Booking ${action} by ${clientName}`
@@ -154,7 +165,7 @@ export async function notifyAdminCancellation({
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Booking ${action}</h2>
+    <h2 style="margin-top:0;color:${bc}">Booking ${action}</h2>
     <p><strong>${clientName}</strong> has ${action} their booking:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -167,7 +178,8 @@ export async function notifyAdminCancellation({
       </tr>
     </table>
     ${isReschedule ? '<p style="color:#6b7280;font-size:14px">The client may be rebooking for a different time.</p>' : ''}
-    `
+    `,
+    bc
   )
 
   await sendEmail(adminEmails, subject, html)
@@ -180,19 +192,22 @@ export async function notifyClientCancellation({
   orgName,
   sessionName,
   startTime,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
   orgName: string
   sessionName: string
   startTime: Date
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Booking cancelled — ${sessionName}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Booking Cancelled</h2>
+    <h2 style="margin-top:0;color:${bc}">Booking Cancelled</h2>
     <p>Hi <strong>${clientName}</strong>, your booking has been cancelled:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -205,7 +220,8 @@ export async function notifyClientCancellation({
       </tr>
     </table>
     <p style="color:#6b7280;font-size:14px">If this was a mistake, you can rebook through the app.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -218,19 +234,22 @@ export async function sendRenewalReminder({
   orgName,
   sessionName,
   startTime,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
   orgName: string
   sessionName: string
   startTime: Date
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Renew your ${orgName} membership — last session tomorrow`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Your membership is almost up</h2>
+    <h2 style="margin-top:0;color:${bc}">Your membership is almost up</h2>
     <p>Hi <strong>${clientName}</strong>,</p>
     <p>Your upcoming session is the last one covered by your current membership:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
@@ -244,7 +263,8 @@ export async function sendRenewalReminder({
       </tr>
     </table>
     <p>Contact ${orgName} to renew your membership so you can keep booking sessions.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -257,19 +277,22 @@ export async function sendWelcomeEmail({
   orgName,
   loginUrl,
   tempPassword,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
   orgName: string
   loginUrl: string
   tempPassword: string
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Welcome to ${orgName} — your account is ready`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Welcome, ${clientName}!</h2>
+    <h2 style="margin-top:0;color:${bc}">Welcome, ${clientName}!</h2>
     <p>Your account has been created for <strong>${orgName}</strong>. You can now log in and start booking sessions.</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -283,10 +306,11 @@ export async function sendWelcomeEmail({
     </table>
     <p>You will be asked to set a new password on your first login.</p>
     <a href="${loginUrl}"
-       style="display:inline-block;background:#8B1538;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">
+       style="display:inline-block;background:${bc};color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">
       Log In Now
     </a>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -300,6 +324,7 @@ export async function notifyClientAdminCancellation({
   sessionName,
   startTime,
   reason,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
@@ -307,13 +332,15 @@ export async function notifyClientAdminCancellation({
   sessionName: string
   startTime: Date
   reason?: string | null
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Your booking was cancelled — ${sessionName}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Booking Cancelled by Studio</h2>
+    <h2 style="margin-top:0;color:${bc}">Booking Cancelled by Studio</h2>
     <p>Hi <strong>${clientName}</strong>, your booking has been cancelled by ${orgName}:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -327,7 +354,8 @@ export async function notifyClientAdminCancellation({
       ${reason ? `<tr style="background:#f9fafb"><td style="padding:10px 12px;font-weight:600;border:1px solid #e5e7eb">Reason</td><td style="padding:10px 12px;border:1px solid #e5e7eb">${reason}</td></tr>` : ''}
     </table>
     <p style="color:#6b7280;font-size:14px">If you have questions, please contact ${orgName} directly.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -340,19 +368,22 @@ export async function sendMembershipRenewedEmail({
   orgName,
   sessionsAdded,
   newAllowance,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
   orgName: string
   sessionsAdded: number
   newAllowance: number
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Your ${orgName} membership has been renewed`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Membership Renewed</h2>
+    <h2 style="margin-top:0;color:${bc}">Membership Renewed</h2>
     <p>Hi <strong>${clientName}</strong>, your membership at ${orgName} has been topped up:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -365,7 +396,8 @@ export async function sendMembershipRenewedEmail({
       </tr>
     </table>
     <p>You can now book your next sessions through the app.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -378,19 +410,22 @@ export async function sendPendingSlotWarning({
   orgName,
   sessionName,
   startTime,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
   orgName: string
   sessionName: string
   startTime: Date
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `Booking confirmed — 1 session owed on next renewal`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Booking Confirmed (Pending Slot)</h2>
+    <h2 style="margin-top:0;color:${bc}">Booking Confirmed (Pending Slot)</h2>
     <p>Hi <strong>${clientName}</strong>, your booking is confirmed. You had no remaining sessions in your membership, so this session will be deducted from your <strong>next renewal</strong>:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -403,7 +438,8 @@ export async function sendPendingSlotWarning({
       </tr>
     </table>
     <p style="color:#6b7280;font-size:14px">Contact ${orgName} if you have questions about your membership balance.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -416,21 +452,24 @@ export async function notifyAdminPendingSlotUsed({
   clientName,
   sessionName,
   startTime,
+  brandColor,
 }: {
   adminEmails: string[]
   orgName: string
   clientName: string
   sessionName: string
   startTime: Date
+  brandColor?: string
 }) {
   if (adminEmails.length === 0) return
+  const bc = brandColor ?? '#8B1538'
 
   const subject = `[${orgName}] Pending slot used by ${clientName}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Pending Slot Used</h2>
+    <h2 style="margin-top:0;color:${bc}">Pending Slot Used</h2>
     <p><strong>${clientName}</strong> booked a session with no remaining allowance. This slot will be owed on their next renewal:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -443,7 +482,8 @@ export async function notifyAdminPendingSlotUsed({
       </tr>
     </table>
     <p style="color:#6b7280;font-size:14px">Remember to deduct 1 session from their next renewal.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(adminEmails, subject, html)
@@ -458,6 +498,7 @@ export async function sendInterestListConfirmation({
   date,
   startTime,
   endTime,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
@@ -466,13 +507,15 @@ export async function sendInterestListConfirmation({
   date: string
   startTime: string
   endTime: string
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `You're on the waitlist — ${sessionName}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">You're on the Waitlist</h2>
+    <h2 style="margin-top:0;color:${bc}">You're on the Waitlist</h2>
     <p>Hi <strong>${clientName}</strong>, you've been added to the interest list for:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -489,7 +532,8 @@ export async function sendInterestListConfirmation({
       </tr>
     </table>
     <p style="color:#6b7280;font-size:14px">We'll notify you as soon as a spot becomes available. Spots are first-come, first-served.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -504,6 +548,7 @@ export async function notifyAdminInterestEntry({
   date,
   startTime,
   endTime,
+  brandColor,
 }: {
   adminEmails: string[]
   orgName: string
@@ -512,15 +557,17 @@ export async function notifyAdminInterestEntry({
   date: string
   startTime: string
   endTime: string
+  brandColor?: string
 }) {
   if (adminEmails.length === 0) return
+  const bc = brandColor ?? '#8B1538'
 
   const subject = `[${orgName}] ${clientName} joined the waitlist`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">New Waitlist Entry</h2>
+    <h2 style="margin-top:0;color:${bc}">New Waitlist Entry</h2>
     <p><strong>${clientName}</strong> joined the interest list for a full session:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f9fafb">
@@ -536,7 +583,8 @@ export async function notifyAdminInterestEntry({
         <td style="padding:10px 12px;border:1px solid #e5e7eb">${startTime} – ${endTime}</td>
       </tr>
     </table>
-    `
+    `,
+    bc
   )
 
   await sendEmail(adminEmails, subject, html)
@@ -547,25 +595,29 @@ export async function sendPasswordResetEmail({
   email,
   name,
   resetUrl,
+  brandColor,
 }: {
   email: string
   name: string
   resetUrl: string
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = 'Reset your Spacyy password'
 
   const html = baseLayout(
     'Spacyy',
     `
-    <h2 style="margin-top:0;color:#8B1538">Password Reset</h2>
+    <h2 style="margin-top:0;color:${bc}">Password Reset</h2>
     <p>Hi <strong>${name || 'there'}</strong>,</p>
     <p>We received a request to reset your Spacyy password. Click the button below to set a new one:</p>
     <a href="${resetUrl}"
-       style="display:inline-block;background:#8B1538;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">
+       style="display:inline-block;background:${bc};color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">
       Reset Password
     </a>
     <p style="color:#6b7280;font-size:14px;margin-top:16px">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(email, subject, html)
@@ -578,14 +630,17 @@ export async function notifyAdminBulkBooking({
   clientName,
   count,
   sessions,
+  brandColor,
 }: {
   adminEmails: string[]
   orgName: string
   clientName: string
   count: number
   sessions: { name: string; startTime: Date }[]
+  brandColor?: string
 }) {
   if (adminEmails.length === 0) return
+  const bc = brandColor ?? '#8B1538'
 
   const subject = `[${orgName}] ${clientName} booked ${count} session${count === 1 ? '' : 's'}`
 
@@ -599,7 +654,7 @@ export async function notifyAdminBulkBooking({
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">Bulk Booking — ${count} Session${count === 1 ? '' : 's'}</h2>
+    <h2 style="margin-top:0;color:${bc}">Bulk Booking — ${count} Session${count === 1 ? '' : 's'}</h2>
     <p><strong>${clientName}</strong> just booked ${count} session${count === 1 ? '' : 's'} via the monthly rebook flow:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <thead>
@@ -610,7 +665,8 @@ export async function notifyAdminBulkBooking({
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    `
+    `,
+    bc
   )
 
   await sendEmail(adminEmails, subject, html)
@@ -623,13 +679,16 @@ export async function sendBulkBookingConfirmation({
   orgName,
   count,
   sessions,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
   orgName: string
   count: number
   sessions: { name: string; startTime: Date; endTime: Date }[]
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `${count} session${count === 1 ? '' : 's'} booked — ${orgName}`
 
   const rows = sessions
@@ -642,7 +701,7 @@ export async function sendBulkBookingConfirmation({
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">${count} Session${count === 1 ? '' : 's'} Confirmed!</h2>
+    <h2 style="margin-top:0;color:${bc}">${count} Session${count === 1 ? '' : 's'} Confirmed!</h2>
     <p>Hi <strong>${clientName}</strong>, your bookings for this month are confirmed:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <thead>
@@ -654,7 +713,8 @@ export async function sendBulkBookingConfirmation({
       <tbody>${rows}</tbody>
     </table>
     <p style="color:#6b7280;font-size:14px">To cancel or reschedule individual sessions, use the app.</p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)
@@ -670,6 +730,7 @@ export async function sendSpotAvailableNotification({
   startTime,
   endTime,
   bookingUrl,
+  brandColor,
 }: {
   clientEmail: string
   clientName: string
@@ -679,13 +740,15 @@ export async function sendSpotAvailableNotification({
   startTime: string
   endTime: string
   bookingUrl: string
+  brandColor?: string
 }) {
+  const bc = brandColor ?? '#8B1538'
   const subject = `A spot opened up — ${sessionName} on ${date}`
 
   const html = baseLayout(
     orgName,
     `
-    <h2 style="margin-top:0;color:#8B1538">A spot is available!</h2>
+    <h2 style="margin-top:0;color:${bc}">A spot is available!</h2>
     <p>Hi <strong>${clientName}</strong>,</p>
     <p>A spot has opened up for a session you were interested in:</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
@@ -704,13 +767,14 @@ export async function sendSpotAvailableNotification({
     </table>
     <p>Book your spot now before it fills up again:</p>
     <a href="${bookingUrl}"
-       style="display:inline-block;background:#8B1538;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">
+       style="display:inline-block;background:${bc};color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">
       Book Now
     </a>
     <p style="color:#9ca3af;font-size:12px;margin-top:24px">
       Spots are first-come, first-served. This notification was also sent to other interested clients.
     </p>
-    `
+    `,
+    bc
   )
 
   await sendEmail(clientEmail, subject, html)

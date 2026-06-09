@@ -111,7 +111,7 @@ export default function MySessionsPage() {
 
   function calDayClass(date: Date): string {
     if (isPastDate(date)) return 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400'
-    if (isSelected(date)) return 'bg-[#8B1538] text-white'
+    if (isSelected(date)) return 'bg-brand text-white'
     if (isToday(date)) return 'bg-gray-200 text-gray-900'
     return 'hover:bg-gray-100 text-gray-700 border border-gray-200'
   }
@@ -160,7 +160,7 @@ export default function MySessionsPage() {
 
           {myBookings.length === 0 && (
             <Link href="/book" className="block mb-6">
-              <div className="rounded-2xl bg-gradient-to-r from-[#8B1538] to-[#a01a42] p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all">
+              <div className="rounded-2xl p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all" style={{ background: 'var(--brand-button-gradient)' }}>
                 <div>
                   <p className="font-bold text-sm leading-tight">No upcoming sessions</p>
                   <p className="text-xs opacity-75 mt-0.5">Tap to book your sessions for this month</p>
@@ -220,7 +220,7 @@ export default function MySessionsPage() {
                           <span className="text-[9px] sm:text-[10px] md:text-xs mb-0.5 sm:mb-1 opacity-70">{dayName}</span>
                           <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{dayNumber}</span>
                           {hasBookings && (
-                            <span className={`mt-0.5 sm:mt-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected(date) ? 'bg-white' : 'bg-[#8B1538]'}`} />
+                            <span className={`mt-0.5 sm:mt-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected(date) ? 'bg-white' : 'bg-brand'}`} />
                           )}
                         </button>
                       )
@@ -263,7 +263,7 @@ export default function MySessionsPage() {
                         >
                           <div
                             className="border border-gray-200 rounded-lg p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow w-full"
-                            style={{ borderLeftColor: booking.serviceSession?.themeColor || '#8B1538', borderLeftWidth: '4px' }}
+                            style={{ borderLeftColor: booking.serviceSession?.themeColor || 'var(--brand-primary)', borderLeftWidth: '4px' }}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">

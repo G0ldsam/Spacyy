@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         },
       },
       serviceSession: { select: { name: true } },
-      organization: { select: { name: true } },
+      organization: { select: { name: true, brandPrimary: true } },
     },
   })
 
@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
           orgName: booking.organization.name,
           sessionName: booking.serviceSession?.name ?? 'Session',
           startTime: booking.startTime,
+          brandColor: booking.organization.brandPrimary ?? undefined,
         })
         if (client.userId) {
           createNotification(client.userId, {

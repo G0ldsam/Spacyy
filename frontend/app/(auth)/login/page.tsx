@@ -145,7 +145,7 @@ export default function LoginPage() {
               {loading ? t('login.submitting') : t('login.submit')}
             </Button>
             <p className="text-center text-sm text-gray-600">
-              <Link href="/forgot-password" className="text-[#8B1538] hover:underline font-medium">
+              <Link href="/forgot-password" className="text-brand hover:underline font-medium">
                 Forgot your password?
               </Link>
             </p>

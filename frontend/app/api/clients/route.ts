@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { name: true, slug: true },
+      select: { name: true, slug: true, brandPrimary: true },
     })
 
     // Check if client already exists
@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
           orgName: org.name,
           loginUrl,
           tempPassword,
+          brandColor: org.brandPrimary ?? undefined,
         }).catch(console.error)
       }
     }

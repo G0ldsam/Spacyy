@@ -169,7 +169,7 @@ export default function PolicyPage() {
                         const value = e.target.value
                         setSettings({
                           ...settings,
-                          bookingChangeHours: value === '' ? null : parseInt(value) || 0,
+                          bookingChangeHours: value === '' ? null : Number.parseInt(value) || 0,
                         })
                       }}
                       className="h-12 text-base"
@@ -195,7 +195,7 @@ export default function PolicyPage() {
                           key={opt.value}
                           className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                             settings.cancellationPolicy === opt.value
-                              ? 'border-[#8B1538] bg-[#8B1538]/5'
+                              ? 'border-brand bg-brand/5'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
@@ -205,7 +205,7 @@ export default function PolicyPage() {
                             value={opt.value}
                             checked={settings.cancellationPolicy === opt.value}
                             onChange={() => setSettings({ ...settings, cancellationPolicy: opt.value })}
-                            className="mt-0.5 h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300"
+                            className="mt-0.5 h-4 w-4 text-brand focus:ring-brand border-gray-300"
                           />
                           <div>
                             <p className="text-sm font-medium text-gray-900">{opt.label}</p>
@@ -228,7 +228,7 @@ export default function PolicyPage() {
                             allowPendingSlot: e.target.checked,
                           })
                         }
-                        className="h-4 w-4 text-[#8B1538] focus:ring-[#8B1538] border-gray-300 rounded"
+                        className="h-4 w-4 text-brand focus:ring-brand border-gray-300 rounded"
                       />
                       <label htmlFor="allowPendingSlot" className="text-sm font-medium text-gray-900">
                         {t('policy.pending_label')}

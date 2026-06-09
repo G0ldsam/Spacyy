@@ -104,9 +104,9 @@ interface DateChipProps {
 }
 
 function chipClass(isSelected: boolean, isAvailable: boolean, isDisabled: boolean): string {
-  if (isSelected) return 'border-[#8B1538] bg-[#8B1538]'
+  if (isSelected) return 'border-brand bg-brand'
   if (!isAvailable || isDisabled) return 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
-  return 'border-gray-200 bg-white hover:border-[#8B1538]/50 active:scale-95'
+  return 'border-gray-200 bg-white hover:border-brand/50 active:scale-95'
 }
 
 function DateChip({ s, isSelected, isDisabled, onToggle }: DateChipProps) {
@@ -153,7 +153,7 @@ function SessionCard({ group, selected, selCount, maxSelectable, onToggle, onTog
           <span className="font-semibold text-gray-900 text-sm truncate">{group.sessionName}</span>
           <span className="text-xs text-gray-400 shrink-0">{group.timeRange}</span>
           {group.hasPreSelected && (
-            <span className="text-[10px] font-semibold text-[#8B1538] bg-[#8B1538]/10 px-1.5 py-0.5 rounded-full leading-none shrink-0">
+            <span className="text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full leading-none shrink-0">
               usual
             </span>
           )}
@@ -161,7 +161,7 @@ function SessionCard({ group, selected, selCount, maxSelectable, onToggle, onTog
         {available.length > 0 && (
           <button
             onClick={() => onToggleGroup(group)}
-            className="text-xs font-semibold text-[#8B1538] hover:opacity-70 transition-opacity shrink-0 ml-3 min-w-[28px] text-right"
+            className="text-xs font-semibold text-brand hover:opacity-70 transition-opacity shrink-0 ml-3 min-w-[28px] text-right"
           >
             {allGroupSelected ? 'None' : 'All'}
           </button>
@@ -181,7 +181,7 @@ function SessionCard({ group, selected, selCount, maxSelectable, onToggle, onTog
       </div>
 
       {selectedInGroup.length > 0 && (
-        <p className="text-xs text-[#8B1538] font-medium mt-3">
+        <p className="text-xs text-brand font-medium mt-3">
           {selectedInGroup.length} of {group.items.length} date{group.items.length === 1 ? '' : 's'} selected
         </p>
       )}
@@ -330,7 +330,7 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
           {slotsRemaining !== null && slotsRemaining > 0 && (
             <div className="w-full bg-gray-100 rounded-full h-1.5">
               <div
-                className="bg-[#8B1538] h-1.5 rounded-full transition-all duration-300"
+                className="bg-brand h-1.5 rounded-full transition-all duration-300"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -378,7 +378,7 @@ export function RebookClient({ suggestions, slotsRemaining, clientSessionAllowan
           <div className="max-w-2xl mx-auto space-y-2">
             {error && <p className="text-sm text-red-500 text-center">{error}</p>}
             <Button
-              className="w-full h-12 text-base font-semibold bg-[#8B1538] hover:bg-[#7a1230] disabled:opacity-40"
+              className="w-full h-12 text-base font-semibold disabled:opacity-40"
               onClick={handleBook}
               disabled={selCount === 0 || booking}
             >

@@ -63,7 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const existingBooking = await prisma.booking.findUnique({
       where: { id: params.id },
       include: {
-        organization: { select: { bookingChangeHours: true, name: true, cancellationPolicy: true } },
+        organization: { select: { bookingChangeHours: true, name: true, cancellationPolicy: true, brandPrimary: true } },
         client: {
           select: {
             id: true,
@@ -174,6 +174,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           orgName: existingBooking.organization.name,
           sessionName: existingBooking.serviceSession?.name ?? 'Session',
           startTime: existingBooking.startTime,
+          brandColor: existingBooking.organization.brandPrimary ?? undefined,
         }).catch(console.error)
       }
       if (existingBooking.client.userId) {
@@ -205,6 +206,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         sessionName: existingBooking.serviceSession?.name ?? 'Session',
         startTime: existingBooking.startTime,
         isReschedule: isReschedule === true,
+        brandColor: existingBooking.organization.brandPrimary ?? undefined,
       }).catch(console.error)
 
       if (existingBooking.client.email) {
@@ -214,6 +216,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           orgName: existingBooking.organization.name,
           sessionName: existingBooking.serviceSession?.name ?? 'Session',
           startTime: existingBooking.startTime,
+          brandColor: existingBooking.organization.brandPrimary ?? undefined,
         }).catch(console.error)
       }
 

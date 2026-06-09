@@ -280,7 +280,7 @@ export default function ClientsView({ onBack }: Props) {
                       )}
                       {client.sessionAllowance !== null && (
                         <div className="flex items-center text-sm">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-[#8B1538]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
                           <span className="text-gray-700">{t('clients.sessions_allowed', { count: client.sessionAllowance! })}</span>
@@ -410,7 +410,7 @@ export default function ClientsView({ onBack }: Props) {
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-notes" className="text-sm font-medium text-gray-900">{t('clients.notes_label')}</label>
-                <textarea id="edit-notes" rows={3} placeholder={t('clients.notes_placeholder')} value={editFormData.notes} onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} className="flex w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-base sm:text-sm text-gray-900 ring-offset-white placeholder:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B1538] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                <textarea id="edit-notes" rows={3} placeholder={t('clients.notes_placeholder')} value={editFormData.notes} onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} className="flex w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-base sm:text-sm text-gray-900 ring-offset-white placeholder:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-sessionAllowance" className="text-sm font-medium text-gray-900">{t('clients.allowance_label')}</label>

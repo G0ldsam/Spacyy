@@ -25,7 +25,7 @@ interface WaitlistEntry {
 
 function formatTime(t: string) {
   const [h, m] = t.split(':')
-  const hour = parseInt(h)
+  const hour = Number.parseInt(h)
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const display = hour % 12 || 12
   return `${display}:${m} ${ampm}`
@@ -68,7 +68,7 @@ function dateLabel(dateStr: string) {
 }
 
 export default function MyWaitlistPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
   const { t } = useLanguage()
   const [entries, setEntries] = useState<WaitlistEntry[]>([])
@@ -161,7 +161,7 @@ export default function MyWaitlistPage() {
               <p className="text-gray-500 text-sm mb-6 max-w-xs">{t('my_waitlist.empty_desc')}</p>
               <Link
                 href="/book"
-                className="inline-flex items-center gap-2 bg-[#8B1538] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#721230] transition-colors"
+                className="inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-dark transition-colors"
               >
                 {t('my_waitlist.browse')}
               </Link>
@@ -188,7 +188,7 @@ export default function MyWaitlistPage() {
                           {/* Color accent bar */}
                           <div
                             className="w-1.5 shrink-0"
-                            style={{ backgroundColor: entry.session.themeColor || '#8B1538' }}
+                            style={{ backgroundColor: entry.session.themeColor || 'var(--brand-primary)' }}
                           />
 
                           <div className="flex-1 px-4 py-4">

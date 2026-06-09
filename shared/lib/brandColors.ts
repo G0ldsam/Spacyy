@@ -36,9 +36,9 @@ export const DEFAULT_BRAND: BrandColors = {
 }
 
 function hexToHsl(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const r = Number.parseInt(hex.slice(1, 3), 16) / 255
+  const g = Number.parseInt(hex.slice(3, 5), 16) / 255
+  const b = Number.parseInt(hex.slice(5, 7), 16) / 255
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)
   const l = (max + min) / 2
@@ -66,9 +66,9 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 function relativeLuminance(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const r = Number.parseInt(hex.slice(1, 3), 16) / 255
+  const g = Number.parseInt(hex.slice(3, 5), 16) / 255
+  const b = Number.parseInt(hex.slice(5, 7), 16) / 255
   const lin = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
 }
@@ -132,13 +132,23 @@ export function deriveTokens(brand: BrandColors): DerivedTokens {
   }
 }
 
+function hexToRgbChannels(hex: string): string {
+  const r = Number.parseInt(hex.slice(1, 3), 16)
+  const g = Number.parseInt(hex.slice(3, 5), 16)
+  const b = Number.parseInt(hex.slice(5, 7), 16)
+  return `${r} ${g} ${b}`
+}
+
 export function tokensToCssVars(tokens: DerivedTokens): string {
   return `
     --brand-primary: ${tokens.primary};
+    --brand-primary-rgb: ${hexToRgbChannels(tokens.primary)};
     --brand-secondary: ${tokens.secondary};
     --brand-accent: ${tokens.accent};
+    --brand-accent-rgb: ${hexToRgbChannels(tokens.accent)};
     --brand-primary-light: ${tokens.primaryLight};
     --brand-primary-dark: ${tokens.primaryDark};
+    --brand-primary-dark-rgb: ${hexToRgbChannels(tokens.primaryDark)};
     --brand-primary-muted: ${tokens.primaryMuted};
     --brand-secondary-light: ${tokens.secondaryLight};
     --brand-secondary-dark: ${tokens.secondaryDark};

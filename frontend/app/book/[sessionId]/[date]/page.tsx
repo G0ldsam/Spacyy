@@ -336,8 +336,8 @@ export default function BookSessionPage() {
                                     className={[
                                       'px-3 py-1 rounded-full text-sm font-semibold border transition-colors',
                                       isInterested
-                                        ? 'bg-[#8B1538] text-white border-[#8B1538]'
-                                        : 'bg-white text-[#8B1538] border-[#8B1538] hover:bg-[#8B1538]/10',
+                                        ? 'bg-brand text-white border-brand'
+                                        : 'bg-white text-brand border-brand hover:bg-brand/10',
                                     ].join(' ')}
                                   >
                                     {isLoadingInterest
@@ -352,7 +352,7 @@ export default function BookSessionPage() {
                           </div>
                         </div>
                         {!isAvailable && !alreadyBooked && isInterested && (
-                          <p className="text-xs text-[#8B1538] mt-2">
+                          <p className="text-xs text-brand mt-2">
                             You&apos;re on the interest list. We&apos;ll notify you if a spot opens up.
                           </p>
                         )}

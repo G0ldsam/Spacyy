@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     const [sessionData, timeSlotData, orgData, admins] = await Promise.all([
       prisma.serviceSession.findUnique({ where: { id: sessionId }, select: { name: true } }),
       prisma.timeSlot.findUnique({ where: { id: timeSlotId }, select: { startTime: true, endTime: true } }),
-      prisma.organization.findUnique({ where: { id: tenant.organizationId }, select: { name: true } }),
+      prisma.organization.findUnique({ where: { id: tenant.organizationId }, select: { name: true, brandPrimary: true } }),
       prisma.userOrganization.findMany({
         where: { organizationId: tenant.organizationId, role: { in: ['OWNER', 'ADMIN'] } },
         include: { user: { select: { id: true, email: true } } },
@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
         date: formattedDate,
         startTime: timeSlotData.startTime,
         endTime: timeSlotData.endTime,
+        brandColor: orgData.brandPrimary ?? undefined,
       }).catch(console.error)
     }
     if (client.userId) {
@@ -157,6 +158,7 @@ export async function POST(req: NextRequest) {
       date: formattedDate,
       startTime: timeSlotData.startTime,
       endTime: timeSlotData.endTime,
+      brandColor: orgData.brandPrimary ?? undefined,
     }).catch(console.error)
     createNotifications(adminUserIds, {
       title: 'New waitlist entry',

@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     // Get organization policy (always needed for org name in notifications)
     const organization = await prisma.organization.findUnique({
       where: { id: finalOrganizationId },
-      select: { allowPendingSlot: true },
+      select: { allowPendingSlot: true, brandPrimary: true },
     })
 
     let usePendingSlot = false
@@ -273,6 +273,7 @@ export async function POST(req: NextRequest) {
         clientName: booking.client!.name,
         sessionName,
         startTime: booking.startTime,
+        brandColor: organization?.brandPrimary ?? undefined,
       }).catch(console.error)
 
       createNotifications(adminUserIds, {
@@ -288,6 +289,7 @@ export async function POST(req: NextRequest) {
           orgName,
           sessionName,
           startTime: booking.startTime,
+          brandColor: organization?.brandPrimary ?? undefined,
         }).catch(console.error)
 
         notifyAdminPendingSlotUsed({
@@ -296,6 +298,7 @@ export async function POST(req: NextRequest) {
           clientName: booking.client!.name,
           sessionName,
           startTime: booking.startTime,
+          brandColor: organization?.brandPrimary ?? undefined,
         }).catch(console.error)
 
         createNotifications(adminUserIds, {
@@ -311,6 +314,7 @@ export async function POST(req: NextRequest) {
           sessionName,
           startTime: booking.startTime,
           endTime: booking.endTime,
+          brandColor: organization?.brandPrimary ?? undefined,
         }).catch(console.error)
       }
     }

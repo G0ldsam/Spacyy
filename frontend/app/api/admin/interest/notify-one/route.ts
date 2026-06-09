@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       client: { select: { id: true, name: true, email: true, userId: true } },
       session: { select: { id: true, name: true } },
       timeSlot: { select: { startTime: true, endTime: true } },
-      organization: { select: { name: true, slug: true } },
+      organization: { select: { name: true, slug: true, brandPrimary: true } },
     },
   })
 
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     startTime: entry.timeSlot.startTime,
     endTime: entry.timeSlot.endTime,
     bookingUrl,
+    brandColor: entry.organization.brandPrimary ?? undefined,
   })
 
   if (entry.client.userId) {

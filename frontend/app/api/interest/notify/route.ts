@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     prisma.serviceSession.findUnique({ where: { id: sessionId }, select: { name: true } }),
     prisma.organization.findUnique({
       where: { id: tenant.organizationId },
-      select: { name: true, slug: true },
+      select: { name: true, slug: true, brandPrimary: true },
     }),
   ])
 
@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
         startTime: timeSlot.startTime,
         endTime: timeSlot.endTime,
         bookingUrl,
+        brandColor: org.brandPrimary ?? undefined,
       })
       if (entry.client.userId) {
         createNotification(entry.client.userId, {

@@ -62,7 +62,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Image src="/icon-512.png" alt="Spacyy" width={30} height={30} />
-            <span className="text-lg font-bold text-[#8B1538] tracking-tight">Spacyy</span>
+            <span className="text-lg font-bold text-brand tracking-tight">Spacyy</span>
           </div>
           <div className="flex items-center gap-4 sm:gap-8">
             <a href="#features" className="hidden sm:block text-sm text-gray-500 hover:text-gray-900 transition-colors">
@@ -74,7 +74,7 @@ export default function LandingPage() {
             <LanguageSwitcher />
             <Link
               href="/login"
-              className="px-5 py-2 bg-[#8B1538] text-white text-sm font-medium rounded-lg hover:bg-[#6B1029] transition-colors"
+              className="px-5 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors"
             >
               {t('landing.nav_signin')}
             </Link>
@@ -85,7 +85,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#2C0910] pt-16">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#8B1538]/20 blur-[160px] rounded-full" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand/20 blur-[160px] rounded-full" />
         </div>
 
         <div
@@ -119,7 +119,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
               href="#contact"
-              className="px-8 py-3.5 bg-[#8B1538] text-white text-sm font-medium rounded-xl hover:bg-[#7A1230] transition-colors shadow-lg shadow-[#8B1538]/25"
+              className="px-8 py-3.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand-dark transition-colors shadow-lg shadow-brand/25"
             >
               {t('landing.cta_start')}
             </a>
@@ -141,7 +141,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-3 divide-x divide-gray-100 text-center">
             {badges.map((s) => (
               <div key={s.value} className="px-6 flex flex-col items-center gap-1.5">
-                <span className="text-2xl font-bold text-[#8B1538]">{s.value}</span>
+                <span className="text-2xl font-bold text-brand">{s.value}</span>
                 <span className="text-xs text-gray-400 leading-snug">{t(s.labelKey)}</span>
               </div>
             ))}
@@ -153,7 +153,7 @@ export default function LandingPage() {
       <section id="features" className="py-28 bg-[#FAFAFA]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="max-w-xl mb-16">
-            <p className="text-xs font-semibold text-[#8B1538] uppercase tracking-[0.15em] mb-3">{t('landing.features_label')}</p>
+            <p className="text-xs font-semibold text-brand uppercase tracking-[0.15em] mb-3">{t('landing.features_label')}</p>
             <h2 className="text-4xl font-bold text-gray-900 leading-tight">
               {t('landing.features_title')}
             </h2>
@@ -162,8 +162,8 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 rounded-2xl overflow-hidden border border-gray-200">
             {features.map((f) => (
               <div key={f.titleKey} className="bg-white p-8 hover:bg-[#FDF8F9] transition-colors group">
-                <div className="w-9 h-9 rounded-lg bg-[#8B1538]/8 flex items-center justify-center mb-5 group-hover:bg-[#8B1538]/15 transition-colors">
-                  <svg className="w-4.5 h-4.5 text-[#8B1538]" style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-9 h-9 rounded-lg bg-brand/8 flex items-center justify-center mb-5 group-hover:bg-brand/15 transition-colors">
+                  <svg className="w-4.5 h-4.5 text-brand" style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={f.icon} />
                   </svg>
                 </div>
@@ -180,7 +180,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
             <div className="lg:sticky lg:top-28">
-              <p className="text-xs font-semibold text-[#8B1538] uppercase tracking-[0.15em] mb-3">{t('landing.contact_label')}</p>
+              <p className="text-xs font-semibold text-brand uppercase tracking-[0.15em] mb-3">{t('landing.contact_label')}</p>
               <h2 className="text-4xl font-bold text-gray-900 mb-5 leading-tight">
                 {t('landing.contact_title')}
               </h2>
@@ -190,8 +190,8 @@ export default function LandingPage() {
               <div className="space-y-4">
                 {bullets.map((key) => (
                   <div key={key} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[#8B1538]/10 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 text-[#8B1538]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>

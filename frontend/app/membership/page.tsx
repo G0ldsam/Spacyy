@@ -62,13 +62,13 @@ export default function MembershipPage() {
           clientId: data.id,
           timestamp: Date.now(),
         })
+        const brandPrimary = globalThis.window === undefined
+          ? '#8B1538'
+          : getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim() || '#8B1538'
         const qrCode = await QRCode.toDataURL(qrData, {
           width: 300,
           margin: 2,
-          color: {
-            dark: '#8B1538',
-            light: '#FFFFFF',
-          },
+          color: { dark: brandPrimary, light: '#FFFFFF' },
         })
         setQrCodeDataUrl(qrCode)
         
@@ -212,7 +212,7 @@ export default function MembershipPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-[#8B1538] to-[#722F37] rounded-lg p-4 sm:p-6 text-white">
+                  <div className="rounded-lg p-4 sm:p-6 text-white" style={{ background: 'var(--brand-hero-gradient)' }}>
                     <div className="space-y-3">
                       <div>
                         <p className="text-xs sm:text-sm opacity-90">{t('membership.member_since')}</p>

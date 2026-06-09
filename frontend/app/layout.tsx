@@ -36,20 +36,19 @@ export const viewport: Viewport = {
 async function getBrandCssVars(): Promise<string> {
   try {
     const tenant = await getTenantContext()
-    if (!tenant) return ''
+    if (!tenant) return tokensToCssVars(deriveTokens(DEFAULT_BRAND))
     const org = await prisma.organization.findUnique({
       where: { id: tenant.organizationId },
       select: { brandPrimary: true, brandSecondary: true, brandAccent: true },
     })
-    if (!org?.brandPrimary) return ''
     const tokens = deriveTokens({
-      primary:   org.brandPrimary,
-      secondary: org.brandSecondary ?? DEFAULT_BRAND.secondary,
-      accent:    org.brandAccent    ?? DEFAULT_BRAND.accent,
+      primary:   org?.brandPrimary   ?? DEFAULT_BRAND.primary,
+      secondary: org?.brandSecondary ?? DEFAULT_BRAND.secondary,
+      accent:    org?.brandAccent    ?? DEFAULT_BRAND.accent,
     })
     return tokensToCssVars(tokens)
   } catch {
-    return ''
+    return tokensToCssVars(deriveTokens(DEFAULT_BRAND))
   }
 }
 
@@ -67,9 +66,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Spacyy" />
-        {brandCssVars && (
-          <style dangerouslySetInnerHTML={{ __html: `:root { ${brandCssVars} }` }} />
-        )}
+        <style dangerouslySetInnerHTML={{ __html: `:root { ${brandCssVars} }` }} />
       </head>
       <body>
         <Providers>{children}</Providers>

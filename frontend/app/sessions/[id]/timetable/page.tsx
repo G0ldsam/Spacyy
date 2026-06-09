@@ -253,7 +253,7 @@ export default function TimetablePage() {
                         isConflict
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : isSelected
-                          ? 'bg-[#8B1538] text-white'
+                          ? 'bg-brand text-white'
                           : 'border border-gray-300 text-gray-700 hover:bg-gray-50',
                       ].join(' ')}
                     >

@@ -68,7 +68,7 @@ function ResetPasswordForm() {
           {success ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-gray-600">You&apos;ll be redirected to login in a moment.</p>
-              <Link href="/login" className="text-sm text-[#8B1538] hover:underline font-medium">
+              <Link href="/login" className="text-sm text-brand hover:underline font-medium">
                 Go to login
               </Link>
             </div>
@@ -120,7 +120,7 @@ function ResetPasswordForm() {
                 {loading ? 'Updating…' : 'Set new password'}
               </Button>
               <p className="text-center text-sm text-gray-600">
-                <Link href="/login" className="text-[#8B1538] hover:underline font-medium">
+                <Link href="/login" className="text-brand hover:underline font-medium">
                   Back to login
                 </Link>
               </p>

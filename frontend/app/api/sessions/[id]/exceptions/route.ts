@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }),
     prisma.organization.findUnique({
       where: { id: tenant.organizationId },
-      select: { name: true },
+      select: { name: true, brandPrimary: true },
     }),
   ])
 
@@ -136,6 +136,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         sessionName,
         startTime: exactStart,
         reason: reason || null,
+        brandColor: org?.brandPrimary ?? undefined,
       }).catch(console.error)
     }
     if (booking.client.userId) {

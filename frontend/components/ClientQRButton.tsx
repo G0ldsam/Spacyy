@@ -27,10 +27,11 @@ export function ClientQRButton() {
       if (res.ok) {
         const data = await res.json()
         const encoded = JSON.stringify({ type: 'membership', clientId: data.id })
+        const brandPrimary = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim() || '#8B1538'
         const url = await QRCode.toDataURL(encoded, {
           width: 300,
           margin: 2,
-          color: { dark: '#8B1538', light: '#FFFFFF' },
+          color: { dark: brandPrimary, light: '#FFFFFF' },
         })
         setQrUrl(url)
       }
@@ -48,7 +49,7 @@ export function ClientQRButton() {
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-[#8B1538]"
+          className="h-6 w-6 text-brand"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

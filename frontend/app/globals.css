@@ -5,6 +5,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand defaults — overridden per-tenant by layout.tsx server component */
+  --brand-primary: #8B1538;
+  --brand-primary-rgb: 139 21 56;
+  --brand-secondary: #6B1030;
+  --brand-accent: #C4184A;
+  --brand-accent-rgb: 196 24 74;
+  --brand-primary-dark: #6B1030;
+  --brand-primary-dark-rgb: 107 16 48;
+  --brand-primary-muted: #f7e6ed;
+  --brand-primary-light: #c4517a;
+  --brand-on-primary: #ffffff;
+  --brand-hero-gradient: linear-gradient(135deg, #8B1538 0%, #6B1030 100%);
+  --brand-button-gradient: linear-gradient(135deg, #8B1538 0%, #9e1845 100%);
+  --brand-card-glow: radial-gradient(ellipse at top, #8B153814 0%, transparent 65%);
 }
 
 

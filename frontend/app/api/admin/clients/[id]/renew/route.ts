@@ -33,7 +33,7 @@ export async function POST(
       }),
       prisma.organization.findUnique({
         where: { id: tenant.organizationId },
-        select: { name: true },
+        select: { name: true, brandPrimary: true },
       }),
     ])
 
@@ -87,6 +87,7 @@ export async function POST(
           orgName,
           sessionsAdded: validated.sessionsToAdd,
           newAllowance,
+          brandColor: org?.brandPrimary ?? undefined,
         }).catch(console.error)
       }
       if (updated.userId) {

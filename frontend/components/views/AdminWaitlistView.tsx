@@ -144,7 +144,7 @@ function SlotCard({ group }: { group: AdminWaitlistGroup }) {
               <button
                 onClick={handleNotifyAll}
                 disabled={notifyingAll || notifyingId !== null}
-                className="px-3 py-1.5 rounded-lg bg-[#8B1538] text-white text-xs font-semibold hover:bg-[#721230] disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-dark disabled:opacity-50 transition-colors"
               >
                 {notifyingAll ? 'Sending…' : `Notify all (${unnotified.length})`}
               </button>
@@ -172,7 +172,7 @@ function SlotCard({ group }: { group: AdminWaitlistGroup }) {
                     <button
                       onClick={() => handleNotifyOne(entry.id)}
                       disabled={notifyingId === entry.id || notifyingAll || deletingId === entry.id}
-                      className="px-3 py-1.5 rounded-lg border border-[#8B1538] text-[#8B1538] text-xs font-semibold hover:bg-[#8B1538] hover:text-white disabled:opacity-50 transition-colors"
+                      className="px-3 py-1.5 rounded-lg border border-brand text-brand text-xs font-semibold hover:bg-brand hover:text-white disabled:opacity-50 transition-colors"
                     >
                       {notifyingId === entry.id ? (
                         <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -287,7 +287,7 @@ export default function AdminWaitlistView({ onBack }: Props) {
         {/* Content */}
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-[#8B1538] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-brand/30 rounded-full animate-spin" style={{ borderTopColor: 'var(--brand-primary)' }} />
           </div>
         ) : dateKeys.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">

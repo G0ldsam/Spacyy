@@ -224,8 +224,8 @@ export default function MembershipManagementPage() {
     setSuccess('')
 
     try {
-      const sessionsToAddNum = parseInt(sessionsToAdd)
-      if (isNaN(sessionsToAddNum) || sessionsToAddNum <= 0) {
+      const sessionsToAddNum = Number.parseInt(sessionsToAdd)
+      if (Number.isNaN(sessionsToAddNum) || sessionsToAddNum <= 0) {
         throw new Error('Please enter a positive number of sessions to add')
       }
 
@@ -422,9 +422,9 @@ export default function MembershipManagementPage() {
                             : t('membership_mgmt.unlimited')
                         })}
                       </p>
-                      {scannedClient.sessionAllowance !== null && sessionsToAdd && !isNaN(parseInt(sessionsToAdd)) && (
-                        <p className="text-sm font-semibold text-[#8B1538]">
-                          {t('membership_mgmt.new_total', { count: scannedClient.sessionAllowance + parseInt(sessionsToAdd) })}
+                      {scannedClient.sessionAllowance !== null && sessionsToAdd && !Number.isNaN(Number.parseInt(sessionsToAdd)) && (
+                        <p className="text-sm font-semibold text-brand">
+                          {t('membership_mgmt.new_total', { count: scannedClient.sessionAllowance + Number.parseInt(sessionsToAdd) })}
                         </p>
                       )}
                     </div>

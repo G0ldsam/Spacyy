@@ -6,12 +6,12 @@ import DashboardHeader from '@/components/DashboardHeader'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
-  userName: string | null | undefined
-  userEmail: string | null | undefined
-  activeBookingsCount: number
-  totalBookingsCount: number
-  sessionsCount: number
-  clientsCount: number
+  readonly userName: string | null | undefined
+  readonly userEmail: string | null | undefined
+  readonly activeBookingsCount: number
+  readonly totalBookingsCount: number
+  readonly sessionsCount: number
+  readonly clientsCount: number
 }
 
 export default function DashboardClient({
@@ -48,7 +48,7 @@ export default function DashboardClient({
                   <CardTitle className="text-lg sm:text-xl">{t('dashboard.bookings')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-[#8B1538]">{activeBookingsCount}</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-brand">{activeBookingsCount}</p>
                   <p className="text-sm text-gray-700 mt-1">{t('dashboard.active_bookings')}</p>
                   <p className="text-xs text-gray-500 mt-1">{t('dashboard.total', { count: totalBookingsCount })}</p>
                 </CardContent>
@@ -61,7 +61,7 @@ export default function DashboardClient({
                   <CardTitle className="text-lg sm:text-xl">{t('dashboard.my_sessions')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-[#8B1538]">{sessionsCount}</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-brand">{sessionsCount}</p>
                   <p className="text-sm text-gray-700 mt-1">{t('dashboard.total_sessions')}</p>
                 </CardContent>
               </Card>
@@ -73,7 +73,7 @@ export default function DashboardClient({
                   <CardTitle className="text-lg sm:text-xl">{t('dashboard.clients')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-[#8B1538]">{clientsCount}</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-brand">{clientsCount}</p>
                   <p className="text-sm text-gray-700 mt-1">{t('dashboard.total_clients')}</p>
                 </CardContent>
               </Card>

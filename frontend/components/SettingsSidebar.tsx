@@ -9,13 +9,13 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 interface Props {
-  open: boolean
-  onClose: () => void
-  user: {
-    name?: string | null
-    email?: string | null
+  readonly open: boolean
+  readonly onClose: () => void
+  readonly user: {
+    readonly name?: string | null
+    readonly email?: string | null
   }
-  isAdmin?: boolean
+  readonly isAdmin?: boolean
 }
 
 const PUSH_HINT_SEEN_KEY = 'push-hint-seen'
@@ -134,7 +134,7 @@ export default function SettingsSidebar({ open, onClose, user, isAdmin }: Props)
           <div className="px-5 py-5 border-b border-gray-100">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{t('settings.profile')}</p>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#8B1538] flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center shrink-0">
                 <span className="text-white text-sm font-bold">
                   {(user.name || user.email || '?')[0].toUpperCase()}
                 </span>
@@ -167,7 +167,7 @@ export default function SettingsSidebar({ open, onClose, user, isAdmin }: Props)
               <button
                 onClick={handleInstall}
                 disabled={installing}
-                className="flex items-center gap-2 w-full px-4 py-2.5 bg-[#8B1538] text-white text-sm font-medium rounded-lg hover:bg-[#7a1230] transition-colors disabled:opacity-60"
+                className="flex items-center gap-2 w-full px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-60"
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -204,7 +204,7 @@ export default function SettingsSidebar({ open, onClose, user, isAdmin }: Props)
                           t('settings.install_ios_step4'),
                         ].map((step, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="w-4 h-4 rounded-full bg-[#8B1538] text-white text-[10px] flex items-center justify-center shrink-0 mt-0.5 font-bold">{i + 1}</span>
+                            <span className="w-4 h-4 rounded-full bg-brand text-white text-[10px] flex items-center justify-center shrink-0 mt-0.5 font-bold">{i + 1}</span>
                             {step}
                           </li>
                         ))}
@@ -226,7 +226,7 @@ export default function SettingsSidebar({ open, onClose, user, isAdmin }: Props)
                           t('settings.install_android_step3'),
                         ].map((step, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="w-4 h-4 rounded-full bg-[#8B1538] text-white text-[10px] flex items-center justify-center shrink-0 mt-0.5 font-bold">{i + 1}</span>
+                            <span className="w-4 h-4 rounded-full bg-brand text-white text-[10px] flex items-center justify-center shrink-0 mt-0.5 font-bold">{i + 1}</span>
                             {step}
                           </li>
                         ))}
@@ -298,7 +298,7 @@ export default function SettingsSidebar({ open, onClose, user, isAdmin }: Props)
                   ) : (
                     <button
                       onClick={handleToggle}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${state === 'subscribed' ? 'bg-[#8B1538]' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${state === 'subscribed' ? 'bg-brand' : 'bg-gray-200'}`}
                       aria-label={t('settings.push_notifications')}
                     >
                       <span

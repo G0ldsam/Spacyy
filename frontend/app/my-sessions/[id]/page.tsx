@@ -177,7 +177,7 @@ export default function SessionDetailPage() {
           <Card className="shadow-sm">
             <CardHeader
               className="pb-4"
-              style={{ backgroundColor: booking.serviceSession?.themeColor || '#8B1538' }}
+              style={{ backgroundColor: booking.serviceSession?.themeColor || 'var(--brand-primary)' }}
             >
               <div className="text-white">
                 <CardTitle className="text-2xl sm:text-3xl text-white mb-2">

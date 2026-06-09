@@ -77,7 +77,7 @@ export default function ContactForm() {
           required
           value={formData.name}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
           placeholder={t('contact.name_placeholder')}
         />
       </div>
@@ -93,7 +93,7 @@ export default function ContactForm() {
           required
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
           placeholder={t('contact.email_placeholder')}
         />
       </div>
@@ -108,7 +108,7 @@ export default function ContactForm() {
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
           placeholder={t('contact.phone_placeholder')}
         />
       </div>
@@ -124,7 +124,7 @@ export default function ContactForm() {
           required
           value={formData.businessName}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
           placeholder={t('contact.business_placeholder')}
         />
       </div>
@@ -140,7 +140,7 @@ export default function ContactForm() {
           rows={4}
           value={formData.message}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B1538] focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
           placeholder={t('contact.message_placeholder')}
         />
       </div>
@@ -154,7 +154,7 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="w-full px-8 py-4 bg-[#8B1538] text-white rounded-lg hover:bg-[#6d1029] transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full px-8 py-4 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {status === 'loading' ? t('contact.submitting') : t('contact.submit')}
       </button>

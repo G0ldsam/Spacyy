@@ -10,21 +10,21 @@ interface Entry {
 }
 
 interface Props {
-  open: boolean
-  onClose: () => void
-  sessionName: string
-  themeColor: string
-  startTime: string
-  endTime: string
-  date: string
-  sessionId: string
-  timeSlotId: string
-  entries: Entry[]
+  readonly open: boolean
+  readonly onClose: () => void
+  readonly sessionName: string
+  readonly themeColor: string
+  readonly startTime: string
+  readonly endTime: string
+  readonly date: string
+  readonly sessionId: string
+  readonly timeSlotId: string
+  readonly entries: Entry[]
 }
 
 function formatTime(t: string) {
   const [h, m] = t.split(':')
-  const hour = parseInt(h)
+  const hour = Number.parseInt(h)
   return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`
 }
 
@@ -160,7 +160,7 @@ export default function WaitlistNotifyModal({
                   <button
                     onClick={() => handleNotifyOne(entry)}
                     disabled={notifyingId === entry.id || notifyingAll}
-                    className="px-3 py-1.5 rounded-lg bg-[#8B1538] text-white text-xs font-semibold hover:bg-[#721230] disabled:opacity-50 transition-colors shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-dark disabled:opacity-50 transition-colors shrink-0"
                   >
                     {notifyingId === entry.id ? (
                       <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@ export default function WaitlistNotifyModal({
             <button
               onClick={handleNotifyAll}
               disabled={notifyingAll || notifyingId !== null}
-              className="flex-1 py-2.5 rounded-xl bg-[#8B1538] text-white text-sm font-semibold hover:bg-[#721230] disabled:opacity-50 transition-colors"
+              className="flex-1 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark disabled:opacity-50 transition-colors"
             >
               {notifyingAll ? 'Sending…' : `Notify all (${unnotified.length})`}
             </button>

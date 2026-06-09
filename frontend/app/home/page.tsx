@@ -74,7 +74,7 @@ export default function HomePage() {
       <AutoPushSubscribe />
       <PWAInstallBanner />
       {isAdmin && (
-        <div className="bg-[#8B1538] text-white text-center text-sm py-2 px-4">
+        <div className="bg-brand text-white text-center text-sm py-2 px-4">
           {t('home.preview_banner')}{' '}
           <a href="/dashboard" className="underline font-medium hover:opacity-80">{t('home.preview_link')}</a>
         </div>
@@ -114,7 +114,7 @@ export default function HomePage() {
 
           {showRebookBanner && (
             <Link href="/book" className="block mb-6">
-              <div className="rounded-2xl bg-gradient-to-r from-[#8B1538] to-[#a01a42] p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all">
+              <div className="rounded-2xl p-4 text-white flex items-center justify-between gap-4 shadow-md hover:shadow-lg hover:opacity-95 transition-all" style={{ background: 'var(--brand-button-gradient)' }}>
                 <div>
                   <p className="font-bold text-sm leading-tight">Book your sessions for this month</p>
                   <p className="text-xs opacity-75 mt-0.5">
@@ -141,7 +141,7 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <p className="text-3xl sm:text-4xl font-bold text-[#8B1538] mb-1">{myBookings.length}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-brand mb-1">{myBookings.length}</p>
                       <p className="text-sm text-gray-700">
                         {myBookings.length === 1 ? t('home.session_one') : t('home.session_other')}
                       </p>
@@ -189,7 +189,7 @@ export default function HomePage() {
 
               {/* Member Card */}
               <Link href="/membership" className="block">
-                <div className="bg-gradient-to-br from-[#8B1538] to-[#722F37] rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden min-h-[240px]">
+                <div className="rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden min-h-[240px]" style={{ background: 'var(--brand-hero-gradient)' }}>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
 
