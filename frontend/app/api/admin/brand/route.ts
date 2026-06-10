@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantAdmin } from '@/lib/api-helpers'
 import { isValidHex } from '@/shared/lib/brandColors'
@@ -44,6 +44,7 @@ export async function PATCH(req: NextRequest) {
     select: { brandPrimary: true, brandSecondary: true, brandAccent: true, brandSurface: true },
   })
 
+  revalidateTag('brand')
   revalidatePath('/', 'layout')
   return NextResponse.json(org)
 }

@@ -165,5 +165,6 @@ export function tokensToCssVars(tokens: DerivedTokens): string {
     --brand-card-glow: ${tokens.cardGlow};
     --brand-button-gradient: ${tokens.buttonGradient};
     --brand-surface: ${tokens.surfaceBg};
+    --background: ${tokens.surfaceBg};
   `.trim()
 }

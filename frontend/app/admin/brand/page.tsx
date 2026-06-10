@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { deriveTokens, tokensToCssVars, onColor, wcagLevel, DEFAULT_BRAND, isValidHex, type BrandColors } from '@/shared/lib/brandColors'
+import { deriveTokens, onColor, wcagLevel, DEFAULT_BRAND, isValidHex, type BrandColors } from '@/shared/lib/brandColors'
 
 const PRESETS: { name: string; colors: BrandColors }[] = [
   { name: 'Crimson',  colors: { primary: '#8B1538', secondary: '#6B1030', accent: '#C4184A' } },
@@ -95,14 +96,14 @@ function ColorPickerRow({
 
 function LivePreview({ colors, surface, t }: Readonly<{ colors: BrandColors; surface: string; t: (key: string) => string }>) {
   const tokens = deriveTokens({ ...colors, surface })
-  const cssVars = tokensToCssVars(tokens)
 
   return (
-    <div style={{ ['--preview' as string]: cssVars }} className="space-y-3">
+    <div className="space-y-3">
       <div className="rounded-xl px-3 py-2 text-xs text-gray-500 border border-dashed border-gray-200 flex items-center gap-2" style={{ background: tokens.surfaceBg }}>
         <div className="w-3 h-3 rounded-sm border border-gray-300 flex-shrink-0" style={{ background: tokens.surfaceBg }} />
         Background: {tokens.surfaceBg}
       </div>
+      <div className="rounded-xl p-3" style={{ background: tokens.surfaceBg }}>
       <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: tokens.heroGradient }}>
         <div className="absolute inset-0 opacity-30" style={{ background: tokens.ambientGradient }} />
         <div className="relative z-10">
@@ -171,6 +172,7 @@ function LivePreview({ colors, surface, t }: Readonly<{ colors: BrandColors; sur
           </span>
         ))}
       </div>
+      </div>
     </div>
   )
 }
@@ -179,6 +181,7 @@ const DEFAULT_SURFACE = '#f9f8f9'
 
 export default function BrandStudioPage() {
   const { t } = useLanguage()
+  const router = useRouter()
   const [colors, setColors] = useState<BrandColors>(DEFAULT_BRAND)
   const [surface, setSurface] = useState<string>(DEFAULT_SURFACE)
   const [saved, setSaved] = useState(false)
@@ -214,13 +217,14 @@ export default function BrandStudioPage() {
       })
       if (!res.ok) throw new Error('Save failed')
       setSaved(true)
+      router.refresh()
       setTimeout(() => setSaved(false), 3000)
     } catch {
       setError(t('brand.error_save'))
     } finally {
       setSaving(false)
     }
-  }, [colors, t])
+  }, [colors, surface, router, t])
 
   const tokens = deriveTokens(colors)
   let saveLabel = t('brand.save')
