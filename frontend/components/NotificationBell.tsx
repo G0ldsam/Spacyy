@@ -1,23 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useNotificationsUnread } from '@/hooks/useBookingsData'
 
 export default function NotificationBell() {
-  const [unread, setUnread] = useState(0)
-  const pathname = usePathname()
-
-  useEffect(() => {
-    fetch('/api/notifications')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setUnread(data.filter((n: any) => !n.read).length)
-        }
-      })
-      .catch(() => {})
-  }, [pathname])
+  const { data: unread = 0 } = useNotificationsUnread()
 
   return (
     <Link

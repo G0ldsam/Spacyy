@@ -21,40 +21,56 @@ export async function GET() {
     const orgId = userOrg.organization.id
     const now = new Date()
 
-    const adminUserOrgs = await prisma.userOrganization.findMany({
-      where: { organizationId: orgId, role: { in: ['OWNER', 'ADMIN'] } },
-      select: { userId: true },
+    const [sessionsCount, activeBookingsCount, reservedBookingsCount, totalBookingsCount, clientsCount] =
+      await Promise.all([
+        prisma.serviceSession.count({ where: { organizationId: orgId } }),
+        prisma.booking.count({
+          where: {
+            organizationId: orgId,
+            startTime: { gt: now },
+            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+          },
+        }),
+        prisma.booking.count({
+          where: {
+            organizationId: orgId,
+            startTime: { gt: now },
+            status: 'RESERVED',
+          },
+        }),
+        prisma.booking.count({ where: { organizationId: orgId } }),
+        prisma.client.count({
+          where: {
+            organizationId: orgId,
+            OR: [
+              { userId: null },
+              {
+                user: {
+                  userOrganizations: {
+                    none: { organizationId: orgId, role: { in: ['OWNER', 'ADMIN'] } },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      ])
+
+    return NextResponse.json({
+      sessionsCount,
+      activeBookingsCount,
+      reservedBookingsCount,
+      totalBookingsCount,
+      clientsCount,
     })
-    const adminUserIds = adminUserOrgs.map((u) => u.userId)
-
-    const [sessionsCount, activeBookingsCount, reservedBookingsCount, totalBookingsCount, clientsCount] = await Promise.all([
-      prisma.serviceSession.count({ where: { organizationId: orgId } }),
-      prisma.booking.count({
-        where: {
-          organizationId: orgId,
-          startTime: { gt: now },
-          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        },
-      }),
-      prisma.booking.count({
-        where: {
-          organizationId: orgId,
-          startTime: { gt: now },
-          status: 'RESERVED',
-        },
-      }),
-      prisma.booking.count({ where: { organizationId: orgId } }),
-      prisma.client.count({
-        where: {
-          organizationId: orgId,
-          OR: [{ userId: null }, { userId: { notIn: adminUserIds } }],
-        },
-      }),
-    ])
-
-    return NextResponse.json({ sessionsCount, activeBookingsCount, reservedBookingsCount, totalBookingsCount, clientsCount })
   } catch (err) {
     console.error('Dashboard stats error:', err)
-    return NextResponse.json({ sessionsCount: 0, activeBookingsCount: 0, reservedBookingsCount: 0, totalBookingsCount: 0, clientsCount: 0 })
+    return NextResponse.json({
+      sessionsCount: 0,
+      activeBookingsCount: 0,
+      reservedBookingsCount: 0,
+      totalBookingsCount: 0,
+      clientsCount: 0,
+    })
   }
 }

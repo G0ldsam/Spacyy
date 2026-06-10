@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { PageSpinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -193,7 +193,21 @@ export default function ClientsView({ onBack }: Props) {
   }
 
   if (status === 'loading' || isLoading) {
-    return <PageSpinner />
+    return (
+      <div className="min-h-screen bg-brand-surface">
+        <div className="mobile-container">
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+            <Skeleton className="h-8 w-40 mb-2" />
+            <Skeleton className="h-4 w-56 mb-8" />
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

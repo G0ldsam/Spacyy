@@ -10,25 +10,35 @@ import { queryClient } from '@/lib/queryClient'
 
 function DataPrefetcher() {
   const { data: session } = useSession()
+  const userId = session?.user?.id
 
   useEffect(() => {
-    if (!session) return
-    const isAdmin = session.user?.organizations?.some(
+    if (!userId) return
+    const isAdmin = session?.user?.organizations?.some(
       (org) => org.role === 'OWNER' || org.role === 'ADMIN'
     )
     queryClient.prefetchQuery({ queryKey: ['sessions'], queryFn: () => fetch('/api/sessions').then(r => r.json()) })
     queryClient.prefetchQuery({ queryKey: ['bookings-my'], queryFn: () => fetch('/api/bookings/my').then(r => r.json()) })
     queryClient.prefetchQuery({ queryKey: ['client-me'], queryFn: () => fetch('/api/clients/me').then(r => r.ok ? r.json() : null) })
+    queryClient.prefetchQuery({
+      queryKey: ['notifications-unread'],
+      queryFn: async () => {
+        const r = await fetch('/api/notifications')
+        if (!r.ok) return 0
+        const d: { read: boolean }[] = await r.json()
+        return d.filter(n => !n.read).length
+      },
+    })
     if (isAdmin) {
       queryClient.prefetchQuery({ queryKey: ['clients'], queryFn: () => fetch('/api/clients').then(r => r.json()) })
       queryClient.prefetchQuery({ queryKey: ['dashboard-stats'], queryFn: () => fetch('/api/dashboard/stats').then(r => r.json()) })
     }
-  }, [session])
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>

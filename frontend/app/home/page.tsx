@@ -33,13 +33,13 @@ export default function HomePage() {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  const { data: clientData, isLoading: clientLoading } = useQuery({
+  const { data: clientData } = useQuery({
     queryKey: ['client-me'],
     queryFn: () => fetch('/api/clients/me').then(r => r.ok ? r.json() : null),
     enabled: status === 'authenticated',
   })
 
-  const { data: allBookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery<Booking[]>({
+  const { data: allBookings = [], isFetching: bookingsFetching } = useQuery<Booking[]>({
     queryKey: ['bookings-my'],
     queryFn: () => fetch('/api/bookings/my').then(r => r.json()),
     enabled: status === 'authenticated',
@@ -64,7 +64,8 @@ export default function HomePage() {
     return { show: false, lastBookingDate: null }
   }, [sessionAllowance, myBookings])
 
-  if (status !== 'authenticated' || clientLoading || bookingsLoading) return <PageSpinner />
+  if (status === 'loading') return <PageSpinner />
+  if (status === 'unauthenticated') return null
 
   const isAdmin = session?.user?.organizations?.some(o => o.role === 'OWNER' || o.role === 'ADMIN') ?? false
   const slotsRemaining = sessionAllowance === null ? null : sessionAllowance - myBookings.length

@@ -1,4 +1,5 @@
 import { headers } from 'next/headers'
+import { unstable_cache } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -10,10 +11,26 @@ export interface TenantContext {
   type: string
 }
 
-/**
- * Get tenant context from request host header.
- * First tries middleware-injected headers, then resolves directly from hostname.
- */
+const getCachedOrgBySlug = unstable_cache(
+  async (slug: string) =>
+    prisma.organization.findUnique({
+      where: { slug },
+      select: { id: true, slug: true, name: true },
+    }),
+  ['tenant-slug'],
+  { revalidate: 600 }
+)
+
+const getCachedOrgByDomain = unstable_cache(
+  async (domain: string) =>
+    prisma.organization.findFirst({
+      where: { customDomain: domain, customDomainVerified: true },
+      select: { id: true, slug: true, name: true },
+    }),
+  ['tenant-domain'],
+  { revalidate: 600 }
+)
+
 export async function getTenantContext(): Promise<TenantContext | null> {
   const headersList = headers()
 
@@ -32,7 +49,6 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     }
   }
 
-  // Fallback: resolve from host header directly
   const host = headersList.get('host') || ''
   const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'spacyy.com'
   const hostname = host.split(':')[0]
@@ -41,45 +57,25 @@ export async function getTenantContext(): Promise<TenantContext | null> {
   let type = 'subdomain'
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Local dev: use DEV_TENANT_SLUG env var
     const devSlug = process.env.DEV_TENANT_SLUG
     if (!devSlug) return null
-    org = await prisma.organization.findUnique({
-      where: { slug: devSlug },
-      select: { id: true, slug: true, name: true },
-    })
+    org = await getCachedOrgBySlug(devSlug)
     type = 'dev'
   } else if (hostname.endsWith(`.${mainDomain}`)) {
     const slug = hostname.replace(`.${mainDomain}`, '')
     if (slug && slug !== 'www') {
-      org = await prisma.organization.findUnique({
-        where: { slug },
-        select: { id: true, slug: true, name: true },
-      })
+      org = await getCachedOrgBySlug(slug)
     }
   } else if (hostname !== mainDomain && hostname !== `www.${mainDomain}`) {
-    // Custom domain lookup
-    org = await prisma.organization.findFirst({
-      where: { customDomain: hostname, customDomainVerified: true },
-      select: { id: true, slug: true, name: true },
-    })
+    org = await getCachedOrgByDomain(hostname)
     type = 'custom'
   }
 
   if (!org) return null
 
-  return {
-    organizationId: org.id,
-    slug: org.slug,
-    name: org.name,
-    type,
-  }
+  return { organizationId: org.id, slug: org.slug, name: org.name, type }
 }
 
-/**
- * Verify that the current user has access to the tenant organization
- * Returns the tenant context if authorized, or an error response
- */
 export async function verifyTenantAccess(): Promise<
   { tenant: TenantContext } | { error: NextResponse }
 > {
@@ -101,7 +97,6 @@ export async function verifyTenantAccess(): Promise<
     return { tenant }
   }
 
-  // No tenant from hostname — fall back to the user's own org (e.g. client on main domain)
   const sessionOrg = session.user.organizations?.[0]
   if (!sessionOrg) {
     return { error: NextResponse.json({ error: 'No organization context' }, { status: 400 }) }
@@ -117,10 +112,6 @@ export async function verifyTenantAccess(): Promise<
   }
 }
 
-/**
- * Verify user is an admin/owner of the tenant organization.
- * Role is always verified from the database — never trusted from the JWT alone.
- */
 export async function verifyTenantAdmin(): Promise<
   { tenant: TenantContext } | { error: NextResponse }
 > {
@@ -130,40 +121,34 @@ export async function verifyTenantAdmin(): Promise<
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  let tenant = await getTenantContext()
+  const tenant = await getTenantContext()
 
   if (!tenant) {
-    // No hostname-derived tenant: find user's admin org directly from DB
-    const adminOrgRow = await prisma.userOrganization.findFirst({
-      where: {
-        userId: session.user.id,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-      include: { organization: true },
-    })
-    if (!adminOrgRow) {
+    // No hostname tenant — find admin org from JWT
+    const adminOrg = session.user.organizations?.find(
+      (o) => o.role === 'OWNER' || o.role === 'ADMIN'
+    )
+    if (!adminOrg) {
       return { error: NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 }) }
     }
     return {
       tenant: {
-        organizationId: adminOrgRow.organization.id,
-        slug: adminOrgRow.organization.slug,
-        name: adminOrgRow.organization.name,
+        organizationId: adminOrg.organization.id,
+        slug: adminOrg.organization.slug,
+        name: adminOrg.organization.name,
         type: 'session',
       },
     }
   }
 
-  // Always verify role from DB — JWT role can be stale after a role change
-  const userOrg = await prisma.userOrganization.findFirst({
-    where: {
-      userId: session.user.id,
-      organizationId: tenant.organizationId,
-      role: { in: ['OWNER', 'ADMIN'] },
-    },
-  })
+  // Verify admin role from JWT — stale for at most one JWT lifetime after a role change
+  const jwtOrg = session.user.organizations?.find(
+    (o) =>
+      o.organization.id === tenant.organizationId &&
+      (o.role === 'OWNER' || o.role === 'ADMIN')
+  )
 
-  if (!userOrg) {
+  if (!jwtOrg) {
     return { error: NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 }) }
   }
 

@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import AutoPushSubscribe from '@/components/AutoPushSubscribe'
 import DashboardHeader from '@/components/DashboardHeader'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDashboardStats } from '@/hooks/useBookingsData'
-import { PageSpinner } from '@/components/ui/spinner'
 
 type AdminView = 'home' | 'bookings' | 'sessions' | 'clients'
 
@@ -16,11 +16,48 @@ interface Props {
   readonly onNavigate: (view: AdminView) => void
 }
 
+function StatCard({
+  title,
+  value,
+  sub,
+  extra,
+  isLoading,
+  onClick,
+}: Readonly<{
+  title: string
+  value: number
+  sub: string
+  extra?: React.ReactNode
+  isLoading: boolean
+  onClick: () => void
+}>) {
+  return (
+    <button onClick={onClick} className="text-left">
+      <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-10 w-16 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </>
+          ) : (
+            <>
+              <p className="text-3xl sm:text-4xl font-bold text-brand">{value}</p>
+              <p className="text-sm text-gray-700 mt-1">{sub}{extra}</p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </button>
+  )
+}
+
 export default function DashboardHomeView({ userName, userEmail, onNavigate }: Props) {
   const { t } = useLanguage()
   const { data: stats, isLoading } = useDashboardStats()
-
-  if (isLoading) return <PageSpinner />
 
   const activeBookingsCount = stats?.activeBookingsCount ?? 0
   const reservedBookingsCount = stats?.reservedBookingsCount ?? 0
@@ -46,50 +83,43 @@ export default function DashboardHomeView({ userName, userEmail, onNavigate }: P
           </div>
 
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            <button onClick={() => onNavigate('bookings')} className="text-left">
-              <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg sm:text-xl">{t('dashboard.bookings')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-brand">{activeBookingsCount}</p>
-                  <p className="text-sm text-gray-700 mt-1">
-                    {t('dashboard.active_bookings')}
-                    {reservedBookingsCount > 0 && (
-                      <span className="text-purple-600 font-medium ml-1">
-                        ({reservedBookingsCount} reserved)
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">{t('dashboard.total', { count: totalBookingsCount })}</p>
-                </CardContent>
-              </Card>
-            </button>
-
-            <button onClick={() => onNavigate('sessions')} className="text-left">
-              <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg sm:text-xl">{t('dashboard.my_sessions')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-brand">{sessionsCount}</p>
-                  <p className="text-sm text-gray-700 mt-1">{t('dashboard.total_sessions')}</p>
-                </CardContent>
-              </Card>
-            </button>
-
-            <button onClick={() => onNavigate('clients')} className="text-left sm:col-span-2 lg:col-span-1 w-full">
-              <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg sm:text-xl">{t('dashboard.clients')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl sm:text-4xl font-bold text-brand">{clientsCount}</p>
-                  <p className="text-sm text-gray-700 mt-1">{t('dashboard.total_clients')}</p>
-                </CardContent>
-              </Card>
-            </button>
+            <StatCard
+              title={t('dashboard.bookings')}
+              value={activeBookingsCount}
+              sub={t('dashboard.active_bookings')}
+              extra={
+                reservedBookingsCount > 0 && !isLoading ? (
+                  <span className="text-purple-600 font-medium ml-1">
+                    ({reservedBookingsCount} reserved)
+                  </span>
+                ) : null
+              }
+              isLoading={isLoading}
+              onClick={() => onNavigate('bookings')}
+            />
+            <StatCard
+              title={t('dashboard.my_sessions')}
+              value={sessionsCount}
+              sub={t('dashboard.total_sessions')}
+              isLoading={isLoading}
+              onClick={() => onNavigate('sessions')}
+            />
+            <div className="sm:col-span-2 lg:col-span-1">
+              <StatCard
+                title={t('dashboard.clients')}
+                value={clientsCount}
+                sub={t('dashboard.total_clients')}
+                isLoading={isLoading}
+                onClick={() => onNavigate('clients')}
+              />
+            </div>
           </div>
+
+          {!isLoading && totalBookingsCount > 0 && (
+            <p className="text-xs text-gray-500 mt-2 px-1">
+              {t('dashboard.total', { count: totalBookingsCount })}
+            </p>
+          )}
 
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-6">
             <Link href="/policy">

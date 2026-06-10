@@ -1,4 +1,4 @@
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { createBooking, updateBookingStatus } from '@/actions/bookings'
 
 // ========================================
@@ -120,7 +120,21 @@ export const useDashboardStats = () => {
       if (!res.ok) throw new Error('Failed to fetch dashboard stats')
       return res.json()
     },
-    staleTime: 30_000,
+    staleTime: 2 * 60_000,
+  })
+}
+
+export const useNotificationsUnread = () => {
+  return useQuery<number>({
+    queryKey: ['notifications-unread'],
+    queryFn: async () => {
+      const res = await fetch('/api/notifications')
+      if (!res.ok) return 0
+      const data = await res.json()
+      return Array.isArray(data) ? data.filter((n: { read: boolean }) => !n.read).length : 0
+    },
+    staleTime: 60_000,
+    refetchInterval: 2 * 60_000,
   })
 }
 
@@ -158,6 +172,7 @@ export const useAvailability = (sessionId: string, date: string) => {
     queryFn: () => fetchAvailability(sessionId, date),
     enabled: !!sessionId && !!date,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -170,6 +185,8 @@ export const useMultipleAvailability = (sessions: Session[], date: string) => {
       queryKey: ['availability', session.id, date],
       queryFn: () => fetchAvailability(session.id, date),
       enabled: !!session.id && !!date,
+      staleTime: 30_000,
+      placeholderData: keepPreviousData,
     })),
   })
 }
@@ -180,6 +197,19 @@ export const useBookedDates = (start: string, end: string) => {
     queryFn: () => fetchBookedDates(start, end),
     enabled: !!start && !!end,
     staleTime: 5 * 60_000,
+  })
+}
+
+export const useBookedDatesMonth = (year: number, month: number) => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const start = `${year}-${pad(month + 1)}-01`
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  const end = `${year}-${pad(month + 1)}-${pad(lastDay)}`
+  return useQuery({
+    queryKey: ['booked-dates-month', year, month],
+    queryFn: () => fetchBookedDates(start, end),
+    staleTime: 15 * 60_000,
+    placeholderData: keepPreviousData,
   })
 }
 

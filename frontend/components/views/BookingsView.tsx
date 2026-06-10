@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
-import { PageSpinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,7 @@ import {
   useSessions,
   useClients,
   useMultipleAvailability,
-  useBookedDates,
+  useBookedDatesMonth,
   useExceptions,
   useMultipleInterestLists,
   useCheckIn,
@@ -158,9 +158,17 @@ export default function BookingsView({ onBack }: Props) {
   }, [availableSessions, availabilityQueries])
 
   const weekDays = getWeekDays(selectedDate)
-  const weekStart = toLocalDateStr(weekDays[0])
-  const weekEnd = toLocalDateStr(weekDays[6])
-  const { data: bookedDatesArray = [] } = useBookedDates(weekStart, weekEnd)
+
+  const year = selectedDate.getFullYear()
+  const month = selectedDate.getMonth()
+  // Prefetch adjacent months so week navigation never waits
+  const prevMonth = month === 0 ? 11 : month - 1
+  const prevYear = month === 0 ? year - 1 : year
+  const nextMonth = month === 11 ? 0 : month + 1
+  const nextYear = month === 11 ? year + 1 : year
+  useBookedDatesMonth(prevYear, prevMonth)
+  useBookedDatesMonth(nextYear, nextMonth)
+  const { data: bookedDatesArray = [] } = useBookedDatesMonth(year, month)
   const bookedDates = useMemo(() => new Set(bookedDatesArray), [bookedDatesArray])
 
   const { data: exceptions = {} } = useExceptions(selectedSession?.id || '', dateStr)
@@ -389,7 +397,20 @@ export default function BookingsView({ onBack }: Props) {
 
   const formatDate = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
-  if (status === 'loading' || sessionsLoading) return <PageSpinner />
+  if (status === 'loading' || sessionsLoading) return (
+    <div className="min-h-screen bg-brand-surface">
+      <div className="mobile-container">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+          <Skeleton className="h-8 w-40 mb-2" />
+          <Skeleton className="h-4 w-56 mb-8" />
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
+            <Skeleton className="h-48 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl lg:col-span-2" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   const weekRange = `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 
